@@ -1,0 +1,15 @@
+acc = {} 
+dacc = {} 
+acc_4l = {} 
+dacc_4l = {} 
+eff = {} 
+deff = {} 
+inc_outfrac = {} 
+binfrac_outfrac = {} 
+outinratio = {} 
+doutinratio = {} 
+inc_wrongfrac = {} 
+binfrac_wrongfrac = {} 
+cfactor = {} 
+lambdajesup = {} 
+lambdajesdn = {} 

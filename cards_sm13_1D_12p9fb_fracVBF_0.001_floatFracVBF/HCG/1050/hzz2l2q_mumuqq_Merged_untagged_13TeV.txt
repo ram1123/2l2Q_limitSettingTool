@@ -1,0 +1,37 @@
+imax 1
+jmax 4
+kmax *
+------------
+shapes * * hzz2l2q_mumuqq_Merged_untagged_13TeV.input.root w:$PROCESS 
+------------
+bin mumuqq_Merged_untagged 
+observation 348 
+------------
+## mass window [700,2500.0] 
+bin mumuqq_Merged_untagged mumuqq_Merged_untagged mumuqq_Merged_untagged mumuqq_Merged_untagged mumuqq_Merged_untagged 
+process ggH_hzz qqH_hzz bkg_vz bkg_ttbar bkg_zjets 
+process -1 0 1 2 3 
+rate 0.2011 0.1337 33.7713 6.0477 0.5728 
+------------
+lumi_13TeV lnN 1.062 1.062 1.062 - - 
+pdf_qqbar lnN - - 1.03 - - 
+pdf_hzz2l2q_accept lnN 1.02 1.02 - - - 
+CMS_eff_m lnN 1.041 1.041 1.041 - - 
+eig0_merged_untagged param  0  1  [-3,3]
+eig1_merged_untagged param  0  1  [-3,3]
+zjetsAlpha_merged_untagged lnN - - - - 1.03 
+gmTTbarWW_Merged_untagged gmN 85 - - - 0.0711497968776 - 
+Knnlo_nlo_vz lnN - - 1.1 - - 
+CMS_Vtagging lnN 0.972/1.028 0.972/1.028 0.972/1.028 - - 
+CMS_zz2l2q_bkgMELA_merged param 0  1  [-3,3]
+CMS_zz2l2q_sigMELA_merged param 0  1  [-3,3]
+JES param  0  1  [-3,3]
+BTAG_merged param  0  1  [-3,3]
+CMS_zz2lJ_mean_J_sig param 0.0 1.0 
+## CMS_zz2lJ_mean_J_err = 0.01 
+CMS_zz2lJ_sigma_J_sig param 0.0 1.0 
+## CMS_zz2lJ_sigma_J_err param 0.1 
+CMS_zz2l2q_mean_m_sig param 0.0 1.0 
+## CMS_zz2l2l_mean_m_err param 0.001 
+CMS_zz2l2q_sigma_m_sig param 0.0 1.0 
+## CMS_zz2l2l_sigma_m_err param 0.2 

@@ -1,0 +1,36 @@
+Combination of hzz2l2q_eeqq_Resolved_b-tagged_13TeV.txt  hzz2l2q_mumuqq_Resolved_b-tagged_13TeV.txt
+imax 2 number of bins
+jmax 4 number of processes minus 1
+kmax 20 number of nuisance parameters
+----------------------------------------------------------------------------------------------------------------------------------
+shapes *    ch1  hzz2l2q_eeqq_Resolved_b-tagged_13TeV.input.root w:$PROCESS
+shapes *    ch2  hzz2l2q_mumuqq_Resolved_b-tagged_13TeV.input.root w:$PROCESS
+----------------------------------------------------------------------------------------------------------------------------------
+bin          ch1             ch2           
+observation  81.0            119.0         
+----------------------------------------------------------------------------------------------------------------------------------
+bin                                               ch1             ch1             ch1             ch1             ch1             ch2             ch2             ch2             ch2             ch2           
+process                                           ggH_hzz         qqH_hzz         bkg_vz          bkg_zjets       bkg_ttbar       ggH_hzz         qqH_hzz         bkg_vz          bkg_zjets       bkg_ttbar     
+process                                           -1              0               1               2               3               -1              0               1               2               3             
+rate                                              0.0037          0.0025          4.0539          0.3905          8.4992          0.0054          0.0028          5.8546          0.6095          9.2845        
+----------------------------------------------------------------------------------------------------------------------------------
+CMS_eff_e               lnN                       1.08            1.08            1.08            -               -               -               -               -               -               -             
+CMS_eff_m               lnN                       -               -               -               -               -               1.041           1.041           1.041           -               -             
+Knnlo_nlo_vz            lnN                       -               -               1.1             -               -               -               -               1.1             -               -             
+gmTTbarWW_Resolved_btagged   gmN  18              -               -               -               -               0.472177467346  -               -               -               -               0.515805267926
+lumi_13TeV              lnN                       1.062           1.062           1.062           -               -               1.062           1.062           1.062           -               -             
+pdf_hzz2l2q_accept      lnN                       1.02            1.02            -               -               -               1.02            1.02            -               -               -             
+pdf_qqbar               lnN                       -               -               1.03            -               -               -               -               1.03            -               -             
+zjetsAlpha_resolved_btagged   lnN                 -               -               -               1.03            -               -               -               -               1.03            -             
+JES           param  0 1 [-3,3]
+CMS_zz2l2q_sigma_e_sig  param  0.0 1.0
+eig0_resolved_btagged  param  0 1 [-3,3]
+eig1_resolved_btagged  param  0 1 [-3,3]
+CMS_zz2l2q_mean_j_sig  param  0.0 1.0
+CMS_zz2l2q_mean_m_sig  param  0.0 1.0
+CMS_zz2l2q_bkgMELA_resolved  param  0 1 [-3,3]
+CMS_zz2l2q_sigma_j_sig  param  0.0 1.0
+CMS_zz2l2q_sigMELA_resolved  param  0 1 [-3,3]
+CMS_zz2l2q_sigma_m_sig  param  0.0 1.0
+BTAG_resolved  param  0 1 [-3,3]
+CMS_zz2l2q_mean_e_sig  param  0.0 1.0
