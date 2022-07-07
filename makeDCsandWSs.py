@@ -112,7 +112,8 @@ def creationLoop(directory):
 
             makeDirectory(directory+'/HCG/'+mhs)
 
-            channels = {'eeqq_Merged','eeqq_Resolved','mumuqq_Merged','mumuqq_Resolved'}
+            # channels = {'eeqq_Merged','eeqq_Resolved','mumuqq_Merged','mumuqq_Resolved'}
+            channels = {'eeqq_Merged'}
             cats = {'vbf-tagged','b-tagged','untagged'}
 
             #channels = {'mumuqq_Resolved'}
