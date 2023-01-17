@@ -12,7 +12,7 @@ class inputReader:
     def __init__(self, inputTextFile):
 
         if not os.path.exists(inputTextFile):
-            raise RuntimeError("File {0} does not exist!!!".format(inputTextFile))
+            raise RuntimeError, "File {0} does not exist!!!".format(inputTextFile)
 
         # input file
         self.theInput = inputTextFile
@@ -138,7 +138,7 @@ class inputReader:
                 if f[1].upper() == "SM": self.model = "SM"
                 elif f[1].upper() == "SM4": self.model = "SM4"
                 elif f[1].upper() == "FF" or f[1].upper() == "FP": self.model = "FF"
-                else : raise RuntimeError("Unknow model {0}, choices are SM, SM4, FF".format(f[1].upper()))
+                else : raise RuntimeError, "Unknow model {0}, choices are SM, SM4, FF".format(f[1].upper())
 
             if f[0].lower().startswith("decay"):
 
@@ -146,7 +146,7 @@ class inputReader:
                 elif f[1] == "eeqq_Resolved": self.decayChan = f[1]
                 elif f[1] == "mumuqq_Merged": self.decayChan = f[1]
                 elif f[1] == "eeqq_Merged": self.decayChan = f[1]
-                else : raise RuntimeError("Unknown decay channel {0}".format(f[1]))
+                else : raise RuntimeError, "Unknown decay channel {0}".format(f[1])
 
             if f[0].lower().startswith("cat"):
                self.cat = f[1]
@@ -160,7 +160,7 @@ class inputReader:
                     elif chan.lower().startswith("ttbar"): self.ttbar_chan = True
                     elif chan.lower().startswith("vz"):   self.vz_chan = True
                     elif chan.lower().startswith("all"):   self.all_chan = True
-                    else : raise RuntimeError("Unknown channel {0}, choices are ggH, qqH, WH, ZH, ttH, qqZZ, ggZZ, zjets".format(chan))
+                    else : raise RuntimeError, "Unknown channel {0}, choices are ggH, qqH, WH, ZH, ttH, qqZZ, ggZZ, zjets".format(chan)
 
             if f[0].lower().startswith("zjetsshape"):
 
@@ -262,11 +262,11 @@ class inputReader:
 
         ## check settings ##
         if self.all_chan and ( self.qqH_chan or self.ggH_chan):
-            raise RuntimeError("You cannot request to execute ALL signal channels and single channels at the same time. Check inputs!")
-        if not self.goodEntry(self.sqrts): raise RuntimeError("{0} is not set.  Check inputs!".format("sqrts"))
+            raise RuntimeError, "You cannot request to execute ALL signal channels and single channels at the same time. Check inputs!"
+        if not self.goodEntry(self.sqrts): raise RuntimeError, "{0} is not set.  Check inputs!".format("sqrts")
 
-        if not self.goodEntry(self.zjetsAlphaLow): raise RuntimeError("{0} is not set.  Check inputs!".format("self.zjetsAlphaLow"))
-        if not self.goodEntry(self.zjetsAlphaHigh): raise RuntimeError("{0} is not set.  Check inputs!".format("self.zjetsAlphaHigh"))
+        if not self.goodEntry(self.zjetsAlphaLow): raise RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaLow")
+        if not self.goodEntry(self.zjetsAlphaHigh): raise RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaHigh")
 
         if not self.goodEntry(self.zjets_lumi): self.zjets_lumi = self.lumi
         if not self.goodEntry(self.vz_lumi):   self.vz_lumi = self.lumi

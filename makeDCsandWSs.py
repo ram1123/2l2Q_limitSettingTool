@@ -65,7 +65,7 @@ class DirectoryCreator:
             for j in range(self.end_val[i]):
                 current_mass = self.start_mass[i] + j*self.step_sizes[i]
                 for sub in self.subdir:
-                    sub_dir_name = f"{sub}"
+                    sub_dir_name = "{}".format(sub)
                     self.make_directory(sub_dir_name)
 
     def creation_loop(self):
@@ -76,12 +76,9 @@ class DirectoryCreator:
         for i in range(len(self.start_mass)):
             for j in range(self.end_val[i]):
                 current_mass = self.start_mass[i] + j*self.step_sizes[i]
-                # sub_dir_name = f"{current_mass}_{self.append_name}"
-                # self.make_directory(sub_dir_name)
                 for sub in self.subdir:
-                    # sub_dir_name = f"{current_mass}_{self.append_name}/{sub}"
-                    sub_dir_name = f"{sub}"
-                    self.make_directory(sub_dir_name)
+                    self.make_directory(sub)
+                self.make_directory('HCG' + '/' + str(self.start_mass[i]))
                 print("self.dir_name: ",self.dir_name)
                 for channel in self.channels:
                     for cat in self.cats:

@@ -70,7 +70,7 @@ class systematicsClass:
         self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
     def Write_Systematics_Line(self,systLine,theFile,theInputs):
-        print( "~~~~~~~~~~~~~~~~~")
+        print "~~~~~~~~~~~~~~~~~"
         channelList=['ggH','qqH','vz','ttbar','zjets']
 
         if theInputs["all"]:
@@ -78,7 +78,7 @@ class systematicsClass:
 
         for chan in channelList:
             if theInputs[chan] or (chan.startswith("ggH") and theInputs["all"]):
-                print( chan, systLine[chan])
+                print chan, systLine[chan]
                 theFile.write(systLine[chan])
 
         theFile.write("\n")
@@ -91,7 +91,7 @@ class systematicsClass:
         elif (self.sqrts == 13):
             theFile.write("lumi_13TeV lnN ")
         else:
-            raise RuntimeError("Unknown sqrts in systematics!")
+            raise RuntimeError, "Unknown sqrts in systematics!"
 
         systLine={'ggH':"{0} ".format(self.lumiUncertainty)}
         systLine['qqH']  = "{0} ".format(self.lumiUncertainty)
@@ -221,7 +221,7 @@ class systematicsClass:
         systLine['vz']  = "0.990549/1.00949 "
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
-
+        
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
@@ -310,7 +310,7 @@ class systematicsClass:
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_CMS_hzz2l2q_vz(self,theFile,theInputs):
-
+        
 
         #changed by Jialin
         #theFile.write("Knnlo_nlo_vz lnN ")
@@ -380,8 +380,8 @@ class systematicsClass:
             if theInputs['useQCDscale_ggH'] :
                 self.Write_QCDscale_ggH(theFile,theInputs)
 
-        if theInputs['useQCDscale_qqH'] :
-            self.Write_QCDscale_qqH(theFile,theInputs)
+	    if theInputs['useQCDscale_qqH'] :
+                self.Write_QCDscale_qqH(theFile,theInputs)
 
 	## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :
