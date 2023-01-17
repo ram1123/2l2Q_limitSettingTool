@@ -43,3 +43,15 @@
     - In `HM_inputs_*` you should prepare 12 systematics files  ((resolved, merged * b-tagged, un-tagged , vbf-tagged) * ee,mumu). Now, you can just go into these .txt files and change the value of systematics.
     - `-y` is year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all
     - `-a` append name for cards dir. i.e `-a` test will create `cards_test` to stroe all datacards. When you run this tool, it better to keep option `-a` same as `-y`. in `cards_2016`, `cards_2017` and `cards_2018`. There already have combine and plot script.
+
+4. Get combined cards for various channel:
+
+    ```bash
+    python CombineCards.py
+    ```
+
+5. Run the combine commands:
+
+    ```bash
+    python RunCombine.py
+    ```

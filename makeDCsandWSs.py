@@ -18,6 +18,7 @@ class DirectoryCreator:
         self.subdir = ['HCG','figs']
         self.dir_name = 'cards_'+self.append_name
         self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
         self.cats = {'vbf-tagged','b-tagged','untagged'}
 
     def parse_options(self):
