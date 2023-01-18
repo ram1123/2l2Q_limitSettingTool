@@ -54,14 +54,24 @@
     - `-y` is year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all
     - `-a` append name for cards dir. i.e `-a` test will create `cards_test` to stroe all datacards. When you run this tool, it better to keep option `-a` same as `-y`. in `cards_2016`, `cards_2017` and `cards_2018`. There already have combine and plot script.
 
-4. Get combined cards for various channel:
+    Help command of makeDCsandWSs.py:
 
     ```bash
-    python CombineCards.py
-    ```
+    Usage: makeDCsandWSs.py [options] datasetList
+    makeDCsandWSs.py -h for help
 
-5. Run the combine commands:
-
-    ```bash
-    python RunCombine.py
+    Options:
+    -h, --help            show this help message and exit
+    -i INPUT_DIR, --input=INPUT_DIR
+                            inputs directory
+    -d IS_2D, --is2D=IS_2D
+                            is2D (default:1)
+    -a APPEND_NAME, --append=APPEND_NAME
+                            append name for cards dir
+    -f FRAC_VBF, --fracVBF=FRAC_VBF
+                            fracVBF (default:0.5%)
+    -y YEAR, --year=YEAR  year to run or run for all three year. Options: 2016,
+                            2016APV, 2017,2018,all
+    -s STEP, --step=STEP  Which step to run: dc (DataCardCreation), cc
+                            (CombineCards), rc (RunCombine), or all
     ```

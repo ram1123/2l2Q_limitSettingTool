@@ -106,7 +106,7 @@ class datacardClass:
           self.jetType = "merged"
 
         ## ---------------- SET PLOTTING STYLE ---------------- ##
-        # ROOT.setTDRStyle(True)
+        ROOT.setTDRStyle(True)
         ROOT.gStyle.SetPalette(1)
         ROOT.gStyle.SetPadLeftMargin(0.16)
 
