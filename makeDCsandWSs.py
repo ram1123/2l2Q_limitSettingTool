@@ -15,6 +15,52 @@ def RemoveFile(FileName):
     else:
         print("File, {}, does not exist".format(FileName))
 
+# Prepare condor jobs
+condor = '''executable              = run_script.sh
+output                  = output/strips.$(ClusterId).$(ProcId).out
+error                    = output/strips.$(ClusterId).$(ProcId).out
+log                        = output/strips.$(ClusterId).out
+transfer_input_files    = run_script.sh
+on_exit_remove          = (ExitBySignal == False) && (ExitCode == 0)
+periodic_release        = (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > (60*60))
+
++JobFlavour             = "espresso"
++AccountingGroup        = "group_u_CMS.CAF.ALCA"
+queue arguments from arguments.txt
+'''
+
+
+script = '''#!/bin/sh -e
+echo "Starting job on " `date`
+echo "Running on: `uname -a`"
+echo "System software: `cat /etc/redhat-release`"
+JOBID=$1;
+LOCAL=$2;
+MH=$3;
+DATACARD=$4
+echo "Print arguments: "
+echo "JOBID: ${JOBID}"
+echo "LOCAL: ${LOCAL}"
+echo "MH: ${MH}"
+echo "DATACARD: ${DATACARD}"
+echo "========="
+
+echo "Print local path: `pwd`"
+cd ${LOCAL}
+echo "Print local path: `pwd`"
+echo "Print local path: `pwd`"
+
+eval `scramv1 ru -sh`
+echo "========="
+echo "combine -n mH${MH}_exp -m ${MH} -M AsymptoticLimits  ${DATACARD}  --rMax 1 --rAbsAcc 0 --run blind"
+echo "========="
+combine -n mH${MH}_exp -m ${MH} -M AsymptoticLimits  ${DATACARD}  --rMax 1 --rAbsAcc 0 --run blind
+echo "========="
+
+echo -e "DONE";
+echo "Ending job on " `date`
+'''
+
 class DirectoryCreator:
 
     def __init__(self):
@@ -28,15 +74,16 @@ class DirectoryCreator:
         self.end_val = [51] # if start_mass starts from 200 then use 57, if starts from 500 then 51
         self.subdir = ['HCG','figs']
         self.dir_name = 'cards_'+self.append_name
-        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
-        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
+        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
         self.cats = {'vbf-tagged','b-tagged','untagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
-        # self.t_values = ['Resolved', 'Merged']
-        self.t_values = ['Resolved']
+        self.t_values = ['Resolved', 'Merged']
+        # self.t_values = ['Resolved']
         self.verbose = False
         self.step = ''
+        self.ifCondor = 0
 
     def parse_options(self):
         usage = ('usage: %prog [options] datasetList\n'
@@ -49,6 +96,7 @@ class DirectoryCreator:
         parser.add_option('-f', '--fracVBF',   dest='frac_vbf',       type='float',    default=0.005,     help='fracVBF (default:0.5%)')
         parser.add_option("-y","--year",dest="year",type='string', default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
         parser.add_option("-s","--step",dest="step",type='string', default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), or all")
+        parser.add_option("-c","--ifCondor",dest="ifCondor",type='int', default=0, help="if you want to run  combine command for all mass points parallel using condor make it 1")
 
         options, args = parser.parse_args()
 
@@ -71,15 +119,24 @@ class DirectoryCreator:
         self.year = options.year
         self.dir_name = 'cards_'+self.append_name
         self.step = options.step
+        self.ifCondor = options.ifCondor
 
     def make_directory(self, sub_dir_name):
-        if not os.path.exists(self.dir_name+'/'+sub_dir_name):
-            if self.verbose: print("{}{}\nCreate directory: {}".format('\t\n', '#'*51, self.dir_name+'/'+sub_dir_name))
-            os.makedirs(self.dir_name+'/'+sub_dir_name)
+        if not os.path.exists(sub_dir_name):
+            if self.verbose: print("{}{}\nCreate directory: {}".format('\t\n', '#'*51, sub_dir_name))
+            os.makedirs(sub_dir_name)
         else:
-            if self.verbose: print('Directory '+self.dir_name+'/'+sub_dir_name+' already exists. Exiting...')
+            if self.verbose: print('Directory '+sub_dir_name+' already exists. Exiting...')
 
     def Run(self):
+
+        if self.ifCondor:
+            RemoveFile('arguments.txt') # Delete old argument files as the main script will append.
+            with open("condor_job.jdl", "w") as cnd_out:
+                cnd_out.write(condor)
+            with open("run_script.sh", "w") as scriptfile:
+                scriptfile.write(script)
+
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
             print ("[INFO] declar datacardClass")
@@ -100,8 +157,8 @@ class DirectoryCreator:
                 # STEP - 1: Datacard and workspace creation
                 if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
                     for sub in self.subdir:
-                        self.make_directory(sub)
-                    self.make_directory('HCG' + '/' + str(current_mass))
+                        self.make_directory(self.dir_name + '/'+sub)
+                    self.make_directory(self.dir_name + '/HCG/' + str(current_mass))
                     print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
 
                     for channel in self.channels:
@@ -146,10 +203,33 @@ class DirectoryCreator:
 
                 # STEP - 3: Run Combine commands
                 if (self.step).lower() == 'rc' or (self.step).lower() == 'all':
-                    # Change the respective directory where all cards are placed
-                    os.chdir(CurrentMassDirectory)
-                    RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
-                    os.chdir(cwd)
+                    # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
+                    datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                    print('datacard: {}'.format(datacard))
+                    if self.ifCondor:
+                        self.make_directory('output')
+                        LocalDir = os.getcwd()
+                        print('PWD: {}'.format(LocalDir))
+
+                        with open("arguments.txt", "a") as inArgFile:
+                            inArgFile.write("{JOBID}  {LOCAL}  {MH}  {DATACARD}\n".format(JOBID = 1, LOCAL = LocalDir+'/'+CurrentMassDirectory, MH=current_mass, DATACARD = datacard))
+
+                    else:
+                        # Change the respective directory where all cards are placed
+                        os.chdir(CurrentMassDirectory)
+                        RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
+                        os.chdir(cwd)
+
+        if (self.step).lower() == 'plot' or (self.step).lower() == 'all':
+            command = 'python plotLimitExpObs_2D.py ' + self.start_mass + ' ' + self.end_val + ' ' + self.step_sizes + '  ' + self.year
+            RunCommand(command)
+
+        if self.ifCondor:
+            print('For running condor jobs do following:')
+            print('1. set up proxy:')
+            print('\nvoms-proxy-init --voms cms --valid 168:00')
+            print('2. Submit the condor jobs:')
+            print("\ncondor_submit condor_job.jdl")
 
 if __name__ == "__main__":
     dc = DirectoryCreator()
