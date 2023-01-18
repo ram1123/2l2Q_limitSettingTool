@@ -4,6 +4,17 @@ import optparse
 from inputReader import *
 from datacardClass import *
 
+def RunCommand(command):
+    # print("#"*51)
+    print(command)
+    os.system(command)
+
+def RemoveFile(FileName):
+    if os.path.exists(FileName):
+        os.remove(FileName)
+    else:
+        print("File, {}, does not exist".format(FileName))
+
 class DirectoryCreator:
 
     def __init__(self):
@@ -14,12 +25,17 @@ class DirectoryCreator:
         self.year = "2016"
         self.start_mass = [500]
         self.step_sizes = [50]
-        self.end_val = [1]
+        self.end_val = [51] # if start_mass starts from 200 then use 57, if starts from 500 then 51
         self.subdir = ['HCG','figs']
         self.dir_name = 'cards_'+self.append_name
         self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
         # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
         self.cats = {'vbf-tagged','b-tagged','untagged'}
+        self.ifNuisance = True
+        self.Template = ["2D"]
+        # self.t_values = ['Resolved', 'Merged']
+        self.t_values = ['Resolved']
+        self.verbose = False
 
     def parse_options(self):
         usage = ('usage: %prog [options] datasetList\n'
@@ -31,6 +47,7 @@ class DirectoryCreator:
         parser.add_option('-a', '--append', dest='append_name', type='string', default="",    help='append name for cards dir')
         parser.add_option('-f', '--fracVBF',   dest='frac_vbf',       type='float',    default=0.005,     help='fracVBF (default:0.5%)')
         parser.add_option("-y","--year",dest="year",type='string', default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
+        # parser.add_option("-s","--step",dest="step",type='string', default='DC', help="Which step to run")
 
         options, args = parser.parse_args()
 
@@ -53,34 +70,24 @@ class DirectoryCreator:
         self.year = options.year
 
     def make_directory(self, sub_dir_name):
-        self.dir_name = 'cards_'+self.append_name
-        print(self.dir_name)
         if not os.path.exists(self.dir_name+'/'+sub_dir_name):
+            if self.verbose: print("{}{}\nCreate directory: {}".format('\t\n', '#'*51, self.dir_name+'/'+sub_dir_name))
             os.makedirs(self.dir_name+'/'+sub_dir_name)
         else:
-            print('Directory '+self.dir_name+'/'+sub_dir_name+' already exists. Exiting...')
-            # sys.exit()
-
-    def creation_loop(self):
-        for i in range(len(self.start_mass)):
-            for j in range(self.end_val[i]):
-                current_mass = self.start_mass[i] + j*self.step_sizes[i]
-                for sub in self.subdir:
-                    sub_dir_name = "{}".format(sub)
-                    self.make_directory(sub_dir_name)
+            if self.verbose: print('Directory '+self.dir_name+'/'+sub_dir_name+' already exists. Exiting...')
 
     def creation_loop(self):
         print ("[INFO] declar datacardClass")
         myClass = datacardClass(self.year)
-        print ("[INFO] load root module")
+        if self.verbose: print ("[INFO] load root module")
         myClass.loadIncludes()
         for i in range(len(self.start_mass)):
-            for j in range(self.end_val[i]):
+            for j in range(self.end_val[0]):
                 current_mass = self.start_mass[i] + j*self.step_sizes[i]
                 for sub in self.subdir:
                     self.make_directory(sub)
-                self.make_directory('HCG' + '/' + str(self.start_mass[i]))
-                print("self.dir_name: ",self.dir_name)
+                self.make_directory('HCG' + '/' + str(current_mass))
+                print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
                 for channel in self.channels:
                     for cat in self.cats:
                         inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
@@ -90,8 +97,68 @@ class DirectoryCreator:
                         theInputs = myReader.getInputs()
                         myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
 
+    def CombineCards(self):
+        for i in range(len(self.start_mass)):
+            for j in range(self.end_val[0]):
+                RunCommand("#"*85)
+                current_mass = self.start_mass[i] + j*self.step_sizes[i]
+                cwd = os.getcwd()
+                CurrentMassDirectory = self.dir_name + '/' + '/HCG/' + str(current_mass)
+                print('cwd: {}'.format(cwd))
+                print('CurrentMassDirectory: {}'.format(CurrentMassDirectory))
+
+                # Change the respective directory where all cards are placed
+                os.chdir(CurrentMassDirectory)
+
+                AllCardsCombination = 'combineCards.py  -s '
+                for t in self.t_values:
+                    RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
+                    RemoveFile("hzz2l2q_eeqq_{}_13TeV.txt".format(t))
+                    RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
+                    RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
+
+                    for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
+                        RunCommand("combineCards.py hzz2l2q_{FinalState}_untagged_13TeV.txt hzz2l2q_{FinalState}_b-tagged_13TeV.txt hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs))
+
+                    RunCommand("combineCards.py hzz2l2q_mumuqq_{Category}_13TeV.txt hzz2l2q_eeqq_{Category}_13TeV.txt > hzz2l2q_{Category}_13TeV_xs.txt".format(Category = t))
+
+                    for cat in self.cats:
+                        RunCommand("combineCards.py hzz2l2q_eeqq_{Category}_{Tag}_13TeV.txt hzz2l2q_mumuqq_{Category}_{Tag}_13TeV.txt > hzz2l2q_{Category}_{Tag}_13TeV.txt".format(Category = t,  Tag = cat))
+
+                    AllCardsCombination = AllCardsCombination +' hzz2l2q_{Category}_13TeV_xs.txt'.format(Category = t)
+                RunCommand("*"*51)
+
+                AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
+                AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
+
+                RunCommand(AllCardsWithNuisance)
+                RunCommand(AllCardsCombination)
+                os.chdir(cwd)
+
+    def RunCombine(self):
+        datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
+        for i in range(len(self.start_mass)):
+            for j in range(self.end_val[0]):
+                RunCommand("#"*85)
+                current_mass = self.start_mass[i] + j*self.step_sizes[i]
+                cwd = os.getcwd()
+                CurrentMassDirectory = self.dir_name + '/' + '/HCG/' + str(current_mass)
+                print('cwd: {}'.format(cwd))
+                print('CurrentMassDirectory: {}'.format(CurrentMassDirectory))
+
+                # Change the respective directory where all cards are placed
+                os.chdir(CurrentMassDirectory)
+
+                RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
+
+                os.chdir(cwd)
+
 
 if __name__ == "__main__":
     dc = DirectoryCreator()
     dc.parse_options()
-    dc.creation_loop()
+    dc.dir_name = 'cards_'+dc.append_name
+    # dc.creation_loop()
+    # dc.CombineCards()
+    dc.RunCombine()
