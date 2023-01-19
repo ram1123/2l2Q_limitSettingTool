@@ -69,9 +69,9 @@ class DirectoryCreator:
         self.append_name = ""
         self.frac_vbf = 0.005
         self.year = "2016"
-        self.start_mass = [500]
-        self.step_sizes = [50]
-        self.end_val = [51] # if start_mass starts from 200 then use 57, if starts from 500 then 51
+        self.start_mass = 500
+        self.step_sizes = 50
+        self.end_val = 3001 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
         self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
@@ -146,83 +146,81 @@ class DirectoryCreator:
             if self.verbose: print ("[INFO] load root module")
             myClass.loadIncludes()
 
-        for i in range(len(self.start_mass)):
+        for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
             if (self.step).lower() == 'plot': continue
-            for j in range(self.end_val[0]):
-                RunCommand("#"*85)
-                current_mass = self.start_mass[i] + j*self.step_sizes[i]
-                cwd = os.getcwd()
-                CurrentMassDirectory = self.dir_name + '/' + '/HCG/' + str(current_mass)
-                print('cwd: {}'.format(cwd))
-                print('CurrentMassDirectory: {}'.format(CurrentMassDirectory))
+            RunCommand("#"*85)
+            cwd = os.getcwd()
+            CurrentMassDirectory = self.dir_name + '/' + '/HCG/' + str(current_mass)
+            print('cwd: {}'.format(cwd))
+            print('CurrentMassDirectory: {}'.format(CurrentMassDirectory))
 
-                # STEP - 1: Datacard and workspace creation
-                if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
-                    for sub in self.subdir:
-                        self.make_directory(self.dir_name + '/'+sub)
-                    self.make_directory(self.dir_name + '/HCG/' + str(current_mass))
-                    print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
+            # STEP - 1: Datacard and workspace creation
+            if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
+                for sub in self.subdir:
+                    self.make_directory(self.dir_name + '/'+sub)
+                self.make_directory(self.dir_name + '/HCG/' + str(current_mass))
+                print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
 
-                    for channel in self.channels:
-                        for cat in self.cats:
-                            inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
-                            print("inputreadertext: ", inputreadertxt)
-                            myReader = inputReader(inputreadertxt)
-                            myReader.readInputs()
-                            theInputs = myReader.getInputs()
-                            myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
+                # for channel in self.channels:
+                #     for cat in self.cats:
+                #         inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
+                #         print("inputreadertext: ", inputreadertxt)
+                #         myReader = inputReader(inputreadertxt)
+                #         myReader.readInputs()
+                #         theInputs = myReader.getInputs()
+                #         myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
 
-                # STEP - 2: Get the combined cards
-                if (self.step).lower() == 'cc' or (self.step).lower() == 'all':
+            # STEP - 2: Get the combined cards
+            if (self.step).lower() == 'cc' or (self.step).lower() == 'all':
+                # Change the respective directory where all cards are placed
+                os.chdir(CurrentMassDirectory)
+
+                AllCardsCombination = 'combineCards.py  -s '
+                for t in self.t_values:
+                    RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
+                    RemoveFile("hzz2l2q_eeqq_{}_13TeV.txt".format(t))
+                    RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
+                    RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
+
+                    for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
+                        RunCommand("combineCards.py hzz2l2q_{FinalState}_untagged_13TeV.txt hzz2l2q_{FinalState}_b-tagged_13TeV.txt hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs))
+
+                    RunCommand("combineCards.py hzz2l2q_mumuqq_{Category}_13TeV.txt hzz2l2q_eeqq_{Category}_13TeV.txt > hzz2l2q_{Category}_13TeV_xs.txt".format(Category = t))
+
+                    for cat in self.cats:
+                        RunCommand("combineCards.py hzz2l2q_eeqq_{Category}_{Tag}_13TeV.txt hzz2l2q_mumuqq_{Category}_{Tag}_13TeV.txt > hzz2l2q_{Category}_{Tag}_13TeV.txt".format(Category = t,  Tag = cat))
+
+                    AllCardsCombination = AllCardsCombination +' hzz2l2q_{Category}_13TeV_xs.txt'.format(Category = t)
+                RunCommand("*"*51)
+
+                AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
+                AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
+
+                RunCommand(AllCardsWithNuisance)
+                RunCommand(AllCardsCombination)
+                os.chdir(cwd)
+
+
+            # STEP - 3: Run Combine commands
+            if (self.step).lower() == 'rc' or (self.step).lower() == 'all':
+                # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+                if self.ifCondor:
+                    LocalDir = os.getcwd()
+                    print('PWD: {}'.format(LocalDir))
+
+                    with open("arguments_{}.txt".format(self.year), "a") as inArgFile:
+                        inArgFile.write("{JOBID}  {LOCAL}  {MH}  {DATACARD}\n".format(JOBID = 1, LOCAL = LocalDir+'/'+CurrentMassDirectory, MH=current_mass, DATACARD = datacard))
+
+                else:
                     # Change the respective directory where all cards are placed
                     os.chdir(CurrentMassDirectory)
-
-                    AllCardsCombination = 'combineCards.py  -s '
-                    for t in self.t_values:
-                        RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
-                        RemoveFile("hzz2l2q_eeqq_{}_13TeV.txt".format(t))
-                        RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
-                        RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
-
-                        for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
-                            RunCommand("combineCards.py hzz2l2q_{FinalState}_untagged_13TeV.txt hzz2l2q_{FinalState}_b-tagged_13TeV.txt hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs))
-
-                        RunCommand("combineCards.py hzz2l2q_mumuqq_{Category}_13TeV.txt hzz2l2q_eeqq_{Category}_13TeV.txt > hzz2l2q_{Category}_13TeV_xs.txt".format(Category = t))
-
-                        for cat in self.cats:
-                            RunCommand("combineCards.py hzz2l2q_eeqq_{Category}_{Tag}_13TeV.txt hzz2l2q_mumuqq_{Category}_{Tag}_13TeV.txt > hzz2l2q_{Category}_{Tag}_13TeV.txt".format(Category = t,  Tag = cat))
-
-                        AllCardsCombination = AllCardsCombination +' hzz2l2q_{Category}_13TeV_xs.txt'.format(Category = t)
-                    RunCommand("*"*51)
-
-                    AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
-                    AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
-
-                    RunCommand(AllCardsWithNuisance)
-                    RunCommand(AllCardsCombination)
+                    RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
                     os.chdir(cwd)
 
-
-                # STEP - 3: Run Combine commands
-                if (self.step).lower() == 'rc' or (self.step).lower() == 'all':
-                    # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
-                    datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
-                    print('datacard: {}'.format(datacard))
-                    if self.ifCondor:
-                        LocalDir = os.getcwd()
-                        print('PWD: {}'.format(LocalDir))
-
-                        with open("arguments_{}.txt".format(self.year), "a") as inArgFile:
-                            inArgFile.write("{JOBID}  {LOCAL}  {MH}  {DATACARD}\n".format(JOBID = 1, LOCAL = LocalDir+'/'+CurrentMassDirectory, MH=current_mass, DATACARD = datacard))
-
-                    else:
-                        # Change the respective directory where all cards are placed
-                        os.chdir(CurrentMassDirectory)
-                        RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
-                        os.chdir(cwd)
-
         if (self.step).lower() == 'plot':
-            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass[0], self.end_val[0], self.step_sizes[0], self.year)
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year)
             RunCommand(command)
 
         if self.ifCondor:
