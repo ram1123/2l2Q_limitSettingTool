@@ -17,9 +17,9 @@ def RemoveFile(FileName):
 
 # Prepare condor jobs
 condor = '''executable              = run_script.sh
-output                  = output/strips.$(ClusterId).$(ProcId).out
-error                    = output/strips.$(ClusterId).$(ProcId).out
-log                        = output/strips.$(ClusterId).out
+output                  = output/{year}/strips.$(ClusterId).$(ProcId).out
+error                    = output/{year}/strips.$(ClusterId).$(ProcId).out
+log                        = output/{year}/strips.$(ClusterId).out
 transfer_input_files    = run_script.sh
 on_exit_remove          = (ExitBySignal == False) && (ExitCode == 0)
 periodic_release        = (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > (60*60))
@@ -131,10 +131,11 @@ class DirectoryCreator:
     def Run(self):
 
         if self.ifCondor:
-            RemoveFile('arguments.txt') # Delete old argument files as the main script will append.
-            with open("condor_job.jdl", "w") as cnd_out:
-                cnd_out.write(condor)
-            with open("run_script.sh", "w") as scriptfile:
+            self.make_directory('output/{}'.format(self.year))
+            RemoveFile('arguments_{}.txt'.format(self.year)) # Delete old argument files as the main script will append.
+            with open("condor_job_{}.jdl".format(self.year), "w") as cnd_out:
+                cnd_out.write(condor.format(year = self.year))
+            with open("run_script_{}.sh".format(self.year), "w") as scriptfile:
                 scriptfile.write(script)
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
@@ -146,6 +147,7 @@ class DirectoryCreator:
             myClass.loadIncludes()
 
         for i in range(len(self.start_mass)):
+            if (self.step).lower() == 'plot': continue
             for j in range(self.end_val[0]):
                 RunCommand("#"*85)
                 current_mass = self.start_mass[i] + j*self.step_sizes[i]
@@ -207,11 +209,10 @@ class DirectoryCreator:
                     datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
                     print('datacard: {}'.format(datacard))
                     if self.ifCondor:
-                        self.make_directory('output')
                         LocalDir = os.getcwd()
                         print('PWD: {}'.format(LocalDir))
 
-                        with open("arguments.txt", "a") as inArgFile:
+                        with open("arguments_{}.txt".format(self.year), "a") as inArgFile:
                             inArgFile.write("{JOBID}  {LOCAL}  {MH}  {DATACARD}\n".format(JOBID = 1, LOCAL = LocalDir+'/'+CurrentMassDirectory, MH=current_mass, DATACARD = datacard))
 
                     else:
@@ -220,8 +221,8 @@ class DirectoryCreator:
                         RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
                         os.chdir(cwd)
 
-        if (self.step).lower() == 'plot' or (self.step).lower() == 'all':
-            command = 'python plotLimitExpObs_2D.py ' + self.start_mass + ' ' + self.end_val + ' ' + self.step_sizes + '  ' + self.year
+        if (self.step).lower() == 'plot':
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass[0], self.end_val[0], self.step_sizes[0], self.year)
             RunCommand(command)
 
         if self.ifCondor:
@@ -229,7 +230,7 @@ class DirectoryCreator:
             print('1. set up proxy:')
             print('\nvoms-proxy-init --voms cms --valid 168:00')
             print('2. Submit the condor jobs:')
-            print("\ncondor_submit condor_job.jdl")
+            print("\ncondor_submit condor_job_{}.jdl".format(self.year))
 
 if __name__ == "__main__":
     dc = DirectoryCreator()

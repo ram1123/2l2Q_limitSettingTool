@@ -1,4 +1,5 @@
 from ROOT import *
+ROOT.gROOT.SetBatch(True)
 from tdrStyle import *
 setTDRStyle()
 
@@ -18,12 +19,16 @@ exp = array('d',[])
 obs = array('d',[])
 exp_m1 = array('d',[])
 exp_m2 = array('d',[])
-
 exp1D = array('d',[])
 
-for i in range(len(start_mass)):
-    for j in range(end_val[0]):
-        m = start_mass[i] + j*step_sizes[i]
+print('start_mass: {}'.format(start_mass))
+print('end_val: {}'.format(end_val))
+print('step_sizes: {}'.format(step_sizes))
+print('year: {}'.format(year))
+
+for i in range(1):
+    for j in range(int(end_val)):
+        m = int(start_mass) + j*int(step_sizes)
 
         f = TFile("./cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_exp.AsymptoticLimits.mH"+str(m)+".root","READ")
         t = f.Get("limit")
@@ -130,7 +135,9 @@ legend.Draw("same")
 
 gPad.RedrawAxis()
 
-c.SaveAs("highmasslimit_spin0_2D_13TeV.pdf")
-c.SaveAs("highmasslimit_spin0_2D_13TeV.png")
-c.SaveAs("highmasslimit_spin0_2D_13TeV.C")
-c.SaveAs("highmasslimit_spin0_2D_13TeV.root")
+OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}'.format(year = year)
+
+c.SaveAs(OutputFileName+".pdf")
+c.SaveAs(OutputFileName+".png")
+c.SaveAs(OutputFileName+".C")
+c.SaveAs(OutputFileName+".root")
