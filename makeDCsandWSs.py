@@ -16,17 +16,17 @@ def RemoveFile(FileName):
         print("File, {}, does not exist".format(FileName))
 
 # Prepare condor jobs
-condor = '''executable              = run_script.sh
+condor = '''executable              = run_script_{year}.sh
 output                  = output/{year}/strips.$(ClusterId).$(ProcId).out
-error                    = output/{year}/strips.$(ClusterId).$(ProcId).out
-log                        = output/{year}/strips.$(ClusterId).out
-transfer_input_files    = run_script.sh
+error                   = output/{year}/strips.$(ClusterId).$(ProcId).out
+log                     = output/{year}/strips.$(ClusterId).$(ProcId).out
+transfer_input_files    = run_script_{year}.sh
 on_exit_remove          = (ExitBySignal == False) && (ExitCode == 0)
 periodic_release        = (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > (60*60))
 
 +JobFlavour             = "espresso"
 +AccountingGroup        = "group_u_CMS.CAF.ALCA"
-queue arguments from arguments.txt
+queue arguments from arguments_{year}.txt
 '''
 
 
@@ -73,14 +73,14 @@ class DirectoryCreator:
         self.step_sizes = [50]
         self.end_val = [51] # if start_mass starts from 200 then use 57, if starts from 500 then 51
         self.subdir = ['HCG','figs']
-        self.dir_name = 'cards_'+self.append_name
-        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
-        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
+        self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
+        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
         self.cats = {'vbf-tagged','b-tagged','untagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
-        self.t_values = ['Resolved', 'Merged']
-        # self.t_values = ['Resolved']
+        # self.t_values = ['Resolved', 'Merged']
+        self.t_values = ['Resolved']
         self.verbose = False
         self.step = ''
         self.ifCondor = 0
@@ -117,7 +117,7 @@ class DirectoryCreator:
         self.append_name = options.append_name
         self.frac_vbf = options.frac_vbf
         self.year = options.year
-        self.dir_name = 'cards_'+self.append_name
+        self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
         self.step = options.step
         self.ifCondor = options.ifCondor
 

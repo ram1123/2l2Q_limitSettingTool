@@ -1,5 +1,5 @@
 from ROOT import *
-ROOT.gROOT.SetBatch(True)
+#ROOT.SetBatch(True)
 from tdrStyle import *
 setTDRStyle()
 
@@ -30,7 +30,7 @@ for i in range(1):
     for j in range(int(end_val)):
         m = int(start_mass) + j*int(step_sizes)
 
-        f = TFile("./cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_exp.AsymptoticLimits.mH"+str(m)+".root","READ")
+        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_exp.AsymptoticLimits.mH"+str(m)+".root","READ")
         t = f.Get("limit")
 
         scale = 1.0
