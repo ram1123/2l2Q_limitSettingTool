@@ -7,7 +7,7 @@ cat b-tagged
 
 ## lumi ##
 lumi 59.83
-systematic lumiUnc 1.012
+systematic lumiUnc 1.015
 
 ## sqrtS ##
 sqrts 13
@@ -55,12 +55,13 @@ systematic elec_trig 0.0075
 systematic luminosity False
 systematic pdf_hzz2l2q_accept False
 systematic QCDscale_ggH False
+systematic QCDscale_qqH False
 systematic QCDscale_vz False
 systematic BRhiggs_hzz2l2q False
 systematic CMS_eff False
 systematic CMS_hzz2l2q_Zjets False
-systematic CMS_zz2l2q_mean False
-systematic CMS_zz2l2q_sigma False
+systematic CMS_zz2l2q_mean True
+systematic CMS_zz2l2q_sigma True
 systematic useCMS_hzz2l2q_Zjets False
 
 systematic CMS_zz2l2q_bkgMELA False

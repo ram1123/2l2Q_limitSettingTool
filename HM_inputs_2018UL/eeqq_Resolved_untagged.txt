@@ -26,14 +26,14 @@ zjetsShape l1_zjets 0.00698471
 
 zjetsShape p0_alt_zjets 6.63989
 zjetsShape l0_alt_zjets 0.00316417
-zjetsShape p1_alt_zjets 10.6372 
+zjetsShape p1_alt_zjets 10.6372
 zjetsShape l1_alt_zjets 0.00698978
 
 zjetsShape p0p0_cov_zjets 0.409841
 zjetsShape p0l0_cov_zjets 0.000236246
-zjetsShape p0p1_cov_zjets 0.055469   
+zjetsShape p0p1_cov_zjets 0.055469
 zjetsShape p0l1_cov_zjets 0.00017965
-zjetsShape l0l0_cov_zjets 1.40907e-07 
+zjetsShape l0l0_cov_zjets 1.40907e-07
 zjetsShape l0p1_cov_zjets 2.90713e-05
 zjetsShape l0l1_cov_zjets 9.74445e-08
 zjetsShape p1p1_cov_zjets 0.0137896
@@ -52,15 +52,15 @@ systematic elec_trig 0.0075
 
 ##### Add Systematic to Cards ####
 ##### allowed False/false ####
-systematic luminosity False
-systematic pdf_hzz2l2q_accept False
-systematic QCDscale_ggH False
-systematic QCDscale_vz False
-systematic BRhiggs_hzz2l2q False
-systematic CMS_eff False
-systematic CMS_hzz2l2q_Zjets False
-systematic CMS_zz2l2q_mean False
-systematic CMS_zz2l2q_sigma False
+systematic luminosity True
+systematic pdf_hzz2l2q_accept True
+systematic QCDscale_ggH True
+systematic QCDscale_vz True
+systematic BRhiggs_hzz2l2q True
+systematic CMS_eff True
+systematic CMS_hzz2l2q_Zjets True
+systematic CMS_zz2l2q_mean True
+systematic CMS_zz2l2q_sigma True
 
-systematic CMS_zz2l2q_bkgMELA False
-systematic CMS_zz2l2q_sigMELA False
+systematic CMS_zz2l2q_bkgMELA True
+systematic CMS_zz2l2q_sigMELA True

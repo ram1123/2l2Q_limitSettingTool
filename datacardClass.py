@@ -3,13 +3,10 @@ from scipy.special import erf
 import ROOT
 from array import array
 
-import sys, os, pwd, commands
+import sys
 from subprocess import *
-import optparse, shlex, re
 import math
-import time
 from decimal import *
-import json
 from ROOT import *
 
 from systematicsClass import *

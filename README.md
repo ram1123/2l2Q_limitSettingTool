@@ -75,3 +75,13 @@
     -s STEP, --step=STEP  Which step to run: dc (DataCardCreation), cc
                             (CombineCards), rc (RunCombine), or all
     ```
+
+# General commands:
+
+```bash
+# local
+combine -n testt -m 500 -M AsymptoticLimits hzz2l2q_13TeV_xs_NoNuisance.txt --rMax 1 --rAbsAcc 0 --run blind
+
+# batch
+combineTool.py -M AsymptoticLimits -d hzz2l2q_13TeV_xs_NoNuisance.root --rMax 1 --rAbsAcc 0 --run blind -m 500 --job-mode condor
+```

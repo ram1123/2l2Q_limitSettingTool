@@ -71,12 +71,14 @@ class DirectoryCreator:
         self.year = "2016"
         self.start_mass = 500
         self.step_sizes = 50
-        self.end_val = 3001 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
+        self.end_val = 550 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
-        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        self.channels = {'eeqq_Resolved'}
+        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
         # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
-        self.cats = {'vbf-tagged','b-tagged','untagged'}
+        # self.cats = {'vbf-tagged','b-tagged','untagged'}
+        self.cats = {'b-tagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
         # self.t_values = ['Resolved', 'Merged']
@@ -161,14 +163,14 @@ class DirectoryCreator:
                 self.make_directory(self.dir_name + '/HCG/' + str(current_mass))
                 print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
 
-                # for channel in self.channels:
-                #     for cat in self.cats:
-                #         inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
-                #         print("inputreadertext: ", inputreadertxt)
-                #         myReader = inputReader(inputreadertxt)
-                #         myReader.readInputs()
-                #         theInputs = myReader.getInputs()
-                #         myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
+                for channel in self.channels:
+                    for cat in self.cats:
+                        inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
+                        print("inputreadertext: ", inputreadertxt)
+                        myReader = inputReader(inputreadertxt)
+                        myReader.readInputs()
+                        theInputs = myReader.getInputs()
+                        myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
 
             # STEP - 2: Get the combined cards
             if (self.step).lower() == 'cc' or (self.step).lower() == 'all':

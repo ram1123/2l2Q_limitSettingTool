@@ -52,16 +52,16 @@ systematic elec_trig 0.0075
 
 ##### Add Systematic to Cards ####
 ##### allowed False/false ####
-systematic luminosity False
-systematic pdf_hzz2l2q_accept False
-systematic QCDscale_ggH False
-systematic QCDscale_vz False
-systematic BRhiggs_hzz2l2q False
-systematic CMS_eff False
-systematic CMS_hzz2l2q_Zjets False
-systematic CMS_zz2l2q_mean False
-systematic CMS_zz2l2q_sigma False
+systematic luminosity True
+systematic pdf_hzz2l2q_accept True
+systematic QCDscale_ggH True
+systematic QCDscale_vz True
+systematic BRhiggs_hzz2l2q True
+systematic CMS_eff True
+systematic CMS_hzz2l2q_Zjets True
+systematic CMS_zz2l2q_mean True
+systematic CMS_zz2l2q_sigma True
 
-systematic CMS_zz2l2q_bkgMELA False
-systematic CMS_zz2l2q_sigMELA False
+systematic CMS_zz2l2q_bkgMELA True
+systematic CMS_zz2l2q_sigMELA True
 
