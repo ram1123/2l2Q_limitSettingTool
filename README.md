@@ -1,7 +1,7 @@
 # Aim of this tool
 
 1. Alpha  ratio method information: **Independent code**:
-    - https://github.com/jialin-guo1/HZZAnalysis/blob/994e9a59b67da505dbe7d15605558ab414eb1310/BackgroundEstimation/AlphaMethod.py
+    - [BackgroundEstimation/AlphaMethod.py](https://github.com/jialin-guo1/HZZAnalysis/blob/994e9a59b67da505dbe7d15605558ab414eb1310/BackgroundEstimation/AlphaMethod.py)
 1.  Resolution: Macro: **Independent code**
     -
 1. Signal efficiency: **Independent code**
