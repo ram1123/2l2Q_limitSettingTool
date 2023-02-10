@@ -74,11 +74,11 @@ class DirectoryCreator:
         self.end_val = 550 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
-        self.channels = {'eeqq_Resolved'}
-        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        # self.channels = {'eeqq_Resolved'}
+        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
         # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
-        # self.cats = {'vbf-tagged','b-tagged','untagged'}
-        self.cats = {'b-tagged'}
+        self.cats = {'vbf-tagged','b-tagged','untagged'}
+        # self.cats = {'b-tagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
         # self.t_values = ['Resolved', 'Merged']
@@ -220,6 +220,23 @@ class DirectoryCreator:
                     os.chdir(CurrentMassDirectory)
                     RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
                     os.chdir(cwd)
+
+            if (self.step).lower() == 'ri' or (self.step).lower() == 'all':
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
+                RunCommand(command)
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit  -t -1 --expectSignal 1"
+                RunCommand(command)
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doFits" # --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name jobs_test2
+                RunCommand(command)
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1  --output impacts.json"
+                RunCommand(command)
+                command = "plotImpacts.py -i impacts.json -o impacts"+str(current_mass)
+                RunCommand(command)
+                os.chdir(cwd)
 
         if (self.step).lower() == 'plot':
             command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year)
