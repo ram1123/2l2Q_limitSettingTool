@@ -5,7 +5,7 @@ from inputReader import *
 from datacardClass import *
 
 def RunCommand(command):
-    # print("#"*51)
+    print("#"*108)
     print(command)
     os.system(command)
 
@@ -14,52 +14,6 @@ def RemoveFile(FileName):
         os.remove(FileName)
     else:
         print("File, {}, does not exist".format(FileName))
-
-# Prepare condor jobs
-condor = '''executable              = run_script_{year}.sh
-output                  = output/{year}/strips.$(ClusterId).$(ProcId).out
-error                   = output/{year}/strips.$(ClusterId).$(ProcId).out
-log                     = output/{year}/strips.$(ClusterId).$(ProcId).out
-transfer_input_files    = run_script_{year}.sh
-on_exit_remove          = (ExitBySignal == False) && (ExitCode == 0)
-periodic_release        = (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > (60*60))
-
-+JobFlavour             = "espresso"
-+AccountingGroup        = "group_u_CMS.CAF.ALCA"
-queue arguments from arguments_{year}.txt
-'''
-
-
-script = '''#!/bin/sh -e
-echo "Starting job on " `date`
-echo "Running on: `uname -a`"
-echo "System software: `cat /etc/redhat-release`"
-JOBID=$1;
-LOCAL=$2;
-MH=$3;
-DATACARD=$4
-echo "Print arguments: "
-echo "JOBID: ${JOBID}"
-echo "LOCAL: ${LOCAL}"
-echo "MH: ${MH}"
-echo "DATACARD: ${DATACARD}"
-echo "========="
-
-echo "Print local path: `pwd`"
-cd ${LOCAL}
-echo "Print local path: `pwd`"
-echo "Print local path: `pwd`"
-
-eval `scramv1 ru -sh`
-echo "========="
-echo "combine -n mH${MH}_exp -m ${MH} -M AsymptoticLimits  ${DATACARD}  --rMax 1 --rAbsAcc 0 --run blind"
-echo "========="
-combine -n mH${MH}_exp -m ${MH} -M AsymptoticLimits  ${DATACARD}  --rMax 1 --rAbsAcc 0 --run blind
-echo "========="
-
-echo -e "DONE";
-echo "Ending job on " `date`
-'''
 
 class DirectoryCreator:
 
@@ -74,11 +28,11 @@ class DirectoryCreator:
         self.end_val = 550 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
-        # self.channels = {'eeqq_Resolved'}
-        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
+        self.channels = {'eeqq_Resolved'}
+        # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'}
         # self.channels = {'eeqq_Resolved', 'mumuqq_Resolved',  'eeqq_Merged', 'mumuqq_Merged'}
-        self.cats = {'vbf-tagged','b-tagged','untagged'}
-        # self.cats = {'b-tagged'}
+        # self.cats = {'vbf-tagged','b-tagged','untagged'}
+        self.cats = {'untagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
         # self.t_values = ['Resolved', 'Merged']
@@ -86,6 +40,8 @@ class DirectoryCreator:
         self.verbose = False
         self.step = ''
         self.ifCondor = 0
+        self.blind = True
+        self.quiet = True
 
     def parse_options(self):
         usage = ('usage: %prog [options] datasetList\n'
@@ -97,8 +53,10 @@ class DirectoryCreator:
         parser.add_option('-a', '--append', dest='append_name', type='string', default="",    help='append name for cards dir')
         parser.add_option('-f', '--fracVBF',   dest='frac_vbf',       type='float',    default=0.005,     help='fracVBF (default:0.5%)')
         parser.add_option("-y","--year",dest="year",type='string', default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
-        parser.add_option("-s","--step",dest="step",type='string', default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), or all")
+        parser.add_option("-s","--step",dest="step",type='string', default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and without syst) , fast (FastScan) or all")
         parser.add_option("-c","--ifCondor",dest="ifCondor",type='int', default=0, help="if you want to run  combine command for all mass points parallel using condor make it 1")
+        parser.add_option("-b", "--blind",  action="store_false", dest="blind", default=True, help="Running blind?")
+        parser.add_option("-q", "--quiet", action="store_false", dest="verbose", default=True, help="don't print status messages to stdout")
 
         options, args = parser.parse_args()
 
@@ -122,6 +80,8 @@ class DirectoryCreator:
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
         self.step = options.step
         self.ifCondor = options.ifCondor
+        self.blind = options.blind
+        self.verbose = options.verbose
 
     def make_directory(self, sub_dir_name):
         if not os.path.exists(sub_dir_name):
@@ -184,6 +144,7 @@ class DirectoryCreator:
                     RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
                     RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
 
+                    # for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
                     for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
                         RunCommand("combineCards.py hzz2l2q_{FinalState}_untagged_13TeV.txt hzz2l2q_{FinalState}_b-tagged_13TeV.txt hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs))
 
@@ -228,9 +189,9 @@ class DirectoryCreator:
                 os.chdir(CurrentMassDirectory)
                 command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
                 RunCommand(command)
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit  -t -1 --expectSignal 1"
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit    --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2  -t -1 --expectSignal 1"
                 RunCommand(command)
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doFits" # --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name jobs_test2
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2   --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 --robustFit 1 --doFits " # --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name jobs_test2
                 RunCommand(command)
                 command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1  --output impacts.json"
                 RunCommand(command)
@@ -238,16 +199,110 @@ class DirectoryCreator:
                 RunCommand(command)
                 os.chdir(cwd)
 
+            if (self.step).lower() == 'rll':
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                # First do a fit and save a workspace with a snapshot of the parameters at the best fit
+                command = "combine -M MultiDimFit " + str(datacard) + " -n .snapshot -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --saveWorkspace"
+                RunCommand(command)
+
+                # Then re-run the scan with parameters frozen on top of this workspace, restoring the snapshot
+                command = "combine -M MultiDimFit higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root -n .freezeall -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit"
+                RunCommand(command)
+
+                # Finally plot the LL scan
+                command = "python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root --others 'higgsCombine.freezeall.MultiDimFit.mH"+str(current_mass)+".root:FreezeAll:2' -o freeze_all"
+                # command = "python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root --main-label \"With systematics\" --main-color 1  --others 'higgsCombine.freezeall.MultiDimFit.mH"+str(current_mass)+".root:\"Stat-only\":2' -o freeze_all"
+                RunCommand(command)
+
+                os.chdir(cwd)
+
+            if (self.step).lower() == 'fast':
+                """ Information:
+                Analyzing the NLL shape in each parameter: [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter)
+                """
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
+                # RunCommand(command)
+                # First do a fit and save a workspace with a snapshot of the parameters at the best fit
+                if (not self.blind):
+                    additionalArguments = " "
+                    additionalArguments = " --robustHesse 1"
+                    additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
+                    command = "combineTool.py -M FastScan -w " + datacard.replace('.txt','.root') + ":w" + "  " + additionalArguments
+                    print(command)
+                else:
+                    FirstCommand = "combine -M GenerateOnly " + datacard.replace('.txt','.root') +  " -t -1 --saveToys --setParameters r=1  -m "+str(current_mass)
+                    SecondCommand = "combineTool.py -M FastScan -w  "+datacard.replace('.txt','.root')+":w  -d higgsCombineTest.GenerateOnly.mH"+str(current_mass)+".123456.root:toys/toy_asimov"
+                    RunCommand(FirstCommand)
+                    RunCommand(SecondCommand)
+
+                os.chdir(cwd)
+
+            if (self.step).lower() == 'test':
+                """ Information:
+                Simple fits
+                """
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
+                print(command)
+
+                if (not self.blind):
+                    print("Analysis is blinded")
+                    pass
+                else:
+                    pointsToScan = 75
+                    ExpectedSignal = 0
+                    if ExpectedSignal == 0: OutFileExt = 0
+                    else: OutFileExt = 1
+                    # command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH,frac_VBF --saveWorkspace -n .bestfit  -t -1 --expectSignal  {ExpectedSignal}  ".format( mH = current_mass, datacard = datacard, ExpectedSignal = ExpectedSignal)
+                    # command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH,frac_VBF  -n .singles --algo singles  -t -1 --expectSignal  {ExpectedSignal}  ".format( mH = current_mass, datacard = datacard, ExpectedSignal = ExpectedSignal)
+                    # rRange= "-1,3" # for ExpectedSignal = 1
+                    rRange= "-2,2" # for ExpectedSignal = 1
+                    command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH,frac_VBF  -n .scan --algo grid --points {pointsToScan} --setParameterRanges r={rRange}  -t -1 --expectSignal  {ExpectedSignal}  ".format( mH = current_mass, datacard = datacard, ExpectedSignal = ExpectedSignal, rRange=rRange, pointsToScan = pointsToScan)
+                    RunCommand(command)
+                    command = "plot1DScan.py higgsCombine.scan.MultiDimFit.mH{mH}.root  -o part2_scan_r{OutFileExt}    ".format(mH = current_mass, datacard = datacard, ExpectedSignal = ExpectedSignal, rRange=rRange, pointsToScan = pointsToScan, OutFileExt=OutFileExt)
+                    RunCommand(command)
+
+
+                os.chdir(cwd)
+
+            if (self.step).lower() == 'test2':
+                """ Information:
+                Simple fits
+                """
+                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
+                print(command)
+
+                if (not self.blind):
+                    print("Analysis is blinded")
+                    pass
+                else:
+                    pointsToScan = 75
+                    ExpectedSignal = 0
+                    if ExpectedSignal == 0: OutFileExt = 0
+                    else: OutFileExt = 1
+                    rRange= "-2,2" # for ExpectedSignal = 1
+                    command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .correlation --cminDefaultMinimizerStrategy 0  --robustHesse 1 --robustHesseSave 1 --saveFitResult  -t -1 --expectSignal  {ExpectedSignal} ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
+                    RunCommand(command)
+
+                os.chdir(cwd)
+
         if (self.step).lower() == 'plot':
             command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year)
             RunCommand(command)
-
-        if self.ifCondor:
-            print('For running condor jobs do following:')
-            print('1. set up proxy:')
-            print('\nvoms-proxy-init --voms cms --valid 168:00')
-            print('2. Submit the condor jobs:')
-            print("\ncondor_submit condor_job_{}.jdl".format(self.year))
 
 if __name__ == "__main__":
     dc = DirectoryCreator()

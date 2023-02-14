@@ -47,7 +47,10 @@
 
     ```bash
     cd 2l2q_limitsettingtool
-    python makeDCsandWSs.py -i HM_inputs_2018UL -y 2018 -a 2018
+    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s dc
+    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s cc
+    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
+    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
     ```
 
     - In `HM_inputs_*` you should prepare 12 systematics files  ((resolved, merged * b-tagged, un-tagged , vbf-tagged) * ee,mumu). Now, you can just go into these .txt files and change the value of systematics.
@@ -84,4 +87,27 @@ combine -n testt -m 500 -M AsymptoticLimits hzz2l2q_13TeV_xs_NoNuisance.txt --rM
 
 # batch
 combineTool.py -M AsymptoticLimits -d hzz2l2q_13TeV_xs_NoNuisance.root --rMax 1 --rAbsAcc 0 --run blind -m 500 --job-mode condor
+```
+
+# Impact plot
+
+```bash
+text2workspace.py hzz2l2q_13TeV_xs.txt -m 550 -o hzz2l2q_13TeV_xs.root
+combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doInitialFit  -t -1 --expectSignal 1
+combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doFits
+combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --output impacts.json
+plotImpacts.py -i impacts.json -o impacts
+```
+
+All above 5 commands can be run using `makeDCsandWSs.py` script:
+
+```bash
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s ri
+```
+
+# for diffNuisance
+
+```bash
+python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py --help
+python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py fitDiagnosticsTest.root  --all
 ```
