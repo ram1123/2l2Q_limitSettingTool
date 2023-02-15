@@ -43,15 +43,6 @@ class datacardClass:
         ROOT.gSystem.Load("libRooFit")
         ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit.so")
 
-    # return trueVar if testStatement else return falseVar
-    def getVariable(self,trueVar,falseVar,testStatement):
-
-        if (testStatement):
-            return trueVar
-        else:
-            return falseVar
-
-
     # main datacard and workspace function
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF):
 
@@ -413,7 +404,7 @@ class datacardClass:
 
         #JES TAG nuisances
         JES = ROOT.RooRealVar("JES","JES",0,-3,3)
-        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -3,3)
+        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -10,10)
 
         ## rates for vz
         #bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()*self.lumi
