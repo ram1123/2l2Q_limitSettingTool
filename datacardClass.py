@@ -272,7 +272,7 @@ class datacardClass:
         fullRangeSigRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange") ).getVal()
         fullRangRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullrange") ).getVal()
         sigFraction = fullRangRate/fullRangeSigRate
-        sigFraction = 1.0
+        sigFraction = 1.0   # FIXME: #2 Why its hardcoded to 1.0?
 
         print 'fullRangRate ',fullRangRate
         print 'fullRangeSigRate ',fullRangeSigRate

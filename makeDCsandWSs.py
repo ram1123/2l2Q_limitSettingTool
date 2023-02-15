@@ -87,6 +87,9 @@ class DirectoryCreator:
             if self.verbose: print ("[INFO] load root module")
             myClass.loadIncludes()
 
+        # Default name of combined datacard
+        datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
         for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
             if (self.step).lower() == 'plot': continue
             RunCommand("#"*85)
@@ -146,7 +149,7 @@ class DirectoryCreator:
             # STEP - 3: Run Combine commands
             if (self.step).lower() == 'rc' or (self.step).lower() == 'all':
                 # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
-                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
                 print('datacard: {}'.format(datacard))
                 if self.ifCondor:
                     LocalDir = os.getcwd()
@@ -162,7 +165,7 @@ class DirectoryCreator:
                     os.chdir(cwd)
 
             if (self.step).lower() == 'ri' or (self.step).lower() == 'all':
-                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
                 print('datacard: {}'.format(datacard))
 
                 os.chdir(CurrentMassDirectory)
@@ -172,18 +175,32 @@ class DirectoryCreator:
                 SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
                 # --X-rtd REMOVE_CONSTANT_ZERO_POINT=1
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit    --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2   -t -1 --expectSignal 1  --freezeNuisanceGroups check"
+                # check group = CMS_zz2l2q_sigma_e_sig CMS_zz2l2q_mean_e_sig CMS_zz2l2q_sigma_m_sig  CMS_zz2l2q_mean_m_sig CMS_zz2l2q_sigma_j_sig CMS_zz2l2q_mean_j_sig JES CMS_zz2l2q_sigMELA_resolved CMS_zz2l2q_bkgMELA_resolved zjetsAlpha_resolved_vbftagged zjetsAlpha_resolved_untagged zjetsAlpha_resolved_btagged pdf_qqbar pdf_hzz2l2q_accept CMS_eff_e CMS_eff_m gmTTbarWW_Resolved_btagged gmTTbarWW_Resolved_untagged gmTTbarWW_Resolved_vbftagged
+
+                # STEP - 1
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit   -t -1 --expectSignal 1  " # Main command
+                command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+                # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
                 RunCommand(command)
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2   --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 --robustFit 1 --doFits   -t -1 --expectSignal 1 --freezeNuisanceGroups check  --job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name jobs_test2"
+
+                # STEP - 2
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2   --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 --robustFit 1 --doFits   -t -1 --expectSignal 1   "
+
+                if self.ifCondor: command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name jobs_test2"
+
                 RunCommand(command)
-                # command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1  --freezeNuisanceGroups check --output impacts.json"
-                # RunCommand(command)
-                # command = "plotImpacts.py -i impacts.json -o impacts"+str(current_mass) + " --blind"
-                # RunCommand(command)
+
+                # STEP - 3
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1   --output impacts.json"
+                RunCommand(command)
+
+                # STEP - 4
+                command = "plotImpacts.py -i impacts.json -o impacts_freezeNuisanceGroupsCheck"+str(current_mass) + " --blind"
+                RunCommand(command)
                 os.chdir(cwd)
 
             if (self.step).lower() == 'rll':
-                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
                 print('datacard: {}'.format(datacard))
 
                 os.chdir(CurrentMassDirectory)
@@ -207,7 +224,7 @@ class DirectoryCreator:
                 """ Information:
                 Simple fits
                 """
-                datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
+
                 print('datacard: {}'.format(datacard))
 
                 os.chdir(CurrentMassDirectory)

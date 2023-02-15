@@ -221,7 +221,7 @@ class systematicsClass:
         systLine['vz']  = "0.990549/1.00949 "
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
-        
+
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
@@ -310,7 +310,7 @@ class systematicsClass:
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_CMS_hzz2l2q_vz(self,theFile,theInputs):
-        
+
 
         #changed by Jialin
         #theFile.write("Knnlo_nlo_vz lnN ")
@@ -396,8 +396,9 @@ class systematicsClass:
 
         self.Write_CMS_hzz2l2q_Zjets(theFile,theInputs)
 
-        bkgRate_ttbar_Shape=rates['ttbar']
-        self.Write_CMS_hzz2l2q_TTbar(theFile,theInputs,bkgRate_ttbar_Shape,Nemu)
+        # FIXME: Try to switch off from .txt file
+        # bkgRate_ttbar_Shape=rates['ttbar']
+        # self.Write_CMS_hzz2l2q_TTbar(theFile,theInputs,bkgRate_ttbar_Shape,Nemu)
 
         self.Write_CMS_hzz2l2q_vz(theFile,theInputs)
 
