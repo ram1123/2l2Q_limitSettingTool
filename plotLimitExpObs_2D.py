@@ -31,7 +31,7 @@ print('year: {}'.format(year))
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_exp.AsymptoticLimits.mH"+str(m)+".root","READ")
+        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_blindt-1Expt0.AsymptoticLimits.mH"+str(m)+".root","READ")
         t = f.Get("limit")
 
         scale = 1.0

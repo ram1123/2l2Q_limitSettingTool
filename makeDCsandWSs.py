@@ -15,14 +15,14 @@ class DirectoryCreator:
         self.year = "2016"
         self.start_mass = 500
         self.step_sizes = 50
-        self.end_val = 550 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
+        self.end_val = 3001 # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
-        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved'} #,  'eeqq_Merged', 'mumuqq_Merged'}
+        self.channels = {'eeqq_Resolved', 'mumuqq_Resolved', 'eeqq_Merged', 'mumuqq_Merged'}
         self.cats = {'vbf-tagged','b-tagged','untagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
-        self.t_values = ['Resolved'] #, 'Merged']
+        self.t_values = ['Resolved', 'Merged']
         self.verbose = False
         self.step = ''
         self.ifCondor = 0
@@ -40,7 +40,7 @@ class DirectoryCreator:
         parser.add_option('-f', '--fracVBF',   dest='frac_vbf',       type='float',    default=0.005,     help='fracVBF (default:0.5%)')
         parser.add_option("-y","--year",dest="year",type='string', default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
         parser.add_option("-s","--step",dest="step",type='string', default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and without syst) , fast (FastScan) or all")
-        parser.add_option("-c","--ifCondor",dest="ifCondor",type='int', default=0, help="if you want to run  combine command for all mass points parallel using condor make it 1")
+        parser.add_option("-c","--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run  combine command for all mass points parallel using condor make it 1")
         parser.add_option("-b", "--blind",  action="store_false", dest="blind", default=True, help="Running blind?")
         parser.add_option("-q", "--quiet", action="store_false", dest="verbose", default=True, help="don't print status messages to stdout")
 
@@ -70,14 +70,6 @@ class DirectoryCreator:
         self.verbose = options.verbose
 
     def Run(self):
-
-        if self.ifCondor:
-            make_directory('output/{}'.format(self.year))
-            RemoveFile('arguments_{}.txt'.format(self.year)) # Delete old argument files as the main script will append.
-            with open("condor_job_{}.jdl".format(self.year), "w") as cnd_out:
-                cnd_out.write(condor.format(year = self.year))
-            with open("run_script_{}.sh".format(self.year), "w") as scriptfile:
-                scriptfile.write(script)
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
@@ -126,7 +118,6 @@ class DirectoryCreator:
                     RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
                     RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
 
-                    # for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
                     for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
                         RunCommand("combineCards.py hzz2l2q_{FinalState}_untagged_13TeV.txt hzz2l2q_{FinalState}_b-tagged_13TeV.txt hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs))
 
@@ -155,13 +146,26 @@ class DirectoryCreator:
                     LocalDir = os.getcwd()
                     print('PWD: {}'.format(LocalDir))
 
-                    with open("arguments_{}.txt".format(self.year), "a") as inArgFile:
-                        inArgFile.write("{JOBID}  {LOCAL}  {MH}  {DATACARD}\n".format(JOBID = 1, LOCAL = LocalDir+'/'+CurrentMassDirectory, MH=current_mass, DATACARD = datacard))
+                    os.chdir(CurrentMassDirectory)
+                    command = "combineTool.py -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n mH{mH}_AsympLimitBlind".format(mH = current_mass, datacard = datacard)
+                    command += " --run blind "
+                    # command += " --run expected "
+                    # command += " --run blind -t -1 "
+                    # command += " --run blind -t -1 --expectSignal 1 "
+                    # command += " --run blind -t -1 --expectSignal 0 "
+                    # command += " --dry-run "
+                    command += "--job-mode condor --sub-opts='+JobFlavour=\"microcentury\"' --task-name RunAsympLimitBlind"
+                    # microcentury = 1 hr
+                    # longlunch = 2 hr
+                    RunCommand(command)
+                    os.chdir(cwd)
 
                 else:
                     # Change the respective directory where all cards are placed
                     os.chdir(CurrentMassDirectory)
-                    RunCommand("combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard))
+                    command = "combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard)
+
+                    RunCommand(command)
                     os.chdir(cwd)
 
             if (self.step).lower() == 'ri' or (self.step).lower() == 'all':
@@ -179,24 +183,25 @@ class DirectoryCreator:
 
                 # STEP - 1
                 command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit   -t -1 --expectSignal 1  " # Main command
-                command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+                # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
                 # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
+                command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name impact_step1"
                 RunCommand(command)
 
                 # STEP - 2
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2   --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 --robustFit 1 --doFits   -t -1 --expectSignal 1   "
+                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doFits   -t -1 --expectSignal 1   "
+                # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+                command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name impact_step2"
 
-                if self.ifCondor: command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name jobs_test2"
-
-                RunCommand(command)
+                # RunCommand(command)
 
                 # STEP - 3
                 command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1   --output impacts.json"
-                RunCommand(command)
+                # RunCommand(command)
 
                 # STEP - 4
                 command = "plotImpacts.py -i impacts.json -o impacts_freezeNuisanceGroupsCheck"+str(current_mass) + " --blind"
-                RunCommand(command)
+                # RunCommand(command)
                 os.chdir(cwd)
 
             if (self.step).lower() == 'rll':
@@ -205,11 +210,11 @@ class DirectoryCreator:
 
                 os.chdir(CurrentMassDirectory)
                 # First do a fit and save a workspace with a snapshot of the parameters at the best fit
-                command = "combine -M MultiDimFit " + str(datacard) + " -n .snapshot -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --saveWorkspace"
+                command = "combine -M MultiDimFit " + str(datacard) + " -n .snapshot -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --saveWorkspace -t -1 --expectSignal 1"
                 RunCommand(command)
 
                 # Then re-run the scan with parameters frozen on top of this workspace, restoring the snapshot
-                command = "combine -M MultiDimFit higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root -n .freezeall -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit"
+                command = "combine -M MultiDimFit higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root -n .freezeall -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit  -t -1 --expectSignal 1"
                 RunCommand(command)
 
                 # Finally plot the LL scan
@@ -242,8 +247,40 @@ class DirectoryCreator:
                     rRange= "-2,2" # for ExpectedSignal = 1
                     command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .correlation --cminDefaultMinimizerStrategy 0  --robustHesse 1 --robustHesseSave 1 --saveFitResult  -t -1 --expectSignal  {ExpectedSignal} ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
                     RunCommand(command)
-
                 os.chdir(cwd)
+
+            if (self.step).lower() == 'ls':
+                """ Information:
+                Simple fits
+                """
+
+                print('datacard: {}'.format(datacard))
+
+                os.chdir(CurrentMassDirectory)
+                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
+                print(command)
+
+                if (not self.blind):
+                    print("Analysis is blinded")
+                    pass
+                else:
+                    pointsToScan = 75
+                    ExpectedSignal = 1
+                    if ExpectedSignal == 0: OutFileExt = 0
+                    else: OutFileExt = 1
+                    rRange= "-2,2" # for ExpectedSignal = 1
+                    command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .bestfit.with_syst --setParameterRanges r=-1,2.5 --saveWorkspace  -t -1 --expectSignal  {ExpectedSignal}".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
+                    # RunCommand(command)
+                    command ="combine -M MultiDimFit higgsCombine.bestfit.with_syst.MultiDimFit.mH{mH}.root -m {mH} --freezeParameters MH,allConstrainedNuisances -n .scan.with_syst.statonly_correct --algo grid --points {pointsToScan} --setParameterRanges r=-1,2.5 --snapshotName MultiDimFit  -t -1 --expectSignal  {ExpectedSignal}".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
+                    # RunCommand(command)
+                    # command = 'plot1DScan.py higgsCombine.scan.with_syst.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.scan.with_syst.statonly_correct.MultiDimFit.mH{mH}.root:"Stat-only":2 -o part3_scan_v1 --breakdown syst,stat'.format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
+                    command = 'plot1DScan.py higgsCombine.bestfit.with_syst.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.scan.with_syst.statonly_correct.MultiDimFit.mH{mH}.root:"Stat-only":2 -o part3_scan_v1 --breakdown syst,stat'.format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
+                    RunCommand(command)
+                os.chdir(cwd)
+
+        if (self.step).lower() == 'plot':
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year)
+            RunCommand(command)
 
 if __name__ == "__main__":
     dc = DirectoryCreator()
