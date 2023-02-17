@@ -22,17 +22,17 @@
 
     ```bash
     export SCRAM_ARCH=slc7_amd64_gcc700
-    cmsrel CMSSW_10_2_13
-    cd CMSSW_10_2_13/src
+    cmsrel CMSSW_11_3_4
+    cd CMSSW_11_3_4/src
     cmsenv
     git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
     cd HiggsAnalysis/CombinedLimit
     cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
     git fetch origin
-    git checkout v8.2.0
+    git checkout v9.0.0
     scramv1 b clean; scramv1 b # always make a clean build
     cd $CMSSW_BASE/src
-    bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/master/CombineTools/scripts/sparse-checkout-ssh.sh)
+    bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
     scramv1 b -j 8
     ```
 
