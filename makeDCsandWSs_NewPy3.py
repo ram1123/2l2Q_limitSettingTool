@@ -1,4 +1,8 @@
 import argparse
+import os
+from inputReader import *
+from datacardClass import *
+from utils import *
 
 class DirectoryCreator:
 
@@ -76,21 +80,21 @@ class DirectoryCreator:
                     for fs in ['eeqq', 'mumuqq']:
                         RunCommand(f"combineCards.py hzz2l2q_{fs}_{t}_untagged_13TeV.txt hzz2l2q_{fs}_{t}_b-tagged_13TeV.txt hzz2l2q_{fs}_{t}_vbf-tagged_13TeV.txt > hzz2l2q_{fs}_{t}_13TeV.txt")
 
+                    RunCommand(f"combineCards.py hzz2l2q_eeqq_{t}_13TeV.txt hzz2l2q_mumuqq_{t}_13TeV.txt > hzz2l2q_{t}_13TeV_xs.txt")
+
                     for cat in self.cats:
                         RunCommand(f"combineCards.py hzz2l2q_eeqq_{t}_{cat}_13TeV.txt hzz2l2q_mumuqq_{t}_{cat}_13TeV.txt > hzz2l2q_{t}_{cat}_13TeV_xs.txt")
 
-                    AllCardsCombination += f"hzz2l2q_{t}_13TeV_xs.txt "
+                    AllCardsCombination += f" hzz2l2q_{t}_13TeV_xs.txt "
 
                 RunCommand("*" * 51)
 
-                AllCardsCombination += '> hzz2l2q_13TeV_xs_NoNuisance.txt'
+                AllCardsCombination += ' > hzz2l2q_13TeV_xs_NoNuisance.txt '
                 AllCardsWithNuisance = AllCardsCombination.replace('-s', '')
 
                 RunCommand(AllCardsWithNuisance)
                 RunCommand(AllCardsCombination)
                 os.chdir(cwd)
-
-
 
     def validate(self):
         # code to validate DirectoryCreator options

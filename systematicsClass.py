@@ -70,7 +70,7 @@ class systematicsClass:
         self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
     def Write_Systematics_Line(self,systLine,theFile,theInputs):
-        print "~~~~~~~~~~~~~~~~~"
+        print("~~~~~~~~~~~~~~~~~")
         channelList=['ggH','qqH','vz','ttbar','zjets']
 
         if theInputs["all"]:
@@ -78,7 +78,7 @@ class systematicsClass:
 
         for chan in channelList:
             if theInputs[chan] or (chan.startswith("ggH") and theInputs["all"]):
-                print chan, systLine[chan]
+                print(chan, systLine[chan])
                 theFile.write(systLine[chan])
 
         theFile.write("\n")
@@ -91,7 +91,7 @@ class systematicsClass:
         elif (self.sqrts == 13):
             theFile.write("lumi_13TeV lnN ")
         else:
-            raise RuntimeError, "Unknown sqrts in systematics!"
+            raise RuntimeError("Unknown sqrts in systematics!")
 
         systLine={'ggH':"{0} ".format(self.lumiUncertainty)}
         systLine['qqH']  = "{0} ".format(self.lumiUncertainty)
@@ -143,6 +143,17 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "- "
+
+        self.Write_Systematics_Line(systLine,theFile,theInputs)
+
+    def Write_QCDscale_vz(self,theFile,theInputs):
+
+        theFile.write("QCDscale_vz lnN ")
+        systLine={'ggH':"- "}#"{0:.4f} ".format(1. + (self.CSscaleErrPlus_gg-self.CSscaleErrMinus_gg)/2.)}
+        systLine['qqH']  = "- "
+        systLine['zjets']= "- "
+        systLine['ttbar']= "- "
+        systLine['vz']  = "1.032 "
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
@@ -325,15 +336,15 @@ class systematicsClass:
 
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
 
-	        theFile.write("CMS_Vtagging lnN ")
+            theFile.write("CMS_Vtagging lnN ")
 
-        	systLine2={'ggH':"0.972/1.028 "}
-        	systLine2['qqH']  = "0.972/1.028 "
-        	systLine2['zjets']= "- "
-        	systLine2['ttbar']= "- "
-        	systLine2['vz']  = "0.972/1.028 "
+            systLine2={'ggH':"0.972/1.028 "}
+            systLine2['qqH']  = "0.972/1.028 "
+            systLine2['zjets']= "- "
+            systLine2['ttbar']= "- "
+            systLine2['vz']  = "0.972/1.028 "
 
-        	self.Write_Systematics_Line(systLine2,theFile,theInputs)
+            self.Write_Systematics_Line(systLine2,theFile,theInputs)
 
     def Write_CMS_hzz2l2q_JES(self,theFile,theInputs):
         theFile.write("JES param  0  1  [-3,3]\n")
@@ -376,23 +387,26 @@ class systematicsClass:
         if theInputs['useQCDscale_VV']:
             self.Write_QCDscale_VV(theFile,theInputs)
 
+        if theInputs['useQCDscale_vz']:
+            self.Write_QCDscale_vz(theFile,theInputs)
+
         if not self.isForXSxBR:
             if theInputs['useQCDscale_ggH'] :
                 self.Write_QCDscale_ggH(theFile,theInputs)
 
-	    if theInputs['useQCDscale_qqH'] :
+        if theInputs['useQCDscale_qqH'] :
                 self.Write_QCDscale_qqH(theFile,theInputs)
 
-	## Higgs BR
+    ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :
             self.Write_BRhiggs_hzz2l2q(theFile,theInputs)
 
-	##  ----------- SELECTION EFFICIENCIES ----------
+    ##  ----------- SELECTION EFFICIENCIES ----------
 
         if(self.decayChan=="mumuqq_Resolved" or self.decayChan=="mumuqq_Merged"):
- 	       self.Write_eff_m(theFile,theInputs)
+            self.Write_eff_m(theFile,theInputs)
         if(self.decayChan=="eeqq_Resolved" or self.decayChan=="eeqq_Merged"):
-        	self.Write_eff_e(theFile,theInputs)
+            self.Write_eff_e(theFile,theInputs)
 
         self.Write_CMS_hzz2l2q_Zjets(theFile,theInputs)
 
@@ -448,4 +462,3 @@ class systematicsClass:
             theFile.write("## CMS_zz2l2q_mean_e_err = {0} \n".format(meanCB_e_errPerCent))
             theFile.write("CMS_zz2l2q_sigma_e_sig param 0.0 1.0 \n")
             theFile.write("## CMS_zz2l2q_sigma_e_err = {0} \n".format(sigmaCB_e_errPerCent))
-

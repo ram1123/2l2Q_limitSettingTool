@@ -4,6 +4,7 @@ import optparse
 from inputReader import *
 from datacardClass import *
 from utils import *
+import common_strings_pars
 
 class DirectoryCreator:
 
@@ -147,14 +148,14 @@ class DirectoryCreator:
                     print('PWD: {}'.format(LocalDir))
 
                     os.chdir(CurrentMassDirectory)
-                    command = "combineTool.py -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n mH{mH}_AsympLimitBlind".format(mH = current_mass, datacard = datacard)
+                    command = "combineTool.py -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n {name}".format(mH = current_mass, datacard = datacard, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass))
                     command += " --run blind "
                     # command += " --run expected "
                     # command += " --run blind -t -1 "
                     # command += " --run blind -t -1 --expectSignal 1 "
                     # command += " --run blind -t -1 --expectSignal 0 "
                     # command += " --dry-run "
-                    command += "--job-mode condor --sub-opts='+JobFlavour=\"microcentury\"' --task-name RunAsympLimitBlind"
+                    command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass))
                     # microcentury = 1 hr
                     # longlunch = 2 hr
                     RunCommand(command)
@@ -163,7 +164,7 @@ class DirectoryCreator:
                 else:
                     # Change the respective directory where all cards are placed
                     os.chdir(CurrentMassDirectory)
-                    command = "combine -n mH{mH}_exp -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard)
+                    command = "combine -n {name} -m {mH} -M AsymptoticLimits  {datacard}  --rMax 1 --rAbsAcc 0 --run blind > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, datacard = datacard, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass))
 
                     RunCommand(command)
                     os.chdir(cwd)
@@ -173,8 +174,8 @@ class DirectoryCreator:
                 print('datacard: {}'.format(datacard))
 
                 os.chdir(CurrentMassDirectory)
-                command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
-                RunCommand(command)
+                command = "text2workspace.py {datacard}  -m {mH} -o {datacard}".format( datacard = datacard.replace(".txt", ".root"), mH = current_mass)
+                # RunCommand(command)
                 # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
                 SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
@@ -182,25 +183,29 @@ class DirectoryCreator:
                 # check group = CMS_zz2l2q_sigma_e_sig CMS_zz2l2q_mean_e_sig CMS_zz2l2q_sigma_m_sig  CMS_zz2l2q_mean_m_sig CMS_zz2l2q_sigma_j_sig CMS_zz2l2q_mean_j_sig JES CMS_zz2l2q_sigMELA_resolved CMS_zz2l2q_bkgMELA_resolved zjetsAlpha_resolved_vbftagged zjetsAlpha_resolved_untagged zjetsAlpha_resolved_btagged pdf_qqbar pdf_hzz2l2q_accept CMS_eff_e CMS_eff_m gmTTbarWW_Resolved_btagged gmTTbarWW_Resolved_untagged gmTTbarWW_Resolved_vbftagged
 
                 # STEP - 1
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doInitialFit   -t -1 --expectSignal 1  " # Main command
+                command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
+                if self.blind: command += " -t -1 --expectSignal 1 "
                 # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
                 # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-                command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name impact_step1"
-                RunCommand(command)
-
-                # STEP - 2
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1 --doFits   -t -1 --expectSignal 1   "
-                # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-                command += "--job-mode condor --sub-opts='+JobFlavour=\"espresso\"' --task-name impact_step2"
-
+                command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name impact_step1"
                 # RunCommand(command)
 
+                # STEP - 2
+                command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
+                if self.blind: command += " -t -1 --expectSignal 1 "
+                # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name impact_step2"
+
+                RunCommand(command)
+
                 # STEP - 3
-                command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1   --output impacts.json"
+                # command = "combineTool.py -M Impacts -d " + datacard.replace(".txt", ".root") + " -m "+str(current_mass)+" --rMin -1 --rMax 2 --robustFit 1   --output impacts.json"
+                command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -1 --rMax 2 --robustFit 1   --output impacts_{mH}_{year}_{blind}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, year = self.year, blind = "blind" if self.blind else "")
                 # RunCommand(command)
 
                 # STEP - 4
-                command = "plotImpacts.py -i impacts.json -o impacts_freezeNuisanceGroupsCheck"+str(current_mass) + " --blind"
+                # command = "plotImpacts.py -i impacts.json -o impacts_M"+str(current_mass) + " --blind"
+                command = "plotImpacts.py -i impacts_{mH}_{year}_{blind}.json -o impacts_{blind}_M{mH}_{year} --blind".format(mH = current_mass, year = self.year, blind = "blind" if self.blind else "")
                 # RunCommand(command)
                 os.chdir(cwd)
 

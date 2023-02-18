@@ -6,6 +6,9 @@ setTDRStyle()
 import sys
 from array import array
 
+import common_strings_pars
+
+
 start_mass = sys.argv[1]
 end_val = sys.argv[2]
 step_sizes = sys.argv[3]
@@ -31,7 +34,7 @@ print('year: {}'.format(year))
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_blindt-1Expt0.AsymptoticLimits.mH"+str(m)+".root","READ")
+        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombinemH"+str(m)+"_"+common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass)+".AsymptoticLimits.mH"+str(m)+".root","READ")
         t = f.Get("limit")
 
         scale = 1.0
