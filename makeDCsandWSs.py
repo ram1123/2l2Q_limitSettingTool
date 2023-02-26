@@ -283,13 +283,13 @@ class DirectoryCreator:
             if (self.step).lower() in ('ri3'):
                 self.run_impact_s3(current_mass, current_mass_directory, cwd, datacard)
 
-            if (self.step).lower() in ('rll', 'all'):
+            if (self.step).lower() in ('rll'):
                 self.run_LHS(current_mass, current_mass_directory, cwd, datacard)
 
-            if (self.step).lower() in ('correlation', 'all'):
+            if (self.step).lower() in ('correlation'):
                 self.run_correlation(current_mass, current_mass_directory, cwd, datacard)
 
-            if (self.step).lower() in ('ls', 'all'):
+            if (self.step).lower() in ('ls'):
                 self.run_ls(current_mass, current_mass_directory, cwd, datacard)
 
         if (self.step).lower() == 'plot':
