@@ -31,35 +31,35 @@ class DirectoryCreator:
 
     def SetDirName(self):
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
+        for sub in self.subdir:
+            make_directory(self.dir_name + '/'+sub)
 
     def SetYearRelatedStrings(self, year):
         self.input_dir = 'HM_inputs_{}UL'.format(year)
         self.append_name = '{}'.format(year)
 
-    def create_workspaces(self, current_mass, myClass, CurrentMassDirectory, cwd):
+    def create_workspaces(self, current_mass, datacard_class, current_mass_directory, cwd):
 
         RunCommand("#"*85)
 
         # STEP - 1: Datacard and workspace creation
-        if (self.step).lower() == 'dc' or (self.step).lower() == 'all':
-            for sub in self.subdir:
-                make_directory(self.dir_name + '/'+sub)
-            make_directory(self.dir_name + '/HCG/' + str(current_mass))
-            print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
+        make_directory(os.path.join(self.dir_name, 'HCG', str(current_mass)))
 
-            for channel in self.channels:
-                for cat in self.cats:
-                    inputreadertxt = self.input_dir+"/"+channel+"_"+cat+".txt"
-                    if (self.verbose): print("inputreadertext: ", inputreadertxt)
-                    myReader = inputReader(inputreadertxt)
-                    myReader.readInputs()
-                    theInputs = myReader.getInputs()
-                    myClass.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
+        print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
 
-    def combine_cards(self, current_mass, CurrentMassDirectory, cwd):
+        for channel in self.channels:
+            for cat in self.cats:
+                input_reader_txt = self.input_dir+"/"+channel+"_"+cat+".txt"
+                if (self.verbose): print("inputreadertext: ", input_reader_txt)
+                input_reader = inputReader(input_reader_txt)
+                input_reader.readInputs()
+                theInputs = input_reader.getInputs()
+                datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
+
+    def combine_cards(self, current_mass, current_mass_directory, cwd):
         # STEP - 2: Get the combined cards
         # Change the respective directory where all cards are placed
-        os.chdir(CurrentMassDirectory)
+        os.chdir(current_mass_directory)
         AllCardsCombination = 'combineCards.py  -s '
         for t in self.t_values:
             RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
@@ -86,7 +86,7 @@ class DirectoryCreator:
         os.chdir(cwd)
 
 
-    def run_combine(self, current_mass, CurrentMassDirectory, cwd, datacard):
+    def run_combine(self, current_mass, current_mass_directory, cwd, datacard):
     # STEP - 3: Run Combine commands
         # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
         CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n {name} '.format(mH = current_mass, datacard = datacard, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass))
@@ -99,29 +99,30 @@ class DirectoryCreator:
         if self.ifCondor:
             LocalDir = os.getcwd()
             print('PWD: {}'.format(LocalDir))
-            os.chdir(CurrentMassDirectory)
+            os.chdir(current_mass_directory)
             command = "combineTool.py " + CombineCommonArguments
 
             command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass))
             # microcentury = 1 hr
             # longlunch = 2 hr
+            # workday = 2 hr
             RunCommand(command)
             os.chdir(cwd)
 
         else:
             # Change the respective directory where all cards are placed
-            os.chdir(CurrentMassDirectory)
+            os.chdir(current_mass_directory)
             command = "combine  {CombineCommonArguments} > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, CombineCommonArguments = CombineCommonArguments)
 
             RunCommand(command)
             os.chdir(cwd)
 
-    def run_impact(self, current_mass, CurrentMassDirectory, cwd, datacard):
+    def run_impact_s1(self, current_mass, current_mass_directory, cwd, datacard):
         print('datacard: {}'.format(datacard))
 
-        os.chdir(CurrentMassDirectory)
+        os.chdir(current_mass_directory)
         command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
-        #RunCommand(command)
+        RunCommand(command)
         # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
         SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
@@ -130,16 +131,33 @@ class DirectoryCreator:
         if self.blind: command += " -t -1 --expectSignal 1 "
         # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
         # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-        command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name impact_step1_{mH}_{year}".format(year = year, mH = current_mass)
-        #RunCommand(command)
+        command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name impact_step1_{mH}_{year}".format(year = year, mH = current_mass)
+        RunCommand(command)
+        os.chdir(cwd)
+
+    def run_impact_s2(self, current_mass, current_mass_directory, cwd, datacard):
+        print('datacard: {}'.format(datacard))
+
+        os.chdir(current_mass_directory)
+        # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
+        SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
         # STEP - 2
         command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
         if self.blind: command += " -t -1 --expectSignal 1 "
         # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-        command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name impact_step2_{mH}_{year}".format(year = year, mH = current_mass)
+        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name impact_step2_{mH}_{year}".format(year = year, mH = current_mass)
 
-        #RunCommand(command)
+        RunCommand(command)
+        os.chdir(cwd)
+
+
+    def run_impact_s3(self, current_mass, current_mass_directory, cwd, datacard):
+        print('datacard: {}'.format(datacard))
+
+        os.chdir(current_mass_directory)
+        # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
+        SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
         # STEP - 3
         command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -1 --rMax 2 --robustFit 1   --output impacts_mH{mH}_{year}_{blind}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, year = year, blind = "blind" if self.blind else "")
@@ -150,11 +168,11 @@ class DirectoryCreator:
         RunCommand(command)
         os.chdir(cwd)
 
-    def run_LHS(self, current_mass, CurrentMassDirectory, cwd, datacard):
+    def run_LHS(self, current_mass, current_mass_directory, cwd, datacard):
 
         print('datacard: {}'.format(datacard))
 
-        os.chdir(CurrentMassDirectory)
+        os.chdir(current_mass_directory)
         # First do a fit and save a workspace with a snapshot of the parameters at the best fit
         command = "combine -M MultiDimFit " + str(datacard) + " -n .snapshot -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --saveWorkspace -t -1 --expectSignal 1"
         RunCommand(command)
@@ -170,14 +188,14 @@ class DirectoryCreator:
 
         os.chdir(cwd)
 
-    def run_correlation(self, current_mass, CurrentMassDirectory, cwd, datacard):
+    def run_correlation(self, current_mass, current_mass_directory, cwd, datacard):
         """ Information:
         Simple fits
         """
 
         print('datacard: {}'.format(datacard))
 
-        os.chdir(CurrentMassDirectory)
+        os.chdir(current_mass_directory)
         command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
         print(command)
 
@@ -194,14 +212,14 @@ class DirectoryCreator:
             RunCommand(command)
         os.chdir(cwd)
 
-    def run_ls(self, current_mass, CurrentMassDirectory, cwd, datacard):
+    def run_ls(self, current_mass, current_mass_directory, cwd, datacard):
         """ Information:
         Simple fits
         """
 
         print('datacard: {}'.format(datacard))
 
-        os.chdir(CurrentMassDirectory)
+        os.chdir(current_mass_directory)
         command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
         print(command)
 
@@ -224,16 +242,16 @@ class DirectoryCreator:
         os.chdir(cwd)
 
 
-    def Run(self, year = '2016'):
+    def run(self, year = '2016'):
         if self.verbose: print("[INFO] current working directory: ", Path.cwd())
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() in ('dc', 'all'):
             print ("[INFO] declar datacardClass")
-            myClass = datacardClass(str(year), self.verbose)
+            datacard_class = datacardClass(str(year), self.verbose)
 
             if self.verbose: print ("[INFO] load root module")
-            myClass.loadIncludes()
+            datacard_class.loadIncludes()
 
         # Default name of combined datacard
         datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
@@ -241,31 +259,38 @@ class DirectoryCreator:
         for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
             if (self.step).lower() == 'plot': continue
 
-            CurrentMassDirectory = self.dir_name + '/' + '/HCG/' + str(current_mass)
+            current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
+
             cwd = os.getcwd()
             print('cwd: {}'.format(cwd))
-            print('CurrentMassDirectory: {}'.format(CurrentMassDirectory))
+            print('current_mass_directory: {}'.format(current_mass_directory))
 
-            if self.step in ('dc', 'all'):
-                self.create_workspaces(current_mass, myClass, CurrentMassDirectory, cwd)
+            if (self.step).lower() in ('dc', 'all'):
+                self.create_workspaces(current_mass, datacard_class, current_mass_directory, cwd)
 
-            if self.step in ('cc', 'all'):
-                self.combine_cards(current_mass, CurrentMassDirectory, cwd)
+            if (self.step).lower() in ('cc', 'all'):
+                self.combine_cards(current_mass, current_mass_directory, cwd)
 
-            if self.step in ('rc', 'all'):
-                self.run_combine(current_mass, CurrentMassDirectory, cwd, datacard)
+            if (self.step).lower() in ('rc', 'all'):
+                self.run_combine(current_mass, current_mass_directory, cwd, datacard)
 
-            if self.step in ('ri', 'all'):
-                self.run_impact(current_mass, CurrentMassDirectory, cwd, datacard)
+            if (self.step).lower() in ('ri', 'all'):
+                self.run_impact_s1(current_mass, current_mass_directory, cwd, datacard)
 
-            if self.step in ('rll', 'all'):
-                self.run_LHS(current_mass, CurrentMassDirectory, cwd, datacard)
+            if (self.step).lower() in ('ri2'):
+                self.run_impact_s2(current_mass, current_mass_directory, cwd, datacard)
 
-            if self.step in ('correlation', 'all'):
-                self.run_correlation(current_mass, CurrentMassDirectory, cwd, datacard)
+            if (self.step).lower() in ('ri3'):
+                self.run_impact_s3(current_mass, current_mass_directory, cwd, datacard)
 
-            if self.step in ('ls', 'all'):
-                self.run_ls(current_mass, CurrentMassDirectory, cwd, datacard)
+            if (self.step).lower() in ('rll', 'all'):
+                self.run_LHS(current_mass, current_mass_directory, cwd, datacard)
+
+            if (self.step).lower() in ('correlation', 'all'):
+                self.run_correlation(current_mass, current_mass_directory, cwd, datacard)
+
+            if (self.step).lower() in ('ls', 'all'):
+                self.run_ls(current_mass, current_mass_directory, cwd, datacard)
 
         if (self.step).lower() == 'plot':
             command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, year)
@@ -303,4 +328,4 @@ if __name__ == "__main__":
 
         DirectoryCreatorObj.SetYearRelatedStrings(year)
         DirectoryCreatorObj.SetDirName()
-        DirectoryCreatorObj.Run(year)
+        DirectoryCreatorObj.run(year)
