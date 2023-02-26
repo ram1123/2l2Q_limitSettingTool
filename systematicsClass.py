@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import math
-# from ROOT import *
+
 
 ## ------------------------------------
 ##  systematics class
@@ -8,7 +8,7 @@ import math
 
 class systematicsClass:
 
-    def __init__(self,theMass,theForXSxBR,theInputs):
+    def __init__(self,theMass,theForXSxBR,theInputs, DEBUG):
 
         self.ID_2muResolved = 'mumuqq_Resolved'
         self.ID_2eResolved = 'eeqq_Resolved'
@@ -58,6 +58,7 @@ class systematicsClass:
 
         self.qqVV_scaleSys = 1. + 0.01*math.sqrt((self.mH - 20.)/13.)
         self.qqVV_pdfSys = 1. + 0.0035*math.sqrt(self.mH - 30.)
+        self.DEBUG = DEBUG
 
 
     def setSystematics(self,rates):
@@ -70,7 +71,7 @@ class systematicsClass:
         self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
     def Write_Systematics_Line(self,systLine,theFile,theInputs):
-        print("~~~~~~~~~~~~~~~~~")
+        if self.DEBUG: print("~~~~~~~~~~~~~~~~~")
         channelList=['ggH','qqH','vz','ttbar','zjets']
 
         if theInputs["all"]:
@@ -78,7 +79,7 @@ class systematicsClass:
 
         for chan in channelList:
             if theInputs[chan] or (chan.startswith("ggH") and theInputs["all"]):
-                print(chan, systLine[chan])
+                if self.DEBUG: print(chan, systLine[chan])
                 theFile.write(systLine[chan])
 
         theFile.write("\n")
