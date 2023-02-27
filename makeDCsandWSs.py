@@ -161,11 +161,11 @@ class DirectoryCreator:
         SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
         # STEP - 3
-        command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -1 --rMax 2 --robustFit 1   --output impacts_mH{mH}_{year}_{blind}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, year = year, blind = "blind" if self.blind else "")
+        command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -1 --rMax 2 --robustFit 1   --output impacts_mH{mH_4String}_{year}_{blind}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, mH_4String = str(current_mass).zfill(4), year = year, blind = "blind" if self.blind else "")
         RunCommand(command)
 
         # STEP - 4
-        command = "plotImpacts.py -i impacts_mH{mH}_{year}_{blind}.json -o impacts_{blind}_M{mH}_{year} --blind".format(mH = current_mass, year = year, blind = "blind" if self.blind else "")
+        command = "plotImpacts.py -i impacts_mH{mH}_{year}_{blind}.json -o impacts_{blind}_M{mH}_{year} --blind".format(mH = str(current_mass).zfill(4), year = year, blind = "blind" if self.blind else "")
         RunCommand(command)
         os.chdir(cwd)
 
