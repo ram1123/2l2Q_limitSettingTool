@@ -1,0 +1,67 @@
+## SM ##
+model SM
+
+## decay chan ##
+decay eeqq_Resolved
+cat vbf-tagged
+
+## lumi ##
+lumi 59.83
+systematic lumiUnc 1.012
+
+## sqrtS ##
+sqrts 13
+
+## Channels to include in cards ##
+channels ggH qqH vz ttbar zjets
+
+### background functions ###
+zjetsShape p0_zjets 6.64567
+zjetsShape l0_zjets 0.00609675
+zjetsShape p1_zjets 0
+zjetsShape l1_zjets 0.01
+
+zjetsShape p0_alt_zjets 6.54477
+zjetsShape l0_alt_zjets 0.00596825
+zjetsShape p1_alt_zjets 0
+zjetsShape l1_alt_zjets 0.01
+
+zjetsShape p0p0_cov_zjets 0.0923319
+zjetsShape p0l0_cov_zjets 0.000136689
+zjetsShape p0p1_cov_zjets 0
+zjetsShape p0l1_cov_zjets 0
+zjetsShape l0l0_cov_zjets 2.16887e-07
+zjetsShape l0p1_cov_zjets 0
+zjetsShape l0l1_cov_zjets 0
+zjetsShape p1p1_cov_zjets 0
+zjetsShape p1l1_cov_zjets 0
+zjetsShape l1l1_cov_zjets 0
+
+### channel dependent systematics ###
+systematic zjetAlphaLow   0.90
+systematic zjetAlphaHigh  1.10
+
+systematic param CMS_zz2l2q_mean_e_err   0.003
+systematic param CMS_zz2l2q_sigma_e_err  0.2
+systematic param CMS_zz2l2q_mean_j_err   0.01
+systematic param CMS_zz2l2q_sigma_j_err  0.10
+
+## Electron systematics ##
+systematic elec_full 0.08
+systematic elec_trig 0.0075
+
+##### Add Systematic to Cards ####
+##### allowed False/false ####
+systematic luminosity True
+systematic pdf_hzz2l2q_accept True
+systematic QCDscale_ggH True
+systematic QCDscale_vz True
+systematic BRhiggs_hzz2l2q True
+systematic CMS_eff True
+systematic CMS_hzz2l2q_Zjets True
+systematic CMS_zz2l2q_mean True
+systematic CMS_zz2l2q_sigma True
+
+systematic CMS_zz2l2q_bkgMELA True
+systematic CMS_zz2l2q_sigMELA True
+

@@ -1,10 +1,7 @@
 #!/usr/bin/python
 import os
-import re
-import math
-import collections
-from ROOT import *
-from array import array
+
+# from ROOT import *
 
 ## ---------------------------------------------------------------
 ## card reader class
@@ -15,8 +12,9 @@ class inputReader:
     def __init__(self, inputTextFile):
 
         if not os.path.exists(inputTextFile):
-            raise RuntimeError, "File {0} does not exist!!!".format(inputTextFile)
-        
+            raise RuntimeError("File {0} does not exist!!!".format(inputTextFile))
+
+
         # input file
         self.theInput = inputTextFile
         # model
@@ -43,8 +41,8 @@ class inputReader:
         self.p0_zjets = -999.9
         self.p1_zjets = -999.9
         self.l0_zjets = -999.9
-        self.l1_zjets = -999.9        
-        
+        self.l1_zjets = -999.9
+
         self.p0_alt_zjets = -999.9
         self.p1_alt_zjets = -999.9
         self.l0_alt_zjets = -999.9
@@ -66,7 +64,7 @@ class inputReader:
         self.zjetsAlphaLow = -999.9
         self.zjetsAlphaHigh = -999.9
 
-        # systematics 
+        # systematics
         self.lumiUnc = -999.9
         self.muonFullUnc = -999.9
         self.muonTrigUnc = -999.9
@@ -94,21 +92,22 @@ class inputReader:
         self.useQCDscale_VV = False
         self.useBRhiggs_hzz2l2q = False
         self.useCMS_eff = False
-        self.useCMS_hzz2l2q_Zjets = False 
+        self.useCMS_hzz2l2q_Zjets = False
         self.useCMS_zz2l2q_bkgMELA = False
         self.useCMS_zz2l2q_sigMELA = False
         self.useCMS_zz2l2q_mean = False
         self.useCMS_zz2l2q_sigma = False
         self.useCMS_zz2lJ_mean = False
         self.useCMS_zz2lJ_sigma = False
+        self.useQCDscale_vz = False
 
         # --- VBFtag/Btag systematics
 
         self.gghJESLow = -999.9
         self.gghJESHigh = -999.9
-        self.vbfJESLow = -999.9 
+        self.vbfJESLow = -999.9
         self.vbfJESHigh = -999.9
-        self.vzJESLow = -999.9 
+        self.vzJESLow = -999.9
         self.vzJESHigh = -999.9
 
         self.gghBTAGLow = -999.9
@@ -135,13 +134,13 @@ class inputReader:
             if len(f) < 1: continue
 
             if f[0].startswith("#"): continue
-            
+
             if f[0].lower().startswith("model"):
-                
+
                 if f[1].upper() == "SM": self.model = "SM"
                 elif f[1].upper() == "SM4": self.model = "SM4"
                 elif f[1].upper() == "FF" or f[1].upper() == "FP": self.model = "FF"
-                else : raise RuntimeError, "Unknow model {0}, choices are SM, SM4, FF".format(f[1].upper()) 
+                else : raise RuntimeError("Unknow model {0}, choices are SM, SM4, FF".format(f[1].upper()))
 
             if f[0].lower().startswith("decay"):
 
@@ -149,8 +148,8 @@ class inputReader:
                 elif f[1] == "eeqq_Resolved": self.decayChan = f[1]
                 elif f[1] == "mumuqq_Merged": self.decayChan = f[1]
                 elif f[1] == "eeqq_Merged": self.decayChan = f[1]
-                else : raise RuntimeError, "Unknown decay channel {0}".format(f[1])
-                
+                else : raise RuntimeError("Unknown decay channel {0}".format(f[1]))
+
             if f[0].lower().startswith("cat"):
                self.cat = f[1]
 
@@ -163,7 +162,7 @@ class inputReader:
                     elif chan.lower().startswith("ttbar"): self.ttbar_chan = True
                     elif chan.lower().startswith("vz"):   self.vz_chan = True
                     elif chan.lower().startswith("all"):   self.all_chan = True
-                    else : raise RuntimeError, "Unknown channel {0}, choices are ggH, qqH, WH, ZH, ttH, qqZZ, ggZZ, zjets".format(chan)
+                    else : raise (RuntimeError, "Unknown channel {0}, choices are ggH, qqH, WH, ZH, ttH, qqZZ, ggZZ, zjets".format(chan))
 
             if f[0].lower().startswith("zjetsshape"):
 
@@ -171,7 +170,6 @@ class inputReader:
                 if f[1].lower().startswith("p1_zjets"): self.p1_zjets = f[2]
                 if f[1].lower().startswith("l0_zjets"): self.l0_zjets = f[2]
                 if f[1].lower().startswith("l1_zjets"):  self.l1_zjets = f[2]
-                
                 if f[1].lower().startswith("p0_alt_zjets"):  self.p0_alt_zjets = f[2]
                 if f[1].lower().startswith("p1_alt_zjets"): self.p1_alt_zjets = f[2]
                 if f[1].lower().startswith("l0_alt_zjets"): self.l0_alt_zjets = f[2]
@@ -189,7 +187,6 @@ class inputReader:
                 if f[1].lower().startswith("l1l1_cov_zjets"):  self.l1l1_cov_zjets = f[2]
 
             if f[0].lower().startswith("systematic"):
-                
                 if f[1].lower().startswith("zjet") and f[1].lower().find("alphalow") >= 0 :
                     self.zjetsAlphaLow = f[2]
                 if f[1].lower().startswith("zjet") and f[1].lower().find("alphahigh") >= 0 :
@@ -204,7 +201,6 @@ class inputReader:
                     self.elecFullUnc = f[2]
                 if f[1].lower().startswith("elec_trig") or f[1].lower().startswith("electrig"):
                     self.elecTrigUnc = f[2]
-                        
                 if f[1].lower().startswith("param"):
                     if f[2].lower().startswith("cms_zz2l2q_mean_m_err"):
                         self.CMS_zz2l2q_mean_m_err = f[3]
@@ -250,7 +246,7 @@ class inputReader:
                 if f[1].lower().startswith("cms_zz2lj_mean"):
                     self.useCMS_zz2lJ_mean = self.parseBoolString(f[2])
                 if f[1].lower().startswith("cms_zz2lj_sigma"):
-                    self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])    
+                    self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -265,18 +261,17 @@ class inputReader:
 
         ## check settings ##
         if self.all_chan and ( self.qqH_chan or self.ggH_chan):
-            raise RuntimeError, "You cannot request to execute ALL signal channels and single channels at the same time. Check inputs!"
-        if not self.goodEntry(self.sqrts): raise RuntimeError, "{0} is not set.  Check inputs!".format("sqrts")
-     
-        if not self.goodEntry(self.zjetsAlphaLow): raise RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaLow")
-        if not self.goodEntry(self.zjetsAlphaHigh): raise RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaHigh")
+            raise (RuntimeError, "You cannot request to execute ALL signal channels and single channels at the same time. Check inputs!")
+        if not self.goodEntry(self.sqrts): raise (RuntimeError, "{0} is not set.  Check inputs!".format("sqrts"))
+
+        if not self.goodEntry(self.zjetsAlphaLow): raise (RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaLow"))
+        if not self.goodEntry(self.zjetsAlphaHigh): raise (RuntimeError, "{0} is not set.  Check inputs!".format("self.zjetsAlphaHigh"))
 
         if not self.goodEntry(self.zjets_lumi): self.zjets_lumi = self.lumi
         if not self.goodEntry(self.vz_lumi):   self.vz_lumi = self.lumi
         if not self.goodEntry(self.ttbar_lumi): self.ttbar_lumi = self.lumi
 
       ## Set dictionary entries to be passed to datacard class ##
-        
         dict['decayChannel'] = str(self.decayChan)
         dict['cat'] = str(self.cat)
         dict['model'] = str(self.model)
@@ -331,31 +326,32 @@ class inputReader:
 
         dict['lumiUnc'] = self.lumiUnc
         dict['muonFullUnc'] = float(self.muonFullUnc)
-        dict['elecFullUnc'] = float(self.elecFullUnc) 
+        dict['elecFullUnc'] = float(self.elecFullUnc)
         dict['muonTrigUnc'] = float(self.muonTrigUnc)
-        dict['elecTrigUnc'] = float(self.elecTrigUnc) 
+        dict['elecTrigUnc'] = float(self.elecTrigUnc)
 
-        dict['useLumiUnc'] = self.useLumiUnc 
+        dict['useLumiUnc'] = self.useLumiUnc
         dict['usePdf_hzz2l2q_accept'] = self.usePdf_hzz2l2q_accept
         dict['useQCDscale_ggH'] = self.useQCDscale_ggH
-        dict['useQCDscale_qqH'] = self.useQCDscale_qqH 
+        dict['useQCDscale_qqH'] = self.useQCDscale_qqH
+        dict['useQCDscale_vz'] = self.useQCDscale_vz #changed by Jialin
         dict['useQCDscale_VV'] = self.useQCDscale_VV
         dict['useBRhiggs_hzz2l2q'] = self.useBRhiggs_hzz2l2q
         dict['useCMS_eff'] = self.useCMS_eff
-        dict['useCMS_hzz2l2q_Zjets'] = self.useCMS_hzz2l2q_Zjets 
-        dict['useCMS_zz2l2q_bkgMELA'] = self.useCMS_zz2l2q_bkgMELA 
+        dict['useCMS_hzz2l2q_Zjets'] = self.useCMS_hzz2l2q_Zjets
+        dict['useCMS_zz2l2q_bkgMELA'] = self.useCMS_zz2l2q_bkgMELA
         dict['useCMS_zz2l2q_sigMELA'] = self.useCMS_zz2l2q_sigMELA
         dict['useCMS_zz2l2q_mean'] = self.useCMS_zz2l2q_mean
-        dict['useCMS_zz2l2q_sigma'] = self.useCMS_zz2l2q_sigma 
+        dict['useCMS_zz2l2q_sigma'] = self.useCMS_zz2l2q_sigma
         dict['useCMS_zz2lJ_mean'] = self.useCMS_zz2lJ_mean
         dict['useCMS_zz2lJ_sigma'] = self.useCMS_zz2lJ_sigma
         dict['usePdf_qqbar'] = True
         dict['usePdf_gg'] = True
         dict['useTheoryUncXS_HighMH'] = True
 
-        dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err) 
-        dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err) 
-        dict['CMS_zz2l2q_mean_e_err'] = float(self.CMS_zz2l2q_mean_e_err) 
+        dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err)
+        dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err)
+        dict['CMS_zz2l2q_mean_e_err'] = float(self.CMS_zz2l2q_mean_e_err)
         dict['CMS_zz2l2q_sigma_e_err'] = float(self.CMS_zz2l2q_sigma_e_err)
         dict['CMS_zz2l2q_mean_j_err'] = float(self.CMS_zz2l2q_mean_j_err)
         dict['CMS_zz2l2q_sigma_j_err'] = float(self.CMS_zz2l2q_sigma_j_err)
