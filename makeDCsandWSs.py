@@ -2,8 +2,9 @@ import os
 from inputReader import *
 from datacardClass import *
 from utils import *
-import common_strings_pars
 import argparse
+
+import common_strings_pars
 
 
 class DirectoryCreator:
@@ -89,7 +90,7 @@ class DirectoryCreator:
     def run_combine(self, current_mass, current_mass_directory, cwd, datacard):
     # STEP - 3: Run Combine commands
         # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
-        CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n {name} '.format(mH = current_mass, datacard = datacard, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass))
+        CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n {name} '.format(mH = current_mass, datacard = datacard, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass, blind = "blind" if self.blind else ""))
         if self.blind: CombineCommonArguments += " --run blind "
         # if self.blind: CombineCommonArguments += " --run expected "
         # if self.blind: CombineCommonArguments += " --run blind -t -1 "
@@ -102,7 +103,7 @@ class DirectoryCreator:
             os.chdir(current_mass_directory)
             command = "combineTool.py " + CombineCommonArguments
 
-            command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass))
+            command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass, blind = "blind" if self.blind else ""))
             # microcentury = 1 hr
             # longlunch = 2 hr
             # workday = 2 hr
@@ -112,7 +113,7 @@ class DirectoryCreator:
         else:
             # Change the respective directory where all cards are placed
             os.chdir(current_mass_directory)
-            command = "combine  {CombineCommonArguments} > {type}_mH{mH}_exp.log".format(type = self.Template[0], mH = current_mass, CombineCommonArguments = CombineCommonArguments)
+            command = "combine  {CombineCommonArguments} > {name}.log".format(CombineCommonArguments = CombineCommonArguments, name = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass, blind = "blind" if self.blind else ""))
 
             RunCommand(command)
             os.chdir(cwd)
@@ -131,7 +132,7 @@ class DirectoryCreator:
         if self.blind: command += " -t -1 --expectSignal 1 "
         # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
         # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-        command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name impact_step1_{mH}_{year}".format(year = year, mH = current_mass)
+        command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name mH{mH}_{year}_ImpactS1".format(year = year, mH = current_mass)
         RunCommand(command)
         os.chdir(cwd)
 
@@ -146,7 +147,7 @@ class DirectoryCreator:
         command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
         if self.blind: command += " -t -1 --expectSignal 1 "
         # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name impact_step2_{mH}_{year}".format(year = year, mH = current_mass)
+        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name mH{mH}_{year}_ImpactS2".format(year = year, mH = current_mass)
 
         RunCommand(command)
         os.chdir(cwd)
@@ -293,7 +294,7 @@ class DirectoryCreator:
                 self.run_ls(current_mass, current_mass_directory, cwd, datacard)
 
         if (self.step).lower() == 'plot':
-            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {}'.format(self.start_mass, self.end_val, self.step_sizes, year)
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {}'.format(self.start_mass, self.end_val, self.step_sizes, year, self.blind)
             RunCommand(command)
 
 
