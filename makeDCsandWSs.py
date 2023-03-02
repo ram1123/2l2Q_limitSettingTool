@@ -1,4 +1,5 @@
 import os
+import logging
 from inputReader import *
 from datacardClass import *
 from utils import *
@@ -7,8 +8,8 @@ from ListOfDatacards import datacardList
 
 import common_strings_pars
 
-
 class DirectoryCreator:
+    DATA_CARD_FILENAME = "hzz2l2q_13TeV_xs.txt"
 
     def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False):
         self.input_dir = input_dir
@@ -26,12 +27,12 @@ class DirectoryCreator:
         self.ifNuisance = True
         self.Template = ["2D"]
         self.t_values = ['Resolved', 'Merged']
-        self.verbose = verbose
         self.step = step
         self.ifCondor = ifCondor
         self.blind = blind
         self.allDatacard = allDatacard
         self.bOnly = bOnly
+        self.verbose = verbose
 
     def SetDirName(self):
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
@@ -50,12 +51,12 @@ class DirectoryCreator:
         # STEP - 1: Datacard and workspace creation
         make_directory(os.path.join(self.dir_name, 'HCG', str(current_mass)))
 
-        print("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
+        logger.debug("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
 
         for channel in self.channels:
             for cat in self.cats:
                 input_reader_txt = self.input_dir+"/"+channel+"_"+cat+".txt"
-                if (self.verbose): print("inputreadertext: ", input_reader_txt)
+                logger.debug("inputreadertext: ", input_reader_txt)
                 input_reader = inputReader(input_reader_txt)
                 input_reader.readInputs()
                 theInputs = input_reader.getInputs()
@@ -91,20 +92,19 @@ class DirectoryCreator:
         os.chdir(cwd)
 
 
-    def run_combine(self, current_mass, current_mass_directory, cwd, datacards):
+    def run_combine(self, current_mass, current_mass_directory, cwd):
     # STEP - 3: Run Combine commands
         if self.allDatacard:
             datacards = datacardList
         else:
-            datacards = [datacards]
+            datacards = [self.DATA_CARD_FILENAME]
 
-        print(datacards)
+        logger.debug("Datacard: {}".format(datacards))
         for datacard in datacards:
             # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
             AppendNameString = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
-            # print("===> ",datacard,category)
             CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
             if self.blind: CombineCommonArguments += " --run blind "
             # if self.blind: CombineCommonArguments += " --run expected "
@@ -114,7 +114,6 @@ class DirectoryCreator:
             # CombineCommonArguments += " --dry-run "
             if self.ifCondor:
                 LocalDir = os.getcwd()
-                print('PWD: {}'.format(LocalDir))
                 os.chdir(current_mass_directory)
                 command = "combineTool.py " + CombineCommonArguments
 
@@ -135,15 +134,17 @@ class DirectoryCreator:
                 RunCommand(command)
                 os.chdir(cwd)
 
-    def run_impact_s1(self, current_mass, current_mass_directory, cwd, datacards):
+    def run_impact_s1(self, current_mass, current_mass_directory, cwd):
         if self.allDatacard:
             datacards = datacardList
         else:
-            datacards = [datacards]
+            datacards = [self.DATA_CARD_FILENAME]
 
-        print('datacards: {}'.format(datacards))
+        logger.debug('datacards: {}'.format(datacards))
         os.chdir(current_mass_directory)
+        countDatacards = 1
         for datacard in datacards:
+            logger.debug("===> Submitting {}/{}".format(countDatacards, len(datacards)))
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
             command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
             RunCommand(command)
@@ -157,15 +158,16 @@ class DirectoryCreator:
             # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
             command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             RunCommand(command)
+            countDatacards += 1
         os.chdir(cwd)
 
-    def run_impact_s2(self, current_mass, current_mass_directory, cwd, datacards):
+    def run_impact_s2(self, current_mass, current_mass_directory, cwd):
         if self.allDatacard:
             datacards = datacardList
         else:
-            datacards = [datacards]
+            datacards = [self.DATA_CARD_FILENAME]
 
-        print('datacards: {}'.format(datacards))
+        logger.debug('datacards: {}'.format(datacards))
         os.chdir(current_mass_directory)
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
@@ -183,13 +185,13 @@ class DirectoryCreator:
         os.chdir(cwd)
 
 
-    def run_impact_s3(self, current_mass, current_mass_directory, cwd, datacard):
+    def run_impact_s3(self, current_mass, current_mass_directory, cwd):
         if self.allDatacard:
             datacards = datacardList
         else:
-            datacards = [datacards]
+            datacards = [self.DATA_CARD_FILENAME]
 
-        print('datacards: {}'.format(datacards))
+        logger.debug('datacards: {}'.format(datacards))
         os.chdir(current_mass_directory)
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
@@ -207,98 +209,106 @@ class DirectoryCreator:
             RunCommand(command)
         os.chdir(cwd)
 
-    def run_LHS(self, current_mass, current_mass_directory, cwd, datacard):
-
-        print('datacard: {}'.format(datacard))
-
-        os.chdir(current_mass_directory)
-        # First do a fit and save a workspace with a snapshot of the parameters at the best fit
-        command = "combine -M MultiDimFit " + str(datacard) + " -n .snapshot -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --saveWorkspace -t -1 --expectSignal 1"
-        RunCommand(command)
-
-        # Then re-run the scan with parameters frozen on top of this workspace, restoring the snapshot
-        command = "combine -M MultiDimFit higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root -n .freezeall -m "+str(current_mass)+" --rMin -3 --rMax 3 --algo grid --points 100 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit  -t -1 --expectSignal 1"
-        RunCommand(command)
-
-        # Finally plot the LL scan
-        command = "plot1DScan.py higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root --others 'higgsCombine.freezeall.MultiDimFit.mH"+str(current_mass)+".root:FreezeAll:2' -o freeze_all"
-        # command = "python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.snapshot.MultiDimFit.mH"+str(current_mass)+".root --main-label \"With systematics\" --main-color 1  --others 'higgsCombine.freezeall.MultiDimFit.mH"+str(current_mass)+".root:\"Stat-only\":2' -o freeze_all"
-        RunCommand(command)
-
-        os.chdir(cwd)
-
-    def run_correlation(self, current_mass, current_mass_directory, cwd, datacard):
-        """ Information:
-        Simple fits
-        """
-
-        print('datacard: {}'.format(datacard))
+    def run_LHS(self, current_mass, current_mass_directory, cwd):
+        logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
 
         os.chdir(current_mass_directory)
-        command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
-        RunCommand(command)
+        command = "text2workspace.py " + self.DATA_CARD_FILENAME + " -m " + str(current_mass)  + " -o " + self.DATA_CARD_FILENAME.replace(".txt", ".root")
+        logger.debug(command)
 
-        if (not self.blind):
-            print("Analysis is blinded")
-            pass
-        else:
-            pointsToScan = 75
-            ExpectedSignal = 1
-            if ExpectedSignal == 0: OutFileExt = 0
-            else: OutFileExt = 1
-            rRange= "-2,2" # for ExpectedSignal = 1
-            command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .correlation --cminDefaultMinimizerStrategy 0  --robustHesse 1 --robustHesseSave 1 --saveFitResult  -t -1 --expectSignal  {ExpectedSignal} ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
-            RunCommand(command)
-        os.chdir(cwd)
-
-    def FitDiagnostics(self, current_mass, current_mass_directory, cwd, datacard):
-        """ Information:
-        Simple fits
-        """
-
-        print('datacard: {}'.format(datacard))
-        os.chdir(current_mass_directory)
-        rRange= "-2,2" # for ExpectedSignal = 1
-        OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = "AllComb")
+        category = ((((self.DATA_CARD_FILENAME.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+        OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
         blindString = ""
+        FitType = ""
         if self.bOnly and self.blind:
             blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
             FitType = "bOnly"
+            OutFileExt = 0
         if (not self.bOnly) and self.blind:
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
             FitType = "SplusB"
-
-        command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
-        command += blindString
-
-        # always run the FitDiagnostics using condor
-        command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
-        RunCommand(command)
-        os.chdir(cwd)
-
-    def PrePostFitPlots(self, current_mass, current_mass_directory, cwd, datacard):
-        """ Information:
-        Simple fits
-        """
-
-        print('datacard: {}'.format(datacard))
-        os.chdir(current_mass_directory)
-        os.chdir(cwd)
-
-    def run_ls(self, current_mass, current_mass_directory, cwd, datacard):
-        """ Information:
-        Simple fits
-        """
-
-        print('datacard: {}'.format(datacard))
-
-        os.chdir(current_mass_directory)
-        command = "text2workspace.py " + datacard + " -m " + str(current_mass)  + " -o " + datacard.replace(".txt", ".root")
-        print(command)
+            OutFileExt = 1
 
         if (not self.blind):
-            print("Analysis is blinded")
+            logger.debug("Analysis is blinded")
+            pass
+        else:
+            pointsToScan = 50
+            rRange= "-3,3" # for ExpectedSignal = 1
+            CommonArguments = ' --algo grid --points {pointsToScan}'.format(pointsToScan = pointsToScan)
+            name = "bestfit.with_syst_" + "points"+str(pointsToScan)   # String append to the name of floting pars
+            name2 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
+            outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
+
+            command = "combine -M MultiDimFit -d {datacard} -m {mH} --freezeParameters MH -n .{name} --setParameterRanges r={rRange} --saveWorkspace  {blindString}".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, blindString = blindString, rRange = rRange, name = name)
+            command += CommonArguments
+            RunCommand(command + " | tee LHS_Float.log")
+
+            command ="combine -M MultiDimFit higgsCombine.{name}.MultiDimFit.mH{mH}.root -m {mH} --freezeParameters MH,allConstrainedNuisances -n .{name2} --setParameterRanges r={rRange} --snapshotName MultiDimFit  {blindString}".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, blindString = blindString, rRange = rRange, name = name, name2 = name2)
+            command += CommonArguments.replace(str(pointsToScan), str(pointsToScan + 100))
+            RunCommand(command + " | tee LHS_AllConstrained.log")
+
+            command = 'plot1DScan.py higgsCombine.{name}.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.{name2}.MultiDimFit.mH{mH}.root:"Stat-only":2 -o {outPDFName} --breakdown syst,stat'.format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, name = name, name2 = name2, outPDFName = outPDFName)
+            RunCommand(command + " | tee LHS_plot.log")
+        os.chdir(cwd)
+
+    def run_2DLHS(self, current_mass, current_mass_directory, cwd):
+        logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
+
+        os.chdir(current_mass_directory)
+        command = "text2workspace.py " + self.DATA_CARD_FILENAME + " -m " + str(current_mass)  + " -o " + self.DATA_CARD_FILENAME.replace(".txt", ".root")
+        logger.debug(command)
+
+        category = ((((self.DATA_CARD_FILENAME.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+        OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+
+        blindString = ""
+        FitType = ""
+        if self.bOnly and self.blind:
+            blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
+            FitType = "bOnly"
+            OutFileExt = 0
+        if (not self.bOnly) and self.blind:
+            blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
+            FitType = "SplusB"
+            OutFileExt = 1
+
+        if (not self.blind):
+            logger.debug("Analysis is blinded")
+            pass
+        else:
+            pointsToScan = 50
+            rRange= "-3,3" # for ExpectedSignal = 1
+            CommonArguments = ' --algo grid --points {pointsToScan}'.format(pointsToScan = pointsToScan)
+            name = "bestfit.with_syst_" + "points"+str(pointsToScan)   # String append to the name of floting pars
+            name2 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
+            outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
+
+            command = "combine -M MultiDimFit -d {datacard} -m {mH} --freezeParameters MH -n .{name} --setParameterRanges r={rRange} --saveWorkspace  {blindString}".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, blindString = blindString, rRange = rRange, name = name)
+            command += CommonArguments
+            RunCommand(command + " | tee LHS_Float.log")
+
+            command = "combine -M MultiDimFit datacard_part6_combined_multiSignalModel.root -m 125 --freezeParameters MH -n .scan2D.part6_multiSignalModel --algo grid --points 800 --cminDefaultMinimizerStrategy 0 -P r_ggH -P r_VBF --setParameterRanges r_ggH=0.5,2.5:r_VBF=-1,2"
+            command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .{name} --algo grid --points 200 --cminDefaultMinimizerStrategy 0 -P r_ggH -P r_VBF --setParameterRanges r_ggH=0.5,2.5:r_VBF=-1,2"
+
+            command = 'plot1DScan.py higgsCombine.{name}.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.{name2}.MultiDimFit.mH{mH}.root:"Stat-only":2 -o {outPDFName} --breakdown syst,stat'.format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, name = name, name2 = name2, outPDFName = outPDFName)
+            RunCommand(command + " | tee LHS_plot.log")
+        os.chdir(cwd)
+
+    def run_correlation(self, current_mass, current_mass_directory, cwd):
+        """ Information:
+        Simple fits
+        """
+
+        logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
+
+        os.chdir(current_mass_directory)
+        command = "text2workspace.py " + self.DATA_CARD_FILENAME + " -m " + str(current_mass)  + " -o " + self.DATA_CARD_FILENAME.replace(".txt", ".root")
+        RunCommand(command)
+
+        if (not self.blind):
+            logger.debug("Analysis is blinded")
             pass
         else:
             pointsToScan = 75
@@ -306,71 +316,138 @@ class DirectoryCreator:
             if ExpectedSignal == 0: OutFileExt = 0
             else: OutFileExt = 1
             rRange= "-2,2" # for ExpectedSignal = 1
-            command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .bestfit.with_syst --setParameterRanges r=-1,2.5 --saveWorkspace  -t -1 --expectSignal  {ExpectedSignal}".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
-            # RunCommand(command)
-            command ="combine -M MultiDimFit higgsCombine.bestfit.with_syst.MultiDimFit.mH{mH}.root -m {mH} --freezeParameters MH,allConstrainedNuisances -n .scan.with_syst.statonly_correct --algo grid --points {pointsToScan} --setParameterRanges r=-1,2.5 --snapshotName MultiDimFit  -t -1 --expectSignal  {ExpectedSignal}".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
-            # RunCommand(command)
-            # command = 'plot1DScan.py higgsCombine.scan.with_syst.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.scan.with_syst.statonly_correct.MultiDimFit.mH{mH}.root:"Stat-only":2 -o part3_scan_v1 --breakdown syst,stat'.format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
-            command = 'plot1DScan.py higgsCombine.bestfit.with_syst.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.scan.with_syst.statonly_correct.MultiDimFit.mH{mH}.root:"Stat-only":2 -o part3_scan_v1 --breakdown syst,stat'.format(datacard=datacard.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal, pointsToScan = pointsToScan)
+            command = "combine -M MultiDimFit {datacard} -m {mH} --freezeParameters MH -n .correlation --cminDefaultMinimizerStrategy 0  --robustHesse 1 --robustHesseSave 1 --saveFitResult  -t -1 --expectSignal  {ExpectedSignal} ".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, ExpectedSignal = ExpectedSignal)
             RunCommand(command)
         os.chdir(cwd)
 
+    def FitDiagnostics(self, current_mass, current_mass_directory, cwd):
+        """ Information:
+        Simple fits
+        """
 
-    def run(self, datacard = "hzz2l2q_13TeV_xs.txt"):
-        if self.verbose: print("[INFO] current working directory: ", Path.cwd())
+        if self.allDatacard:
+            datacards = datacardList
+        else:
+            datacards = [self.DATA_CARD_FILENAME]
+
+        logger.debug('datacards: {}'.format(datacards))
+        os.chdir(current_mass_directory)
+        rRange= "-2,2" # for ExpectedSignal = 1
+        for datacard in datacards:
+            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+            OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+
+            blindString = ""
+            FitType = ""
+            if self.bOnly and self.blind:
+                blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
+                FitType = "bOnly"
+            if (not self.bOnly) and self.blind:
+                blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
+                FitType = "SplusB"
+
+            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
+            command += blindString
+
+            # always run the FitDiagnostics using condor
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            RunCommand(command)
+        os.chdir(cwd)
+
+    def PrePostFitPlots(self, current_mass, current_mass_directory, cwd):
+        """ Information:
+        Simple fits
+        """
+
+        logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
+        os.chdir(current_mass_directory)
+        os.chdir(cwd)
+
+    def fastScan(self, current_mass, current_mass_directory, cwd):
+        """ Information:
+        Analyzing the NLL shape in each parameter: [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter)
+        """
+
+        if self.allDatacard:
+            datacards = datacardList
+        else:
+            datacards = [self.DATA_CARD_FILENAME]
+
+        logger.debug('datacards: {}'.format(datacards))
+        os.chdir(current_mass_directory)
+        rRange= "-2,2" # for ExpectedSignal = 1
+        for datacard in datacards:
+            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+            OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+
+            blindString = ""
+            FitType = ""
+            # if self.bOnly and self.blind:
+            #     blindString = " -t -1 " #--expectSignal 0 "   # b-only fit diagnostics
+            #     FitType = "bOnly"
+            if self.blind:
+                blindString = " -t -1 " #--expectSignal 1 "   # s+b fit diagnostics
+                FitType = "SplusB"
+
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys --setParameters r=1 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+FitType)
+                command += blindString
+                RunCommand(command)
+
+            command = "combineTool.py -M FastScan -w {datacard}:w ".format(datacard=datacard.replace(".txt",".root"))
+            if self.blind:
+                command += " -d higgsCombine.{name}.GenerateOnly.mH{mH}.123456.root:toys/toy_asimov".format(mH=current_mass, name = OutNameAppend+"_"+FitType)
+
+            additionalArguments = " "
+            # additionalArguments = " --robustHesse 1"
+            # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
+            command += additionalArguments
+            RunCommand(command)
+
+        os.chdir(cwd)
+
+    def run(self):
+        logger.debug("Current working directory: %s", os.getcwd())
+
+        actions = {
+            # "dc": self.create_workspaces, # Added separately because of different arguments
+            "cc": self.combine_cards,
+            "rc": self.run_combine,
+            "ri": self.run_impact_s1,
+            "ri2": self.run_impact_s2,
+            "ri3": self.run_impact_s3,
+            "rll": self.run_LHS,
+            "correlation": self.run_correlation,
+            "fitdiagnostics": self.FitDiagnostics,
+            "fastscan": self.fastScan,
+            "plot": None  # Placeholder for when no function is needed
+        }
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() in ('dc', 'all'):
-            print ("[INFO] declar datacardClass")
+            logger.debug("[INFO] declar datacardClass")
             datacard_class = datacardClass(str(self.year), self.verbose)
 
-            if self.verbose: print ("[INFO] load root module")
+            logger.debug("[INFO] load root module")
             datacard_class.loadIncludes()
-
-        # Default name of combined datacard
-        # datacard = "hzz2l2q_13TeV_xs.txt" if  self.ifNuisance else "hzz2l2q_13TeV_xs_NoNuisance.txt"
 
         for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
             if (self.step).lower() == 'plot': continue
 
             current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
+            cwd = os.getcwd()   # Get present working directory
 
-            cwd = os.getcwd()
-            print('cwd: {}'.format(cwd))
-            print('current_mass_directory: {}'.format(current_mass_directory))
+            logger.debug("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
 
             if (self.step).lower() in ('dc', 'all'):
+                logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
                 self.create_workspaces(current_mass, datacard_class, current_mass_directory, cwd)
 
-            if (self.step).lower() in ('cc', 'all'):
-                self.combine_cards(current_mass, current_mass_directory, cwd)
-
-            if (self.step).lower() in ('rc', 'all'):
-                self.run_combine(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() in ('ri', 'all'):
-                self.run_impact_s1(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'ri2':
-                self.run_impact_s2(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'ri3':
-                self.run_impact_s3(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'rll':
-                self.run_LHS(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'correlation':
-                self.run_correlation(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'ls':
-                self.run_ls(current_mass, current_mass_directory, cwd, datacard)
-
-            if (self.step).lower() == 'fitdiagnostics':
-                self.FitDiagnostics(current_mass, current_mass_directory, cwd, datacard)
-
+            action = actions.get(self.step.lower())
+            if action is not None:
+                action(current_mass, current_mass_directory, cwd)
 
         if (self.step).lower() == 'plot':
+            logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
             command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind)
             RunCommand(command)
 
@@ -388,10 +465,21 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--step", dest="step", type=str, default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and without syst) , fast (FastScan) or all")
     parser.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
     parser.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
-    parser.add_argument("-q", "--quiet", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
     parser.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards")
     parser.add_argument("-bOnly", "--bOnly", action="store_true", dest="bOnly", default=False, help="If this option given then it will set --expectSignal 0, which means this is background only fit. By default it will always perform S+B limit/fit")
+    parser.add_argument("-q", "--quiet", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
+    # parser.add_argument("--log-level", help="Set the logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
+    parser.add_argument(
+        "--log-level",
+        default=logging.INFO,
+        type=lambda x: getattr(logging, x),
+        help="Configure the logging level."
+        )
+
     args = parser.parse_args()
+
+    # Set the logging level based on the command line argument
+    logger.setLevel(args.log_level)
 
     DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly)
     # DirectoryCreatorObj.validate()
