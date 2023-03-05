@@ -79,14 +79,14 @@ def CompareLimit_MergedResolved(table2):
 if __name__ == '__main__':
     # set up table headers
     table = PrettyTable()
-    # table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma"]
     # table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma", "Observed Limit"]
 
 
-    table.field_names = ["Signal Mass (GeV)",  "Resolved Limit",  "Merged Limit", "combined Limit"]
-
+    # table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma"]
     # table = GetLimitValues_ForCombinedCards(table)
     # table = GetLimitValues_OneMass_EachCategory(table)
+
+    table.field_names = ["Signal Mass (GeV)",  "Resolved Limit",  "Merged Limit", "combined Limit"]
     table = CompareLimit_MergedResolved(table)
 
     # # sort table by signal mass
