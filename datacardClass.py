@@ -71,9 +71,9 @@ class datacardClass:
         if self.DEBUG: print('appendName is channel + cat ',postfix)
 
         self.cat_tree = "untagged"
-        if(self.cat=="b-tagged") :
+        if(self.cat=="b_tagged") :
           self.cat_tree = "btagged"
-        if(self.cat=="vbf-tagged") :
+        if(self.cat=="vbf_tagged") :
           self.cat_tree = "vbftagged"
 
         self.all_chan = theInputs['all']
@@ -107,7 +107,7 @@ class datacardClass:
         #if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") : # if merge selected, start from 600GeV
         #if(self.jetType=="merged") :
         #  self.low_M = 700
-        self.high_M = 4000
+        self.high_M = 3000
         bins = int((self.high_M-self.low_M)/10)
         mzz_name = "zz2l2q_mass"
 
@@ -119,7 +119,7 @@ class datacardClass:
           zz2l2q_mass.SetTitle("zz2lJ_mass")
 
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
-        zz2l2q_mass.setRange("fullsignalrange",300,4000)
+        zz2l2q_mass.setRange("fullsignalrange",300,3000)
 
         ## -------------------------- SIGNAL SHAPE ----------------------------------- ##
 
@@ -186,7 +186,6 @@ class datacardClass:
         ggHshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
         VBFshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
 
-        #ggh_accxeff_vbf = ggH_accxeff.Get("spin0_ggH_"+self.channel+"_vbf-tagged").GetListOfFunctions().First().Eval(self.mH)
 
         # mean (bias) of DCB
         name = "bias_ggH_"+(self.channel)
@@ -282,10 +281,10 @@ class datacardClass:
 
         vzTemplateMVV_Name = "hmass_"
         ttbarpluswwTemplateMVV_Name = "hmass_"
-        if(self.jetType=='resolved' and self.cat=='vbf-tagged') :
+        if(self.jetType=='resolved' and self.cat=='vbf_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-        elif(self.jetType=='resolved' and self.cat=='b-tagged') :
+        elif(self.jetType=='resolved' and self.cat=='b_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
         elif(self.jetType=='resolved' and self.cat=='untagged') :
@@ -295,10 +294,10 @@ class datacardClass:
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
         '''
-        elif(self.jetType=='merged' and self.cat=='vbf-tagged') :
+        elif(self.jetType=='merged' and self.cat=='vbf_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
-        elif(self.jetType=='merged' and self.cat=='b-tagged') :
+        elif(self.jetType=='merged' and self.cat=='b_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
         elif(self.jetType=='merged' and self.cat=='untagged') :
@@ -418,19 +417,19 @@ class datacardClass:
         vbfRatio = bkgRate_vz_Shape_vbftagged/(bkgRate_vz_Shape_untagged+bkgRate_vz_Shape_btagged)
 
         rfvSigRate_vz = ROOT.RooFormulaVar()
-        if(self.jetType=="resolved" and self.cat=='vbf-tagged') :
+        if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
-        elif(self.jetType=="resolved" and self.cat=='b-tagged') :
+        elif(self.jetType=="resolved" and self.cat=='b_tagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="resolved" and self.cat=='untagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.05*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
-        elif(self.jetType=="merged" and self.cat=='vbf-tagged') :
+        elif(self.jetType=="merged" and self.cat=='vbf_tagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
-        elif(self.jetType=="merged" and self.cat=='b-tagged') :
+        elif(self.jetType=="merged" and self.cat=='b_tagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="merged" and self.cat=='untagged') :
@@ -447,9 +446,9 @@ class datacardClass:
         if self.DEBUG: print('ttbar_smooth_fs_vbftagged = ',ttbar_smooth_fs_vbftagged.Integral())
 
         bkgRate_ttbar_Shape_mc = bkgRate_ttbar_Shape_untagged
-        if(self.cat=="b-tagged") :
+        if(self.cat=="b_tagged") :
           bkgRate_ttbar_Shape_mc = bkgRate_ttbar_Shape_btagged
-        if(self.cat=="vbf-tagged") :
+        if(self.cat=="vbf_tagged") :
           bkgRate_ttbar_Shape_mc = bkgRate_ttbar_Shape_vbftagged
 
         ttbar_MuEG_file = ROOT.TFile("CMSdata/alphaMethod_MuEG_Data_2016.root")
@@ -458,9 +457,9 @@ class datacardClass:
            channel_plus_cat = "resolvedSR"
         if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") :
            channel_plus_cat = "mergedSR"
-        if(self.cat=="b-tagged") :
+        if(self.cat=="b_tagged") :
            channel_plus_cat = channel_plus_cat+"btag"
-        elif(self.cat=="vbf-tagged") :
+        elif(self.cat=="vbf_tagged") :
            channel_plus_cat = channel_plus_cat+"vbf"
 
         # use emu data to get data-to-mc correction factor
@@ -612,9 +611,9 @@ class datacardClass:
         ##################################################
 
         cat=self.cat
-        if(self.cat=="b-tagged") :
+        if(self.cat=="b_tagged") :
           cat="btagged"
-        if(self.cat=="vbf-tagged") :
+        if(self.cat=="vbf_tagged") :
           cat="vbftagged"
 
         if(self.cat=="untagged" and self.jetType=="resolved") :
@@ -633,15 +632,15 @@ class datacardClass:
         BrZee_zjets_Shape = 0.432581
         if(self.jetType=="resolved" and self.cat=="untagged") :
           BrZee_zjets_Shape = 0.4212420
-        if(self.jetType=="resolved" and self.cat=="b-tagged") :
+        if(self.jetType=="resolved" and self.cat=="b_tagged") :
           BrZee_zjets_Shape = 0.3905356
-        if(self.jetType=="resolved" and self.cat=="vbf-tagged") :
+        if(self.jetType=="resolved" and self.cat=="vbf_tagged") :
           BrZee_zjets_Shape = 0.4073305
         if(self.jetType=="merged" and self.cat=="untagged") :
           BrZee_zjets_Shape = 0.4272461
-        if(self.jetType=="merged" and self.cat=="b-tagged") :
+        if(self.jetType=="merged" and self.cat=="b_tagged") :
           BrZee_zjets_Shape = 0.4695593
-        if(self.jetType=="merged" and self.cat=="vbf-tagged") :
+        if(self.jetType=="merged" and self.cat=="vbf_tagged") :
           BrZee_zjets_Shape = 0.3931084
         #############################################
         BrZll_zjets_Shape = BrZee_zjets_Shape
@@ -936,8 +935,9 @@ class datacardClass:
 
         ####
         # the numbers written to the datacards
-        sigRate_ggH_Shape = ggH_accxeff.Get("spin0_ggH_"+self.appendName).GetListOfFunctions().First().Eval(self.mH)
-        sigRate_VBF_Shape = VBF_accxeff.Get("spin0_VBF_"+self.appendName).GetListOfFunctions().First().Eval(self.mH)
+        print("self.appendName: ", self.appendName)
+        sigRate_ggH_Shape = ggH_accxeff.Get("spin0_ggH_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
+        sigRate_VBF_Shape = VBF_accxeff.Get("spin0_VBF_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
 
         sigRate_ggH_Shape = sigRate_ggH_Shape*sigFraction
         sigRate_VBF_Shape = sigRate_VBF_Shape*sigFraction
@@ -959,16 +959,16 @@ class datacardClass:
 
         rfvSigRate_ggH = ROOT.RooFormulaVar()
         rfvSigRate_VBF = ROOT.RooFormulaVar()
-        if(self.cat=='vbf-tagged') :
+        if(self.cat=='vbf_tagged') :
           rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.1*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_ggH,BR))
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_VBF,BR))
-        elif(self.jetType=="resolved" and self.cat=='b-tagged') :
+        elif(self.jetType=="resolved" and self.cat=='b_tagged') :
           rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="resolved" and self.cat=='untagged') :
           rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.05*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.05*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
-        elif(self.jetType=="merged" and self.cat=='b-tagged') :
+        elif(self.jetType=="merged" and self.cat=='b_tagged') :
           rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.2*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="merged" and self.cat=='untagged') :
@@ -990,28 +990,28 @@ class datacardClass:
         data_obs_file = ROOT.TFile(dataFileName)
 
         treeName=""
-        if(self.channel=="eeqq_Resolved" and self.cat=="vbf-tagged") :
+        if(self.channel=="eeqq_Resolved" and self.cat=="vbf_tagged") :
           treeName="TreeSR0"
-        if(self.channel=="eeqq_Resolved" and self.cat=="b-tagged") :
+        if(self.channel=="eeqq_Resolved" and self.cat=="b_tagged") :
           treeName="TreeSR1"
         if(self.channel=="eeqq_Resolved" and self.cat=="untagged") :
           treeName="TreeSR2"
-        if(self.channel=="eeqq_Merged" and self.cat=="vbf-tagged") :
+        if(self.channel=="eeqq_Merged" and self.cat=="vbf_tagged") :
           treeName="TreeSR3"
-        if(self.channel=="eeqq_Merged" and self.cat=="b-tagged") :
+        if(self.channel=="eeqq_Merged" and self.cat=="b_tagged") :
           treeName="TreeSR4"
         if(self.channel=="eeqq_Merged" and self.cat=="untagged") :
           treeName="TreeSR5"
 
-        if(self.channel=="mumuqq_Resolved" and self.cat=="vbf-tagged") :
+        if(self.channel=="mumuqq_Resolved" and self.cat=="vbf_tagged") :
           treeName="TreeSR6"
-        if(self.channel=="mumuqq_Resolved" and self.cat=="b-tagged") :
+        if(self.channel=="mumuqq_Resolved" and self.cat=="b_tagged") :
           treeName="TreeSR7"
         if(self.channel=="mumuqq_Resolved" and self.cat=="untagged") :
           treeName="TreeSR8"
-        if(self.channel=="mumuqq_Merged" and self.cat=="vbf-tagged") :
+        if(self.channel=="mumuqq_Merged" and self.cat=="vbf_tagged") :
           treeName="TreeSR9"
-        if(self.channel=="mumuqq_Merged" and self.cat=="b-tagged") :
+        if(self.channel=="mumuqq_Merged" and self.cat=="b_tagged") :
           treeName="TreeSR10"
         if(self.channel=="mumuqq_Merged" and self.cat=="untagged") :
           treeName="TreeSR11"

@@ -21,7 +21,9 @@ def get_limit_values(root_file):
 
 def GetLimitValues_ForCombinedCards(table):
     # loop over root files in directory
-    for root_file in glob.glob("datacards_HIG_23_001/cards_2016/HCG/*/higgsCombinemH*_2016_AsympLimitblind_.AsymptoticLimits.mH*.root"):
+    FileSearch = "datacards_HIG_23_001/cards_2016/HCG/*/higgsCombine.mH*_2016_AsympLimitblind_.AsymptoticLimits.mH*.root"
+    print(FileSearch)
+    for root_file in glob.glob(FileSearch):
         # print(root_file)
         # extract signal mass from file name
         signal_mass = int(os.path.splitext(root_file)[0].split("mH")[-1])
@@ -40,7 +42,7 @@ def GetLimitValues_OneMass_EachCategory(table):
         # print(root_file)
         # extract signal mass from file name
         signal_mass = (os.path.splitext(root_file)[0].split("higgsCombinemH"+MassPoint+"_2016_AsympLimitblind_")[-1].split(".AsymptoticLimits.mH"+MassPoint)[0])
-        # split signal_mass into three parts: "eeqq_Resolved_b-tagged" => ["eeqq", "Resolved", "b-tagged"], then format it nicely
+        # split signal_mass into three parts: "eeqq_Resolved_b_tagged" => ["eeqq", "Resolved", "b_tagged"], then format it nicely
         signal_mass = signal_mass.split("_")
         if len(signal_mass) == 1:
             if signal_mass[0] == "":    signal_mass = "{:6} {:8} {:6}".format("All Combined", " ", " ")
@@ -61,6 +63,7 @@ def CompareLimit_MergedResolved(table2):
 
     MassPoint = "*"
     MergedRootFile = "datacards_HIG_23_001/cards_2016/HCG/"+MassPoint+"/higgsCombinemH"+MassPoint+"_2016_AsympLimitblind_Merged.AsymptoticLimits.mH"+MassPoint+".root"
+    print(MergedRootFile)
     # loop over root files in directory
     for root_file in glob.glob(MergedRootFile):
         # print(root_file)
@@ -82,16 +85,16 @@ if __name__ == '__main__':
     # table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma", "Observed Limit"]
 
 
-    # table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma"]
-    # table = GetLimitValues_ForCombinedCards(table)
+    table.field_names = ["Signal Mass (GeV)", "Expected Limit", "Expected -1 Sigma", "Expected +1 Sigma", "Expected -2 Sigma", "Expected +2 Sigma"]
+    table = GetLimitValues_ForCombinedCards(table)
     # table = GetLimitValues_OneMass_EachCategory(table)
 
-    table.field_names = ["Signal Mass (GeV)",  "Resolved Limit",  "Merged Limit", "combined Limit"]
-    table = CompareLimit_MergedResolved(table)
+    # table.field_names = ["Signal Mass (GeV)",  "Resolved Limit",  "Merged Limit", "combined Limit"]
+    # table = CompareLimit_MergedResolved(table)
 
     # # sort table by signal mass
-    table.sortby = "Signal Mass (GeV)"
-    # table.sortby = "Expected Limit"
+    # table.sortby = "Signal Mass (GeV)"
+    table.sortby = "Expected Limit"
 
     # # left-align first column
     # # table.align["Signal Mass (GeV)"] = "l"

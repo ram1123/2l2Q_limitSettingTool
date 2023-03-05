@@ -23,7 +23,7 @@ class DirectoryCreator:
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001'
         self.channels = {'eeqq_Resolved', 'mumuqq_Resolved', 'eeqq_Merged', 'mumuqq_Merged'}
-        self.cats = {'vbf-tagged','b-tagged','untagged'}
+        self.cats = {'vbf_tagged','b_tagged','untagged'}
         self.ifNuisance = True
         self.Template = ["2D"]
         self.t_values = ['Resolved', 'Merged']
@@ -41,9 +41,9 @@ class DirectoryCreator:
             make_directory(self.dir_name + '/'+sub)
 
     def SetYearRelatedStrings(self, year):
-        self.input_dir = 'HM_inputs_{}UL'.format(year)
-        self.append_name = '{}'.format(year)
         self.year = year
+        self.append_name = '{}'.format(year)
+        self.input_dir = 'HM_inputs_{}UL'.format(year)
 
     def create_workspaces(self, current_mass, datacard_class, current_mass_directory, cwd):
 
@@ -64,6 +64,9 @@ class DirectoryCreator:
                 datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
 
     def combine_cards(self, current_mass, current_mass_directory, cwd):
+        if self.year == 'run2':
+            logger.info("This option won't run for run2")
+            return
         # STEP - 2: Get the combined cards
         # Change the respective directory where all cards are placed
         os.chdir(current_mass_directory)
@@ -75,7 +78,7 @@ class DirectoryCreator:
             RemoveFile("hzz2l2q_{}_13TeV_xs.root".format(t))
 
             for fs in ["eeqq_{}".format(t), "mumuqq_{}".format(t)]:
-                RunCommand("combineCards.py {FinalState}_untagged=hzz2l2q_{FinalState}_untagged_13TeV.txt {FinalState}_b-tagged=hzz2l2q_{FinalState}_b-tagged_13TeV.txt {FinalState}_vbf-tagged=hzz2l2q_{FinalState}_vbf-tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs), self.dry_run)
+                RunCommand("combineCards.py {FinalState}_untagged=hzz2l2q_{FinalState}_untagged_13TeV.txt {FinalState}_b_tagged=hzz2l2q_{FinalState}_b_tagged_13TeV.txt {FinalState}_vbf_tagged=hzz2l2q_{FinalState}_vbf_tagged_13TeV.txt > hzz2l2q_{FinalState}_13TeV.txt".format(FinalState = fs), self.dry_run)
 
             RunCommand("combineCards.py mumuqq_{Category}=hzz2l2q_mumuqq_{Category}_13TeV.txt eeqq_{Category}=hzz2l2q_eeqq_{Category}_13TeV.txt > hzz2l2q_{Category}_13TeV_xs.txt".format(Category = t), self.dry_run)
 
@@ -92,6 +95,24 @@ class DirectoryCreator:
         RunCommand(AllCardsCombination, self.dry_run)
         os.chdir(cwd)
 
+    def combine_cards_allYears(self, current_mass, current_mass_directory, cwd):
+        # Go to a new directory named `cards_Run2_Combined` inside `datacards_HIG_23_001` where all three years cards are combined  and workspace is created
+        logger.info("Combining cards for all years")
+        logger.debug("Current directory: {}".format(os.getcwd()))
+        make_directory(current_mass_directory)
+        os.chdir(current_mass_directory)
+        logger.debug("Current directory: {}".format(os.getcwd()))
+        AllCardsCombination = 'combineCards.py -s '
+        for year in ['2016', '2017', '2018']:
+            AllCardsCombination = AllCardsCombination +' Era{year}=../../../cards_{year}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME)
+        AllCardsCombination = AllCardsCombination +' > {datacard}'.format(datacard = "hzz2l2q_13TeV_xs_NoNuisance.txt")
+        AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
+        AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
+
+        RunCommand(AllCardsCombination, self.dry_run)
+        RunCommand(AllCardsWithNuisance, self.dry_run)
+        os.chdir(cwd)
+
 
     def run_combine(self, current_mass, current_mass_directory, cwd):
     # STEP - 3: Run Combine commands
@@ -106,25 +127,32 @@ class DirectoryCreator:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
             AppendNameString = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
+            # -M HybridNew --LHCmode LHC-limits
             CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
-            if self.blind: CombineCommonArguments += " --run blind "
-            # if self.blind: CombineCommonArguments += " --run expected "
-            # if self.blind: CombineCommonArguments += " --run blind -t -1 "
-            # if self.blind: CombineCommonArguments += " --run blind -t -1 --expectSignal 1 "
-            # if self.blind: CombineCommonArguments += " --run blind -t -1 --expectSignal 0 "
+            CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            if self.blind:
+                CombineCommonArguments += " --run blind "
+                CombineCommonArgumentsHybrid += "  -t -1 --expectSignal 1  "
+                # CombineCommonArguments += " --run expected "
+                # CombineCommonArguments += " --run blind -t -1 "
+                # CombineCommonArguments += " --run blind -t -1 --expectSignal 1 "
+                # CombineCommonArguments += " --run blind -t -1 --expectSignal 0 "
             # CombineCommonArguments += " --dry-run "
             if self.ifCondor:
                 LocalDir = os.getcwd()
                 os.chdir(current_mass_directory)
                 command = "combineTool.py " + CombineCommonArguments
+                commandHybrid = "combineTool.py " + CombineCommonArgumentsHybrid
 
-                command += "--job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = AppendNameString)
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = AppendNameString)
+                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}Hybrid".format(mH=current_mass, name = AppendNameString)
                 # microcentury = 1 hr
                 # longlunch = 2 hr
                 # workday = 8 hr
                 # tomorrow = 1 day
                 # testmatch = 3 day
                 RunCommand(command, self.dry_run)
+                RunCommand(commandHybrid, self.dry_run)
                 os.chdir(cwd)
 
             else:
@@ -155,7 +183,8 @@ class DirectoryCreator:
             # STEP - 1
             command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
             if self.blind: command += " -t -1 --expectSignal 1 "
-            # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+            command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+            command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01" # Added this line as fits were failing for some cases
             # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
             command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             RunCommand(command, self.dry_run)
@@ -179,8 +208,9 @@ class DirectoryCreator:
             # STEP - 2
             command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
             if self.blind: command += " -t -1 --expectSignal 1 "
-            # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+            command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
+            command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
+            command += "  --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
 
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
@@ -340,13 +370,24 @@ class DirectoryCreator:
 
             blindString = ""
             FitType = ""
-            if self.bOnly and self.blind:
-                blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
-                FitType = "bOnly"
-            if (not self.bOnly) and self.blind:
-                blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
-                FitType = "SplusB"
+            # if self.bOnly and self.blind:
+            #     blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
+            #     FitType = "bOnly"
+            # if (not self.bOnly) and self.blind:
+            #     blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
+            #     FitType = "SplusB"
 
+            blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
+            FitType = "bOnly"
+            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
+            command += blindString
+
+            # always run the FitDiagnostics using condor
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            RunCommand(command, self.dry_run)
+
+            blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
+            FitType = "SplusB"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
 
@@ -412,6 +453,7 @@ class DirectoryCreator:
         actions = {
             # "dc": self.create_workspaces, # Added separately because of different arguments
             "cc": self.combine_cards,
+            "run2": self.combine_cards_allYears,
             "rc": self.run_combine,
             "ri": self.run_impact_s1,
             "ri2": self.run_impact_s2,
@@ -443,13 +485,20 @@ class DirectoryCreator:
                 logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
                 self.create_workspaces(current_mass, datacard_class, current_mass_directory, cwd)
 
-            action = actions.get(self.step.lower())
-            if action is not None:
-                action(current_mass, current_mass_directory, cwd)
+            if self.step.lower() == "all":
+                if self.year == 'run2': actions["run2"](current_mass, current_mass_directory, cwd)
+                else: actions["cc"](current_mass, current_mass_directory, cwd)
+                actions["rc"](current_mass, current_mass_directory, cwd)
+                actions["ri"](current_mass, current_mass_directory, cwd)
+                actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
+            else:
+                action = actions.get(self.step.lower())
+                if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
+                    action(current_mass, current_mass_directory, cwd)
 
         if (self.step).lower() == 'plot':
             logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
-            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind)
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME)
             RunCommand(command, self.dry_run)
 
 
@@ -488,7 +537,8 @@ if __name__ == "__main__":
     if args.year == '2016': years = [2016]
     if args.year == '2017': years = [2017]
     if args.year == '2018': years = [2018]
-    if args.year == 'all': years = [2016, 2017, 2018]
+    if (args.year).lower() == 'all': years = [2016, 2017, 2018]
+    if (args.year).lower() == 'run2': years = ["run2"]
     for year in years:
         print "#############################################################"
         print "#                                                           #"

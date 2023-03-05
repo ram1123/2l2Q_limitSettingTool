@@ -3,7 +3,7 @@ model SM
 
 ## decay chan ##
 decay mumuqq_Resolved
-cat b-tagged
+cat b_tagged
 
 ## lumi ##
 lumi 41.48
@@ -22,7 +22,7 @@ zjetsShape l1_zjets 0.01
 
 zjetsShape p0_alt_zjets 5.94749
 zjetsShape l0_alt_zjets 0.00439311
-zjetsShape p1_alt_zjets 0 
+zjetsShape p1_alt_zjets 0
 zjetsShape l1_alt_zjets 0.01
 
 zjetsShape p0p0_cov_zjets 0.0469233

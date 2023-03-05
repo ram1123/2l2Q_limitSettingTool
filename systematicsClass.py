@@ -256,9 +256,9 @@ class systematicsClass:
           channel="merged"
 
         cat = self.cat
-        if(self.cat=='vbf-tagged') :
+        if(self.cat=='vbf_tagged') :
           cat='vbftagged'
-        elif(cat=='b-tagged') :
+        elif(cat=='b_tagged') :
           cat='btagged'
 
         #changed by Jialin
@@ -305,9 +305,9 @@ class systematicsClass:
           channel="Merged"
 
         cat = self.cat
-        if(self.cat=='vbf-tagged') :
+        if(self.cat=='vbf_tagged') :
           cat='vbftagged'
-        elif(cat=='b-tagged') :
+        elif(cat=='b_tagged') :
           cat='btagged'
 
         #changed by Jialin

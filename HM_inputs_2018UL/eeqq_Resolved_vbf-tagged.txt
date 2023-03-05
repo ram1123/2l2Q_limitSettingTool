@@ -3,7 +3,7 @@ model SM
 
 ## decay chan ##
 decay eeqq_Resolved
-cat vbf-tagged
+cat vbf_tagged
 
 ## lumi ##
 lumi 59.83

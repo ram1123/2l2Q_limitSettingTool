@@ -1,3 +1,4 @@
+*.bat
 cards_*/
 tmpFile.root
 *.pyc

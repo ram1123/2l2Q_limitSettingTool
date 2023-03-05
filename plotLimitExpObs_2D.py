@@ -1,5 +1,5 @@
 from ROOT import *
-ROOT.SetBatch(True)
+#ROOT.SetBatch(True)
 from tdrStyle import *
 setTDRStyle()
 
@@ -14,6 +14,7 @@ end_val = sys.argv[2]
 step_sizes = sys.argv[3]
 year = sys.argv[4]
 blind = sys.argv[5]
+datacard = sys.argv[6]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -34,8 +35,9 @@ print('year: {}'.format(year))
     # for j in range(int(end_val)):
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
+        category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
 
-        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombine"+common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass, blind = "blind" if blind else "")+".AsymptoticLimits.mH"+str(m)+".root","READ")
+        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombine."+common_strings_pars.COMBINE_ASYMP_LIMIT.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")+".AsymptoticLimits.mH"+str(m)+".root","READ")
         t = f.Get("limit")
 
         scale = 1.0
@@ -118,7 +120,11 @@ latex2.SetTextSize(0.5*c.GetTopMargin())
 latex2.SetTextFont(42)
 latex2.SetTextAlign(31) # align right
 #latex2.DrawLatex(0.87, 0.95,"12.9 fb^{-1} (13 TeV)")
-latex2.DrawLatex(0.87, 0.95,"59.83 fb^{-1} (13 TeV)")
+if year == "2016": latex2.DrawLatex(0.87, 0.95,"35.9 fb^{-1} (13 TeV)")
+elif year == "2017": latex2.DrawLatex(0.87, 0.95,"41.5 fb^{-1} (13 TeV)")
+elif year == "2018": latex2.DrawLatex(0.87, 0.95,"59.7 fb^{-1} (13 TeV)")
+elif year == "all": latex2.DrawLatex(0.87, 0.95,"137.1 fb^{-1} (13 TeV)")
+else: latex2.DrawLatex(0.87, 0.95,"xx fb^{-1} (xx TeV)")
 latex2.SetTextSize(0.9*c.GetTopMargin())
 latex2.SetTextFont(62)
 latex2.SetTextAlign(11) # align right

@@ -53,7 +53,7 @@
     python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
     ```
 
-    - In `HM_inputs_*` you should prepare 12 systematics files  ((resolved, merged * b-tagged, un-tagged , vbf-tagged) * ee,mumu). Now, you can just go into these .txt files and change the value of systematics.
+    - In `HM_inputs_*` you should prepare 12 systematics files  ((resolved, merged * b_tagged, un-tagged , vbf_tagged) * ee,mumu). Now, you can just go into these .txt files and change the value of systematics.
     - `-y` is year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all
     - `-a` append name for cards dir. i.e `-a` test will create `cards_test` to stroe all datacards. When you run this tool, it better to keep option `-a` same as `-y`. in `cards_2016`, `cards_2017` and `cards_2018`. There already have combine and plot script.
 
@@ -79,35 +79,3 @@
                             (CombineCards), rc (RunCombine), or all
     ```
 
-# General commands:
-
-```bash
-# local
-combine -n testt -m 500 -M AsymptoticLimits hzz2l2q_13TeV_xs_NoNuisance.txt --rMax 1 --rAbsAcc 0 --run blind
-
-# batch
-combineTool.py -M AsymptoticLimits -d hzz2l2q_13TeV_xs_NoNuisance.root --rMax 1 --rAbsAcc 0 --run blind -m 500 --job-mode condor
-```
-
-# Impact plot
-
-```bash
-text2workspace.py hzz2l2q_13TeV_xs.txt -m 550 -o hzz2l2q_13TeV_xs.root
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doInitialFit  -t -1 --expectSignal 1
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doFits
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --output impacts.json
-plotImpacts.py -i impacts.json -o impacts
-```
-
-All above 5 commands can be run using `makeDCsandWSs.py` script:
-
-```bash
-python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s ri
-```
-
-# for diffNuisance
-
-```bash
-python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py --help
-python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py fitDiagnosticsTest.root  --all
-```
