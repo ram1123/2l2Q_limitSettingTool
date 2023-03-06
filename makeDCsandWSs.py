@@ -72,6 +72,8 @@ class DirectoryCreator:
         os.chdir(current_mass_directory)
         AllCardsCombination = 'combineCards.py  -s '
         for t in self.t_values:
+            if int(current_mass) >= 2800:
+                if t == 'Resolved': continue
             RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
             RemoveFile("hzz2l2q_eeqq_{}_13TeV.txt".format(t))
             RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
@@ -86,7 +88,7 @@ class DirectoryCreator:
                 RunCommand("combineCards.py eeqq_{Category}_{Tag}=hzz2l2q_eeqq_{Category}_{Tag}_13TeV.txt mumuqq_{Category}_{Tag}=hzz2l2q_mumuqq_{Category}_{Tag}_13TeV.txt > hzz2l2q_{Category}_{Tag}_13TeV.txt".format(Category = t,  Tag = cat), self.dry_run)
 
             AllCardsCombination = AllCardsCombination +' {Category}=hzz2l2q_{Category}_13TeV_xs.txt'.format(Category = t)
-        RunCommand("*"*51)
+        RunCommand("{stringg}\t {mH} \t {stringg}".format(stringg = "*"*11, mH = current_mass))
 
         AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
         AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
@@ -128,8 +130,10 @@ class DirectoryCreator:
             AppendNameString = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
             # -M HybridNew --LHCmode LHC-limits
-            CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
-            CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH} --rMin -1 --rMax 1 --rAbsAcc 0  -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            # FIXME: Only for debug:
+            #CombineCommonArguments += " --freezeParameters MH,allConstrainedNuisances "
             if self.blind:
                 CombineCommonArguments += " --run blind "
                 CombineCommonArgumentsHybrid += "  -t -1 --expectSignal 1  "
@@ -144,7 +148,10 @@ class DirectoryCreator:
                 command = "combineTool.py " + CombineCommonArguments
                 commandHybrid = "combineTool.py " + CombineCommonArgumentsHybrid
 
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = AppendNameString)
+                if self.year == 'run2':
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}".format(mH=current_mass, name = AppendNameString)
+                else:
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = AppendNameString)
                 commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}Hybrid".format(mH=current_mass, name = AppendNameString)
                 # microcentury = 1 hr
                 # longlunch = 2 hr
@@ -152,13 +159,13 @@ class DirectoryCreator:
                 # tomorrow = 1 day
                 # testmatch = 3 day
                 RunCommand(command, self.dry_run)
-                RunCommand(commandHybrid, self.dry_run)
+                #RunCommand(commandHybrid, self.dry_run)
                 os.chdir(cwd)
 
             else:
                 # Change the respective directory where all cards are placed
                 os.chdir(current_mass_directory)
-                command = "combine  {CombineCommonArguments} > {name}.log".format(CombineCommonArguments = CombineCommonArguments, name = AppendNameString)
+                command = "combine  {CombineCommonArguments} | tee {name}.log".format(CombineCommonArguments = CombineCommonArguments, name = AppendNameString)
 
                 RunCommand(command, self.dry_run)
                 os.chdir(cwd)
@@ -183,10 +190,15 @@ class DirectoryCreator:
             # STEP - 1
             command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
             if self.blind: command += " -t -1 --expectSignal 1 "
-            command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-            command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01" # Added this line as fits were failing for some cases
+            # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2  " # Added this line as fits were failing
+            # command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
             # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-            command += "--job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+
+            if self.year == 'run2':
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+            else:
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+
             RunCommand(command, self.dry_run)
             countDatacards += 1
         os.chdir(cwd)
@@ -517,7 +529,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
     parser.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards")
     parser.add_argument("-bOnly", "--bOnly", action="store_true", dest="bOnly", default=False, help="If this option given then it will set --expectSignal 0, which means this is background only fit. By default it will always perform S+B limit/fit")
-    parser.add_argument("-q", "--quiet", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
     # parser.add_argument("--log-level", help="Set the logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
     parser.add_argument(
         "--log-level",

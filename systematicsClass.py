@@ -8,8 +8,9 @@ import math
 
 class systematicsClass:
 
-    def __init__(self,theMass,theForXSxBR,theInputs, DEBUG):
+    def __init__(self,theMass,theForXSxBR,theInputs, year, DEBUG):
 
+        self.year = year
         self.ID_2muResolved = 'mumuqq_Resolved'
         self.ID_2eResolved = 'eeqq_Resolved'
         self.ID_2muMerged = 'mumuqq_Merged'
@@ -84,13 +85,13 @@ class systematicsClass:
 
         theFile.write("\n")
 
-    def Build_lumi(self,theFile,theInputs):
+    def Build_lumi_Uncorrelated(self,theFile,theInputs):
         if(self.sqrts == 7):
             theFile.write("lumi_7TeV lnN ")
         elif (self.sqrts == 8):
             theFile.write("lumi_8TeV lnN ")
         elif (self.sqrts == 13):
-            theFile.write("lumi_13TeV lnN ")
+            theFile.write("lumi_13TeV_{} lnN ".format(self.year))
         else:
             raise RuntimeError("Unknown sqrts in systematics!")
 
@@ -99,6 +100,58 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "{0} ".format(self.lumiUncertainty)
+
+        self.Write_Systematics_Line(systLine,theFile,theInputs)
+
+    def Build_lumi_Corr17_18(self,theFile,theInputs):
+        systLine = {}
+        if(str(self.year) == '2018'):
+            theFile.write("lumi_13TeV_correlated_17_18 lnN ")
+
+            systLine={'ggH':"{0} ".format('1.002')}
+            systLine['qqH']  = "{0} ".format('1.002')
+            systLine['zjets']= "- "
+            systLine['ttbar']= "- "
+            systLine['vz']  = "{0} ".format('1.002')
+
+        if(str(self.year) == '2017'):
+            theFile.write("lumi_13TeV_correlated_17_18 lnN ")
+
+            systLine={'ggH':"{0} ".format('1.006')}
+            systLine['qqH']  = "{0} ".format('1.006')
+            systLine['zjets']= "- "
+            systLine['ttbar']= "- "
+            systLine['vz']  = "{0} ".format('1.006')
+
+        self.Write_Systematics_Line(systLine,theFile,theInputs)
+
+    def Build_lumi_Corr16_17_18(self,theFile,theInputs):
+        if(str(self.year) == '2016'):
+            theFile.write("lumi_13TeV_correlated_16_17_18 lnN ")
+
+            systLine={'ggH':"{0} ".format('1.006')}
+            systLine['qqH']  = "{0} ".format('1.006')
+            systLine['zjets']= "- "
+            systLine['ttbar']= "- "
+            systLine['vz']  = "{0} ".format('1.006')
+
+        if(str(self.year) == '2017'):
+            theFile.write("lumi_13TeV_correlated_16_17_18 lnN ")
+
+            systLine={'ggH':"{0} ".format('1.009')}
+            systLine['qqH']  = "{0} ".format('1.009')
+            systLine['zjets']= "- "
+            systLine['ttbar']= "- "
+            systLine['vz']  = "{0} ".format('1.009')
+
+        if(str(self.year) == '2018'):
+            theFile.write("lumi_13TeV_correlated_16_17_18 lnN ")
+
+            systLine={'ggH':"{0} ".format('1.02')}
+            systLine['qqH']  = "{0} ".format('1.02')
+            systLine['zjets']= "- "
+            systLine['ttbar']= "- "
+            systLine['vz']  = "{0} ".format('1.02')
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
@@ -374,7 +427,9 @@ class systematicsClass:
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
         if theInputs['useLumiUnc']:
-            self.Build_lumi(theFile,theInputs)
+            self.Build_lumi_Uncorrelated(theFile,theInputs)
+            if str(self.year) != '2016': self.Build_lumi_Corr17_18(theFile,theInputs)
+            self.Build_lumi_Corr16_17_18(theFile,theInputs)
 
         if theInputs['usePdf_gg']:
             self.Write_pdf_gg(theFile,theInputs)

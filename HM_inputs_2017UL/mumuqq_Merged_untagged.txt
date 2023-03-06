@@ -7,7 +7,7 @@ cat untagged
 
 ## lumi ##
 lumi 41.48
-systematic lumiUnc 1.012
+systematic lumiUnc 1.02
 
 ## sqrtS ##
 sqrts 13

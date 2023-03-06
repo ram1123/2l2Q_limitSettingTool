@@ -55,7 +55,6 @@ def RunCommand(command, dry_run=False):
     logger.info("Command: {}".format(command))
     if not dry_run:
         os.system(command)
-    print('')
 
 def RemoveFile(FileName):
     if os.path.exists(FileName):
