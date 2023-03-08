@@ -53,7 +53,9 @@ logger.setLevel( logging.ERROR)
 def RunCommand(command, dry_run=False):
     logger.info("="*51)
     logger.info("Command: {}".format(command))
+    logger.debug("dry_run: {}".format(dry_run))
     if not dry_run:
+        logger.debug("Inside module RunCommand(command, dry_run=False):")
         os.system(command)
 
 def RemoveFile(FileName):

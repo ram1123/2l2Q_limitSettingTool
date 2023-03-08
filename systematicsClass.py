@@ -415,14 +415,14 @@ class systematicsClass:
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_bkgMELA_{0} param 0  1  [-3,3]\n".format(channel))
+        theFile.write("CMS_zz2l2q_bkgMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
 
     def Write_CMS_zz2l2q_sigMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-3,3]\n".format(channel))
+        theFile.write("CMS_zz2l2q_sigMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
 
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 

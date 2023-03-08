@@ -41,11 +41,13 @@ for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
 
         category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
         FetchNameStr = common_strings_pars.COMBINE_ASYMP_LIMIT.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")
+        if current_mass < 3800:
+            FetchNameStr = common_strings_pars.COMBINE_ASYMP_LIMIT_OLD.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")
         InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = FetchNameStr)
 
         # check if InputFile exists
         if not os.path.isfile(InputFile):
-            logger.warning("File does not exist: {}".format(InputFile))
+            logger.error("File does not exist: {}".format(InputFile))
             GetZombieMassPointList.append(current_mass)
             continue
 
@@ -54,7 +56,7 @@ for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
 
         # check if the input file is not zombie
         if f.IsZombie():
-            logger.warning("File is zombie: {}".format(InputFile))
+            logger.error("File is zombie: {}".format(InputFile))
             GetZombieMassPointList.append(current_mass)
             continue
 
@@ -173,4 +175,5 @@ c.SaveAs(OutputFileName+".png")
 c.SaveAs(OutputFileName+".C")
 c.SaveAs(OutputFileName+".root")
 
-logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))
+if len(GetZombieMassPointList) > 0:
+    logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))

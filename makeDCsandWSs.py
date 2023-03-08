@@ -65,15 +65,17 @@ class DirectoryCreator:
 
     def combine_cards(self, current_mass, current_mass_directory, cwd):
         if self.year == 'run2':
-            logger.info("This option won't run for run2")
+            logger.warning("This option won't run for run2")
             return
         # STEP - 2: Get the combined cards
         # Change the respective directory where all cards are placed
         os.chdir(current_mass_directory)
         AllCardsCombination = 'combineCards.py  -s '
         for t in self.t_values:
-            if int(current_mass) >= 2800:
-                if t == 'Resolved': continue
+            # if int(current_mass) >= 2800:
+            #     if t == 'Resolved':
+            #         logger.warning("current mass value: {}, but the Resolved category not available for mH >= 2800".format(current_mass))
+            #         continue
             RemoveFile("hzz2l2q_mumuqq_{}_13TeV.txt".format(t))
             RemoveFile("hzz2l2q_eeqq_{}_13TeV.txt".format(t))
             RemoveFile("hzz2l2q_{}_13TeV_xs.txt".format(t))
@@ -117,7 +119,7 @@ class DirectoryCreator:
 
 
     def run_combine(self, current_mass, current_mass_directory, cwd):
-    # STEP - 3: Run Combine commands
+    # STEP - 3: run Combine commands
         if self.allDatacard:
             datacards = datacardList
         else:
@@ -149,10 +151,10 @@ class DirectoryCreator:
                 commandHybrid = "combineTool.py " + CombineCommonArgumentsHybrid
 
                 if self.year == 'run2':
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}".format(mH=current_mass, name = AppendNameString)
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 else:
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}".format(mH=current_mass, name = AppendNameString)
-                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}Hybrid".format(mH=current_mass, name = AppendNameString)
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
                 # microcentury = 1 hr
                 # longlunch = 2 hr
                 # workday = 8 hr
@@ -222,7 +224,11 @@ class DirectoryCreator:
             if self.blind: command += " -t -1 --expectSignal 1 "
             command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
             command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
-            command += "  --job-mode condor --sub-opts='+JobFlavour=\"workday\"' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+            if self.year == 'run2':
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+            else:
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+
 
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
@@ -459,7 +465,7 @@ class DirectoryCreator:
 
         os.chdir(cwd)
 
-    def run(self):
+    def Run(self):
         logger.debug("Current working directory: %s", os.getcwd())
 
         actions = {
@@ -491,7 +497,7 @@ class DirectoryCreator:
             current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
             cwd = os.getcwd()   # Get present working directory
 
-            logger.debug("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
+            logger.info("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
 
             if (self.step).lower() in ('dc', 'all'):
                 logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
@@ -534,7 +540,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log-level",
         default=logging.INFO,
-        type=lambda x: getattr(logging, x),
+        type=lambda x: getattr(logging, x.upper()),
         help="Configure the logging level."
         )
     parser.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
@@ -551,6 +557,8 @@ if __name__ == "__main__":
     if args.year == '2018': years = [2018]
     if (args.year).lower() == 'all': years = [2016, 2017, 2018]
     if (args.year).lower() == 'run2': years = ["run2"]
+    if (args.year).lower() == 'run2':
+        RunCommand("ulimit -s unlimited", args.dry_run)
     for year in years:
         print "#############################################################"
         print "#                                                           #"
@@ -560,4 +568,4 @@ if __name__ == "__main__":
 
         DirectoryCreatorObj.SetYearRelatedStrings(year)
         DirectoryCreatorObj.SetDirName()
-        DirectoryCreatorObj.run()
+        DirectoryCreatorObj.Run()

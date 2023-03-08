@@ -131,60 +131,60 @@ class datacardClass:
 
         ## -------- Variable Definitions -------- ##
         ## e
-        name = "CMS_zz2l2q_mean_e_sig_{year}".format(year=self.year)
-        mean_e_sig = ROOT.RooRealVar(name,"mzz_mean_e_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_e_sig".format(year=self.year)
+        mean_e_sig = ROOT.RooRealVar(name,"mzz_mean_e_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_e_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_e_sig_{year}".format(year=self.year)
-        sigma_e_sig = ROOT.RooRealVar(name,"mzz_sigma_e_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_e_sig".format(year=self.year)
+        sigma_e_sig = ROOT.RooRealVar(name,"mzz_sigma_e_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_e_sig.setVal(0.0)
         ## m
-        name = "CMS_zz2l2q_mean_m_sig_{year}".format(year=self.year)
-        mean_m_sig = ROOT.RooRealVar(name,"mzz_mean_m_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_m_sig".format(year=self.year)
+        mean_m_sig = ROOT.RooRealVar(name,"mzz_mean_m_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_m_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_m_sig_{year}".format(year=self.year)
-        sigma_m_sig = ROOT.RooRealVar(name,"mzz_sigma_m_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_m_sig".format(year=self.year)
+        sigma_m_sig = ROOT.RooRealVar(name,"mzz_sigma_m_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_m_sig.setVal(0.0)
         ## resolved jet JES JER
-        name = "CMS_zz2l2q_mean_j_sig_{year}".format(year=self.year)
-        mean_j_sig = ROOT.RooRealVar(name,"mzz_mean_j_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_j_sig".format(year=self.year)
+        mean_j_sig = ROOT.RooRealVar(name,"mzz_mean_j_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_j_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_j_sig_{year}".format(year=self.year)
-        sigma_j_sig = ROOT.RooRealVar(name,"mzz_sigma_j_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_j_sig".format(year=self.year)
+        sigma_j_sig = ROOT.RooRealVar(name,"mzz_sigma_j_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_j_sig.setVal(0.0)
         ## merged jet JEC JER
-        name = "CMS_zz2lJ_mean_J_sig_{year}".format(year=self.year)
-        mean_J_sig = ROOT.RooRealVar(name,"mzz_mean_J_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2lJ_mean_J_sig".format(year=self.year)
+        mean_J_sig = ROOT.RooRealVar(name,"mzz_mean_J_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_J_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2lJ_sigma_J_sig_{year}".format(year=self.year)
-        sigma_J_sig = ROOT.RooRealVar(name,"mzz_sigma_J_sig_{year}".format(year=self.year),0.0,-5.0,5.0)
+        name = "CMS_zz2lJ_sigma_J_sig".format(year=self.year)
+        sigma_J_sig = ROOT.RooRealVar(name,"mzz_sigma_J_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_J_sig.setVal(0.0)
 
         ########################
         ## JES lepton scale uncertainty
-        name = "mean_m_err_{year}".format(year=self.year)
+        name = "mean_m_err".format(year=self.year)
         mean_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_m_err']))
-        name = "mean_e_err_{year}".format(year=self.year)
+        name = "mean_e_err".format(year=self.year)
         mean_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_e_err']))
-        name = "mean_j_err_{year}".format(year=self.year)
+        name = "mean_j_err".format(year=self.year)
         mean_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_j_err']))
-        name = "mean_J_err_{year}".format(year=self.year)
+        name = "mean_J_err".format(year=self.year)
         mean_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_mean_J_err']))
         ###
         ## resolution uncertainty
-        name = "sigma_m_err_{year}".format(year=self.year)
+        name = "sigma_m_err".format(year=self.year)
         sigma_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_m_err']))
         if self.DEBUG: print(name,' ',sigma_m_err.getVal())
-        name = "sigma_e_err_{year}".format(year=self.year)
+        name = "sigma_e_err".format(year=self.year)
         sigma_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_e_err']))
         if self.DEBUG: print(name,' ',sigma_e_err.getVal())
-        name = "sigma_j_err_{year}".format(year=self.year)
+        name = "sigma_j_err".format(year=self.year)
         sigma_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_j_err']))
         if self.DEBUG: print(name,' ',sigma_j_err.getVal())
-        name = "sigma_J_err_{year}".format(year=self.year)
+        name = "sigma_J_err".format(year=self.year)
         sigma_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_sigma_J_err']))
         if self.DEBUG: print(name,' ',sigma_J_err.getVal())
 
@@ -408,7 +408,7 @@ class datacardClass:
         bkg_vz = ROOT.RooHistPdf(vzTemplateName+"Pdf",vzTemplateName+"Pdf",RooArgSet(zz2l2q_mass),vzTempDataHistMVV)
         bkg_ttbar = ROOT.RooHistPdf(ttbarTemplateName+"Pdf",ttbarTemplateName+"Pdf",RooArgSet(zz2l2q_mass),ttbarTempDataHistMVV)
 
-        #JES TAG nuisances
+        #JES TAG nuisances #FIXME: check if this is correct
         JES = ROOT.RooRealVar("JES_{}".format(self.year),"JES_{}".format(self.year),0,-3,3)
         BTAG = ROOT.RooRealVar("BTAG_"+self.jetType+"_"+str(self.year),"BTAG_"+self.jetType+"_"+str(self.year),0, -3,3)
 
@@ -748,6 +748,7 @@ class datacardClass:
            funcList_VBF.add(sigTemplatePdf_VBF_Up)
            funcList_VBF.add(sigTemplatePdf_VBF_Down)
 
+        # FIXME: Check if sig/bkg MELA should be correlated or uncorrelated
         morphSigVarName = "CMS_zz2l2q_sigMELA_"+self.jetType+"_"+str(self.year)
         alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-20,20)
         if(self.sigMorph): alphaMorphSig.setConstant(False)
@@ -863,7 +864,7 @@ class datacardClass:
         funcList_zjets = ROOT.RooArgList()
         funcList_ttbar = ROOT.RooArgList()
         funcList_vz = ROOT.RooArgList()
-        morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType
+        morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType+"_"+str(self.year)
         alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-20,20)
         morphVarListBkg = ROOT.RooArgList()
 
