@@ -1,19 +1,23 @@
 from ROOT import *
-ROOT.SetBatch(True)
+from utils import *
+gROOT.SetBatch(True)
 from tdrStyle import *
 setTDRStyle()
 
 import sys
+import os
 from array import array
 
 import common_strings_pars
 
+# logger.setLevel( logging.INFO)
 
 start_mass = sys.argv[1]
 end_val = sys.argv[2]
 step_sizes = sys.argv[3]
 year = sys.argv[4]
 blind = sys.argv[5]
+datacard = sys.argv[6]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -25,17 +29,35 @@ exp_m1 = array('d',[])
 exp_m2 = array('d',[])
 exp1D = array('d',[])
 
-print('start_mass: {}'.format(start_mass))
-print('end_val: {}'.format(end_val))
-print('step_sizes: {}'.format(step_sizes))
-print('year: {}'.format(year))
+logger.info('start_mass: {}'.format(start_mass))
+logger.info('end_val: {}'.format(end_val))
+logger.info('step_sizes: {}'.format(step_sizes))
+logger.info('year: {}'.format(year))
 
-# for i in range(1):
-    # for j in range(int(end_val)):
+GetZombieMassPointList = []
+
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        f = TFile("./datacards_HIG_23_001/cards_"+str(year)+"/HCG/"+str(m)+"/higgsCombine"+common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = year, mH = current_mass, blind = "blind" if blind else "")+".AsymptoticLimits.mH"+str(m)+".root","READ")
+        category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+        FetchNameStr = common_strings_pars.COMBINE_ASYMP_LIMIT.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")
+        InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = FetchNameStr)
+
+        # check if InputFile exists
+        if not os.path.isfile(InputFile):
+            logger.warning("File does not exist: {}".format(InputFile))
+            GetZombieMassPointList.append(current_mass)
+            continue
+
+        logger.info(InputFile)
+        f = TFile(InputFile,"READ")
+
+        # check if the input file is not zombie
+        if f.IsZombie():
+            logger.warning("File is zombie: {}".format(InputFile))
+            GetZombieMassPointList.append(current_mass)
+            continue
+
         t = f.Get("limit")
 
         scale = 1.0
@@ -61,8 +83,8 @@ for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         t.GetEntry(4)
         exp_p2.append(t.limit*scale-thisexp)
 
-print 'mass',mass
-print 'exp',exp
+logger.info('mass: {}'.format(mass))
+logger.info('exp: {}'.format(exp))
 
 v_mass = TVectorD(len(mass),mass)
 v_zeros = TVectorD(len(zeros),zeros)
@@ -118,7 +140,11 @@ latex2.SetTextSize(0.5*c.GetTopMargin())
 latex2.SetTextFont(42)
 latex2.SetTextAlign(31) # align right
 #latex2.DrawLatex(0.87, 0.95,"12.9 fb^{-1} (13 TeV)")
-latex2.DrawLatex(0.87, 0.95,"59.83 fb^{-1} (13 TeV)")
+if year == "2016": latex2.DrawLatex(0.87, 0.95,"35.9 fb^{-1} (13 TeV)")
+elif year == "2017": latex2.DrawLatex(0.87, 0.95,"41.5 fb^{-1} (13 TeV)")
+elif year == "2018": latex2.DrawLatex(0.87, 0.95,"59.7 fb^{-1} (13 TeV)")
+elif year == "run2": latex2.DrawLatex(0.87, 0.95,"137.1 fb^{-1} (13 TeV)")
+else: latex2.DrawLatex(0.87, 0.95,"xx fb^{-1} (xx TeV)")
 latex2.SetTextSize(0.9*c.GetTopMargin())
 latex2.SetTextFont(62)
 latex2.SetTextAlign(11) # align right
@@ -146,3 +172,5 @@ c.SaveAs(OutputFileName+".pdf")
 c.SaveAs(OutputFileName+".png")
 c.SaveAs(OutputFileName+".C")
 c.SaveAs(OutputFileName+".root")
+
+logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))

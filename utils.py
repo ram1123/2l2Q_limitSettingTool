@@ -50,11 +50,11 @@ stream_handler.setFormatter(ColorLogFormatter())
 logger.addHandler(stream_handler)
 logger.setLevel( logging.ERROR)
 
-def RunCommand(command):
+def RunCommand(command, dry_run=False):
     logger.info("="*51)
     logger.info("Command: {}".format(command))
-    os.system(command)
-    print('')
+    if not dry_run:
+        os.system(command)
 
 def RemoveFile(FileName):
     if os.path.exists(FileName):
