@@ -5,13 +5,23 @@ from datacardClass import *
 from utils import *
 import argparse
 from ListOfDatacards import datacardList
+import multiprocessing as mp
+from functools import partial
+import datetime
 
+today = datetime.datetime.now()
+date_string = today.strftime("%d%b").lower()
 import common_strings_pars
+CombineStrings = common_strings_pars.CombineStrings(date_string)
+
+
+def run_parallel_instance(instance, current_mass):
+    return instance.run_parallel(current_mass)
 
 class DirectoryCreator:
     DATA_CARD_FILENAME = "hzz2l2q_13TeV_xs.txt"
 
-    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False):
+    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False, ifParallel = False):
         self.input_dir = input_dir
         self.is_2d = is_2d
         self.append_name = append_name
@@ -34,6 +44,7 @@ class DirectoryCreator:
         self.bOnly = bOnly
         self.verbose = verbose
         self.dry_run = dry_run
+        self.ifParallel = ifParallel
 
     def SetDirName(self):
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
@@ -45,14 +56,17 @@ class DirectoryCreator:
         self.append_name = '{}'.format(year)
         self.input_dir = 'HM_inputs_{}UL'.format(year)
 
-    def create_workspaces(self, current_mass, datacard_class, current_mass_directory, cwd):
-
-        print("#"*85)
-
+    def create_workspaces(self, current_mass, datacard_class):
         # STEP - 1: Datacard and workspace creation
-        make_directory(os.path.join(self.dir_name, 'HCG', str(current_mass)))
 
-        logger.debug("Directory name: {}".format(self.dir_name + '/' + '/HCG/' + str(current_mass)))
+        logger.info("#"*85)
+        logger.info("Creating datacards and workspaces for mass: {}".format(current_mass))
+
+        # create the directory for the current mass: self.dir_name + '/HCG/' + str(current_mass)
+        directoryName = os.path.join(self.dir_name, 'HCG', str(current_mass))
+        make_directory(directoryName)
+
+        logger.debug("Directory name: {}".format(directoryName))
 
         for channel in self.channels:
             for cat in self.cats:
@@ -64,10 +78,12 @@ class DirectoryCreator:
                 datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
 
     def combine_cards(self, current_mass, current_mass_directory, cwd):
-        if self.year == 'run2':
-            logger.warning("This option won't run for run2")
-            return
         # STEP - 2: Get the combined cards
+        if self.year == 'run2':
+            logger.info("Running combine_cards_allYears")
+            self.combine_cards_allYears(current_mass, current_mass_directory, cwd)
+            return
+
         # Change the respective directory where all cards are placed
         os.chdir(current_mass_directory)
         AllCardsCombination = 'combineCards.py  -s '
@@ -129,7 +145,7 @@ class DirectoryCreator:
         for datacard in datacards:
             # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            AppendNameString = common_strings_pars.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
             # -M HybridNew --LHCmode LHC-limits
             CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
@@ -154,7 +170,7 @@ class DirectoryCreator:
                     command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 else:
                     command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
-                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
+                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
                 # microcentury = 1 hr
                 # longlunch = 2 hr
                 # workday = 8 hr
@@ -190,16 +206,16 @@ class DirectoryCreator:
             SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
             # STEP - 1
-            command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
+            command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
             if self.blind: command += " -t -1 --expectSignal 1 "
             # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2  " # Added this line as fits were failing
             # command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
             # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
 
             if self.year == 'run2':
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             else:
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS1".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
 
             RunCommand(command, self.dry_run)
             countDatacards += 1
@@ -220,14 +236,14 @@ class DirectoryCreator:
             SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
             # STEP - 2
-            command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -1 --rMax 2 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
+            command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10 --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
             if self.blind: command += " -t -1 --expectSignal 1 "
             command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
             command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
             if self.year == 'run2':
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             else:
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS2".format(name = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
 
 
             RunCommand(command, self.dry_run)
@@ -244,17 +260,17 @@ class DirectoryCreator:
         os.chdir(current_mass_directory)
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            AppendOutName = common_strings_pars.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            AppendOutName = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
             # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
             SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
             # STEP - 3
-            command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -1 --rMax 2 --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
+            command = "combineTool.py -M Impacts -d {datacard} -m {mH} --rMin -10  --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
             RunCommand(command, self.dry_run)
 
             # STEP - 4
-            command = "plotImpacts.py -i impacts_{name}.json -o impacts_{name} --blind".format(name = AppendOutName)
+            command = "plotImpacts.py -i impacts_{name}.json -o impacts_{name} ".format(name = AppendOutName) # --blind
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -266,7 +282,7 @@ class DirectoryCreator:
         logger.debug(command)
 
         category = ((((self.DATA_CARD_FILENAME.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-        OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+        OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
         blindString = ""
         FitType = ""
@@ -310,7 +326,7 @@ class DirectoryCreator:
         logger.debug(command)
 
         category = ((((self.DATA_CARD_FILENAME.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-        OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+        OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
         blindString = ""
         FitType = ""
@@ -384,7 +400,7 @@ class DirectoryCreator:
         rRange= "-2,2" # for ExpectedSignal = 1
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
             blindString = ""
             FitType = ""
@@ -395,22 +411,23 @@ class DirectoryCreator:
             #     blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
             #     FitType = "SplusB"
 
+            # if pre- and post-fit plots are needed use additional options `--plots --saveShapes` and `--saveWithUncertainties` respectively
             blindString = " -t -1 --expectSignal 0 "   # b-only fit diagnostics
             FitType = "bOnly"
-            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
+            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
             RunCommand(command, self.dry_run)
 
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
             FitType = "SplusB"
-            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -1 --rMax 2 --plots --saveShapes -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
+            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -438,7 +455,7 @@ class DirectoryCreator:
         rRange= "-2,2" # for ExpectedSignal = 1
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = common_strings_pars.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
 
             blindString = ""
             FitType = ""
@@ -465,13 +482,10 @@ class DirectoryCreator:
 
         os.chdir(cwd)
 
-    def Run(self):
-        logger.debug("Current working directory: %s", os.getcwd())
-
+    def run_parallel(self, current_mass):
         actions = {
-            # "dc": self.create_workspaces, # Added separately because of different arguments
             "cc": self.combine_cards,
-            "run2": self.combine_cards_allYears,
+            # "run2": self.combine_cards_allYears,
             "rc": self.run_combine,
             "ri": self.run_impact_s1,
             "ri2": self.run_impact_s2,
@@ -483,41 +497,67 @@ class DirectoryCreator:
             "plot": None  # Placeholder for when no function is needed
         }
 
+        current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
+        cwd = os.getcwd()   # Get present working directory
+
+        logger.info("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
+
+        if self.step.lower() == "all":
+            actions["cc"](current_mass, current_mass_directory, cwd)
+            # actions["rc"](current_mass, current_mass_directory, cwd)
+            actions["ri"](current_mass, current_mass_directory, cwd)
+            # actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
+        else:
+            action = actions.get(self.step.lower())
+            if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
+                action(current_mass, current_mass_directory, cwd)
+
+    def Run(self):
+        logger.debug("Current working directory: %s", os.getcwd())
+
         # STEP - 1: For Datacard and workspace creation step load datacard class
-        if (self.step).lower() in ('dc', 'all'):
+        if (self.step).lower() in ('dc'): # or (self.step).lower() == 'all': # Fixme: all year is not working for 'dc'
             logger.debug("[INFO] declar datacardClass")
             datacard_class = datacardClass(str(self.year), self.verbose)
 
             logger.debug("[INFO] load root module")
             datacard_class.loadIncludes()
 
-        for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-            if (self.step).lower() == 'plot': continue
-
-            current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
-            cwd = os.getcwd()   # Get present working directory
-
-            logger.info("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
-
-            if (self.step).lower() in ('dc', 'all'):
+            for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
                 logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
-                self.create_workspaces(current_mass, datacard_class, current_mass_directory, cwd)
+                current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
+                self.create_workspaces(current_mass, datacard_class)
 
-            if self.step.lower() == "all":
-                if self.year == 'run2': actions["run2"](current_mass, current_mass_directory, cwd)
-                else: actions["cc"](current_mass, current_mass_directory, cwd)
-                actions["rc"](current_mass, current_mass_directory, cwd)
-                actions["ri"](current_mass, current_mass_directory, cwd)
-                actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
-            else:
-                action = actions.get(self.step.lower())
-                if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
-                    action(current_mass, current_mass_directory, cwd)
+            # exit the program after creating datacards and workspaces
+            logger.debug("Exiting the program after creating datacards and workspaces")
+            exit(0)
+
+        if (self.step).lower() != 'plot' and (not self.ifParallel):
+            for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
+                self.run_parallel(current_mass)
+
+        if (self.step).lower() != 'plot' and self.ifParallel:
+            pool = mp.Pool()
+            try:
+                pool.map(partial(run_parallel_instance, self), range(self.start_mass, self.end_val, self.step_sizes))
+            finally:
+                pool.close()
+                pool.join()
 
         if (self.step).lower() == 'plot':
-            logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
-            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME)
-            RunCommand(command, self.dry_run)
+            if self.allDatacard:
+                datacards = datacardList
+            else:
+                datacards = [self.DATA_CARD_FILENAME]
+
+            logger.debug("Datacard: {}".format(datacards))
+            for datacard in datacards:
+                category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category)
+                logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
+
+                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard)
+                RunCommand(command, self.dry_run)
 
 
 if __name__ == "__main__":
@@ -539,26 +579,43 @@ if __name__ == "__main__":
     # parser.add_argument("--log-level", help="Set the logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
     parser.add_argument(
         "--log-level",
-        default=logging.INFO,
+        default=logging.WARNING,
         type=lambda x: getattr(logging, x.upper()),
         help="Configure the logging level."
         )
     parser.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
+    parser.add_argument("-p", "--parallel", action="store_true", help="Run jobs parallelly")
+    # parser.add_argument("-n", "--ncores", dest="ncores", type=int, default=8, help="number of cores to use")
+
+    parser.add_argument("-date", "--date", dest="date", type=str, default='', help="date string")
+    parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string")
 
     args = parser.parse_args()
 
     # Set the logging level based on the command line argument
     logger.setLevel(args.log_level)
 
-    DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly, args.dry_run)
+    DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly, args.dry_run, args.parallel)
     # DirectoryCreatorObj.validate()
     if args.year == '2016': years = [2016]
     if args.year == '2017': years = [2017]
     if args.year == '2018': years = [2018]
-    if (args.year).lower() == 'all': years = [2016, 2017, 2018]
+    if (args.year).lower() == 'all': years = [ 2016, 2017, 2018]
+    # if (args.year).lower() == 'all': years = [ 2016, 2017, 2018, "run2"]
     if (args.year).lower() == 'run2': years = ["run2"]
     if (args.year).lower() == 'run2':
         RunCommand("ulimit -s unlimited", args.dry_run)
+
+    if (args.date).lower() != '' or (args.tag).lower() != '':
+        CombineStrings.printAll()
+        if (args.date).lower() != '':
+            logger.debug("Setting date string to {}".format(args.date))
+            CombineStrings.set_date(args.date)
+        if (args.tag).lower() != '':
+            logger.debug("Setting tag string to {}".format(args.tag))
+            CombineStrings.set_tag( args.tag)
+        CombineStrings.printAll()
+
     for year in years:
         print "#############################################################"
         print "#                                                           #"

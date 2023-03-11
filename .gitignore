@@ -1,4 +1,5 @@
 *.bat
+*.json
 cards_*/
 tmpFile.root
 *.pyc

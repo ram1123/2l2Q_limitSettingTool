@@ -8,9 +8,7 @@ import sys
 import os
 from array import array
 
-import common_strings_pars
 
-# logger.setLevel( logging.INFO)
 
 start_mass = sys.argv[1]
 end_val = sys.argv[2]
@@ -18,6 +16,7 @@ step_sizes = sys.argv[3]
 year = sys.argv[4]
 blind = sys.argv[5]
 datacard = sys.argv[6]
+SearchString4Datacard = sys.argv[7]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -39,11 +38,7 @@ GetZombieMassPointList = []
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-        FetchNameStr = common_strings_pars.COMBINE_ASYMP_LIMIT.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")
-        if current_mass < 3800:
-            FetchNameStr = common_strings_pars.COMBINE_ASYMP_LIMIT_OLD.format(Category = category, year = year, mH = current_mass, blind = "blind" if blind else "")
-        InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = FetchNameStr)
+        InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = SearchString4Datacard.replace("REPLACEMASS",str(current_mass)))
 
         # check if InputFile exists
         if not os.path.isfile(InputFile):
@@ -104,7 +99,7 @@ c.SetGridy()
 c.SetRightMargin(0.06)
 c.SetLeftMargin(0.15)
 
-dummy = TH1D("dummy","dummy", 1, 550,3000)
+dummy = TH1D("dummy","dummy", 1, 500,3000)
 dummy.SetBinContent(1,0.0)
 dummy.GetXaxis().SetTitle('m(X)[GeV]')
 dummy.GetYaxis().SetTitle('#sigma(pp#rightarrowX)#timesBR(X#rightarrowZZ) [pb]')
