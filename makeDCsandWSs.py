@@ -561,7 +561,7 @@ class DirectoryCreator:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create directories")
+    parser = argparse.ArgumentParser(description="Run combine for high mass Higgs search analysis")
     parser.add_argument('-i', '--input', dest='input_dir', type=str, default="", help='inputs directory')
     parser.add_argument('-d', '--is2D', dest='is_2d', type=int, default=1, help='is2D (default:1)')
     parser.add_argument('-mi', '--MassStartVal', dest='MassStartVal', type=int, default=500, help='MassStartVal (default:1)')

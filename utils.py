@@ -52,7 +52,7 @@ logger.setLevel( logging.ERROR)
 
 def RunCommand(command, dry_run=False):
     logger.info("="*51)
-    logger.info("Command: {}".format(command))
+    logger.error("Command: {}".format(command))
     logger.debug("dry_run: {}".format(dry_run))
     if not dry_run:
         logger.debug("Inside module RunCommand(command, dry_run=False):")
@@ -60,9 +60,10 @@ def RunCommand(command, dry_run=False):
 
 def RemoveFile(FileName):
     if os.path.exists(FileName):
+        logger.debug("Removing file, {}".format(FileName))
         os.remove(FileName)
     else:
-        logger.error("File, {}, does not exist".format(FileName))
+        logger.debug("File, {}, does not exist".format(FileName))
 
 def make_directory( sub_dir_name):
     if not os.path.exists(sub_dir_name):
