@@ -37,37 +37,6 @@ def compare_datasets(data_obs1, data_obs2):
     observables = data_obs1.get()
 
     # Print the names of the observables
-    logger.info("Observables: %s", [obs.GetName() for obs in observables])
-
-    # Print the data as a table
-    # Print the column headers
-    logger.info("%3s %8s %8s %8s %8s %8s %8s %8s %8s", "i", "channel1", "zz2l2q1", "Dspin01", "zz2lJ1", "channel2", "zz2l2q2", "Dspin02", "zz2lJ2")
-
-    # Loop over the events in the dataset and print the data as a table
-    entries = min(data_obs1.numEntries(), data_obs2.numEntries())
-    for i in range(entries):
-        if i > 10:
-            break
-        row = []
-        row.append(i)
-        row.append("{:.2f}".format(data_obs1.get(i).getRealValue("CMS_channel")))
-        row.append("{:.2f}".format(data_obs1.get(i).getRealValue("zz2l2q_mass")))
-        row.append("{:.2f}".format(data_obs1.get(i).getRealValue("Dspin0")))
-        row.append("{:.2f}".format(data_obs1.get(i).getRealValue("zz2lJ_mass")))
-        row.append("{:.2f}".format(data_obs2.get(i).getRealValue("CMS_channel")))
-        row.append("{:.2f}".format(data_obs2.get(i).getRealValue("zz2l2q_mass")))
-        row.append("{:.2f}".format(data_obs2.get(i).getRealValue("Dspin0")))
-        row.append("{:.2f}".format(data_obs2.get(i).getRealValue("zz2lJ_mass")))
-        logger.info("%3d %8s %8s %8s %8s %8s %8s %8s %8s", *row)
-
-    logger.info("#" * 100)
-
-def compare_datasets_v2(data_obs1, data_obs2):
-    """Compare the datasets in two RooWorkspace objects."""
-    # Get the RooArgSet containing all the observables
-    observables = data_obs1.get()
-
-    # Print the names of the observables
     obs_names = [obs.GetName() for obs in observables]
     logger.info("Observables: {}".format(obs_names))
 
@@ -95,7 +64,7 @@ def compare_datasets_v2(data_obs1, data_obs2):
 
     logger.info("#" * 100)
 
-def compare_datasets_v3(data_obs1, data_obs2):
+def compare_datasets_PrintDiff(data_obs1, data_obs2):
     """Compare the datasets in two RooWorkspace objects."""
     logger.info("Comparing datasets: {} vs {}".format(data_obs1.GetName(), data_obs2.GetName()))
     # Get the RooArgSet containing all the observables
@@ -146,5 +115,4 @@ data_obs2 = ws2.data("data_obs")
 logger.info("Number of entries in data_obs1: %d", data_obs1.numEntries())
 logger.info("Number of entries in data_obs2: %d", data_obs2.numEntries())
 compare_datasets(data_obs1, data_obs2)
-compare_datasets_v2(data_obs1, data_obs2)
-compare_datasets_v3(data_obs1, data_obs2)
+compare_datasets_PrintDiff(data_obs1, data_obs2)

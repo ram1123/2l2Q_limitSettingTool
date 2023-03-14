@@ -248,22 +248,22 @@ class datacardClass:
         rfv_sigma_VBF = ROOT.RooFormulaVar(name,"@0*@1",ROOT.RooArgList(sigma_VBF,rfv_sigma_SF) )
 
         ## tail parameters
-        name = "a1_ggH_"+(self.channel)
+        name = "a1_ggH_"+(self.channel)+"_"+(self.year)
         a1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_ggH_"+(self.channel)
+        name = "a2_ggH_"+(self.channel)+"_"+(self.year)
         a2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_ggH_"+(self.channel)
+        name = "n1_ggH_"+(self.channel)+"_"+(self.year)
         n1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_ggH_"+(self.channel)
+        name = "n2_ggH_"+(self.channel)+"_"+(self.year)
         n2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
         ###
-        name = "a1_VBF_"+(self.channel)
+        name = "a1_VBF_"+(self.channel)+"_"+(self.year)
         a1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_VBF_"+(self.channel)
+        name = "a2_VBF_"+(self.channel)+"_"+(self.year)
         a2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_VBF_"+(self.channel)
+        name = "n1_VBF_"+(self.channel)+"_"+(self.year)
         n1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_VBF_"+(self.channel)
+        name = "n2_VBF_"+(self.channel)+"_"+(self.year)
         n2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
 
         ## --------------------- SHAPE FUNCTIONS ---------------------- ##
@@ -934,7 +934,7 @@ class datacardClass:
         ggh_accxeff_untag = ggH_accxeff.Get("spin0_ggH_"+self.channel+"_untagged").GetListOfFunctions().First().Eval(self.mH)
 
         vbfRatioGGH = ggh_accxeff_vbf/(ggh_accxeff_untag+ggh_accxeff_btag)
-        btagRatioGGH = ggh_accxeff_btag/ggh_accxeff_untag
+        btagRatioGGH = ggh_accxeff_btag/ggh_accxeff_untag # FIXME: Why this is not like vbf_accxeff_btag/(vbf_accxeff_untag+vbf_accxeff_btag)
 
         ########
         vbf_accxeff_vbf = VBF_accxeff.Get("spin0_VBF_"+self.channel+"_vbf-tagged").GetListOfFunctions().First().Eval(self.mH)
@@ -963,10 +963,22 @@ class datacardClass:
 
         # VBF branching ratio
         if self.DEBUG: print('VBF/ggH ratio')
-        frac_VBF = ROOT.RooRealVar("frac_VBF","frac_VBF", theFracVBF, 0.0, 1.0)
+        # Define fraction of events coming from VBF process
+        frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", theFracVBF, 0.0, 1.0)
         #frac_VBF.setConstant(True)
-        frac_ggH = ROOT.RooFormulaVar("frac_ggH","(1-@0)",ROOT.RooArgList(frac_VBF))
-        BR = ROOT.RooRealVar("BR","BR", 2*0.7*2*0.033*1000) # ZZ->2l2q (l = e,mu) no Z->taus in signal MC
+
+        # Define fraction of events coming from ggH process
+        frac_ggH = ROOT.RooFormulaVar("frac_ggH", "(1-@0)",ROOT.RooArgList(frac_VBF))
+
+        # Define branching ratio for ZZ->2l2q (l=e,mu) process without tau decays in signal MC
+        # This value is calculated as the product of:
+        # - 2: number of either Z-boson can decay to leptons or quarks and its indistinguishable partner
+        # - 0.69911: branching ratio of each Z boson to decay into 2 quarks (q)
+        # - 0.033662: branching ratio of Z boson to decay into 2 electrons
+        # - 0.033662: branching ratio of Z boson to decay into 2 muons
+        # - 2: as the Z boson can decay to either electrons or muons
+        # - 1000: scaling factor used to convert the cross-section in femtobarns (fb) to the appropriate units for the analysis
+        BR = ROOT.RooRealVar("BR", "BR", 2*0.69911*2*0.033662*1000)
 
         rfvSigRate_ggH = ROOT.RooFormulaVar()
         rfvSigRate_VBF = ROOT.RooFormulaVar()

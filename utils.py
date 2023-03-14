@@ -71,3 +71,17 @@ def make_directory( sub_dir_name):
         os.makedirs(sub_dir_name)
     else:
         logger.info('Directory '+sub_dir_name+' already exists. Exiting...')
+
+def border_msg(msg):
+    """Print message inside the border
+    >>> border_msg('hello')
+        +-----+
+        |hello|
+        +-----+
+    Args:
+        msg (str): message to print inside border
+    """
+    row = len(msg)+4
+    h = ''.join(['+'] + ['-' *row] + ['+'])
+    result= h + '\n'"|  "+msg+"  |"'\n' + h
+    print(result)

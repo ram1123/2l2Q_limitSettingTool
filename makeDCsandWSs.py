@@ -58,9 +58,7 @@ class DirectoryCreator:
 
     def create_workspaces(self, current_mass, datacard_class):
         # STEP - 1: Datacard and workspace creation
-
-        logger.info("#"*85)
-        logger.info("Creating datacards and workspaces for mass: {}".format(current_mass))
+        border_msg("Creating datacards and workspaces for mass: {}".format(current_mass))
 
         # create the directory for the current mass: self.dir_name + '/HCG/' + str(current_mass)
         directoryName = os.path.join(self.dir_name, 'HCG', str(current_mass))
@@ -299,7 +297,7 @@ class DirectoryCreator:
             logger.debug("Analysis is blinded")
             pass
         else:
-            pointsToScan = 50
+            pointsToScan = 150
             rRange= "-3,3" # for ExpectedSignal = 1
             CommonArguments = ' --algo grid --points {pointsToScan}'.format(pointsToScan = pointsToScan)
             name = "bestfit.with_syst_" + "points"+str(pointsToScan)   # String append to the name of floting pars
@@ -483,6 +481,7 @@ class DirectoryCreator:
         os.chdir(cwd)
 
     def run_parallel(self, current_mass):
+        border_msg("Running {step} for mass {current_mass}".format(step=self.step, current_mass=current_mass))
         actions = {
             "cc": self.combine_cards,
             # "run2": self.combine_cards_allYears,
@@ -500,13 +499,13 @@ class DirectoryCreator:
         current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
         cwd = os.getcwd()   # Get present working directory
 
-        logger.info("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
+        logger.debug("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
-            # actions["rc"](current_mass, current_mass_directory, cwd)
+            actions["rc"](current_mass, current_mass_directory, cwd)
             actions["ri"](current_mass, current_mass_directory, cwd)
-            # actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
+            actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
         else:
             action = actions.get(self.step.lower())
             if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
@@ -524,8 +523,7 @@ class DirectoryCreator:
             datacard_class.loadIncludes()
 
             for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                logger.debug("Creating datacard and workspaces for mass: %d", current_mass)
-                current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
+                border_msg("Creating datacard and workspaces for mass: %d", current_mass)
                 self.create_workspaces(current_mass, datacard_class)
 
             # exit the program after creating datacards and workspaces
@@ -534,6 +532,7 @@ class DirectoryCreator:
 
         if (self.step).lower() != 'plot' and (not self.ifParallel):
             for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
+                border_msg("Running %s for mass: %d", self.step, current_mass)
                 self.run_parallel(current_mass)
 
         if (self.step).lower() != 'plot' and self.ifParallel:
@@ -617,12 +616,7 @@ if __name__ == "__main__":
         CombineStrings.printAll()
 
     for year in years:
-        print "#############################################################"
-        print "#                                                           #"
-        print "#                      Year = {}                          #".format(year)
-        print "#                                                           #"
-        print "#############################################################"
-
+        border_msg("Year = {}".format(year))
         DirectoryCreatorObj.SetYearRelatedStrings(year)
         DirectoryCreatorObj.SetDirName()
         DirectoryCreatorObj.Run()
