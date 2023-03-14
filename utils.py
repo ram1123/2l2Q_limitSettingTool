@@ -51,9 +51,8 @@ logger.addHandler(stream_handler)
 logger.setLevel( logging.ERROR)
 
 def RunCommand(command, dry_run=False):
-    logger.info("="*51)
-    logger.error("Command: {}".format(command))
-    logger.debug("dry_run: {}".format(dry_run))
+    logger.debug("="*51)
+    logger.info("Command: {}".format(command))
     if not dry_run:
         logger.debug("Inside module RunCommand(command, dry_run=False):")
         os.system(command)
@@ -81,7 +80,7 @@ def border_msg(msg):
     Args:
         msg (str): message to print inside border
     """
-    row = len(msg)+4
+    row = len(msg)+12
     h = ''.join(['+'] + ['-' *row] + ['+'])
-    result= h + '\n'"|  "+msg+"  |"'\n' + h
+    result= h + '\n'"|      "+msg+"      |"'\n' + h
     print(result)

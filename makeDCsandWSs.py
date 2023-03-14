@@ -484,7 +484,6 @@ class DirectoryCreator:
         border_msg("Running {step} for mass {current_mass}".format(step=self.step, current_mass=current_mass))
         actions = {
             "cc": self.combine_cards,
-            # "run2": self.combine_cards_allYears,
             "rc": self.run_combine,
             "ri": self.run_impact_s1,
             "ri2": self.run_impact_s2,
@@ -523,7 +522,6 @@ class DirectoryCreator:
             datacard_class.loadIncludes()
 
             for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                border_msg("Creating datacard and workspaces for mass: %d", current_mass)
                 self.create_workspaces(current_mass, datacard_class)
 
             # exit the program after creating datacards and workspaces
@@ -532,7 +530,6 @@ class DirectoryCreator:
 
         if (self.step).lower() != 'plot' and (not self.ifParallel):
             for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                border_msg("Running %s for mass: %d", self.step, current_mass)
                 self.run_parallel(current_mass)
 
         if (self.step).lower() != 'plot' and self.ifParallel:
@@ -555,7 +552,7 @@ class DirectoryCreator:
                 SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category)
                 logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
 
-                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard)
+                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard, self.dir_name)
                 RunCommand(command, self.dry_run)
 
 

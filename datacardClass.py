@@ -114,14 +114,15 @@ class datacardClass:
         #  self.low_M = 700
         self.high_M = 4000
         bins = int((self.high_M-self.low_M)/10)
-        mzz_name = "zz2l2q_mass"
+        mzz_name = "zz2l2q_mass".format(year=self.year)  # Reading this from input file so can't attach year
 
+        # zz2l2q_mass = ROOT.RooRealVar(mzz_name+"_"+str(self.year),mzz_name+"_"+str(self.year),self.low_M,self.high_M)
         zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
         zz2l2q_mass.setBins(bins)
 
         if(self.jetType=="merged") :
-          zz2l2q_mass.SetName("zz2lJ_mass")
-          zz2l2q_mass.SetTitle("zz2lJ_mass")
+          zz2l2q_mass.SetName("zz2lJ_mass".format(self.year))
+          zz2l2q_mass.SetTitle("zz2lJ_mass".format(self.year))
 
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
         zz2l2q_mass.setRange("fullsignalrange",300,4000)
@@ -130,60 +131,60 @@ class datacardClass:
 
         ## -------- Variable Definitions -------- ##
         ## e
-        name = "CMS_zz2l2q_mean_e_sig"
-        mean_e_sig = ROOT.RooRealVar(name,"mzz_mean_e_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_e_sig".format(year=self.year)
+        mean_e_sig = ROOT.RooRealVar(name,"mzz_mean_e_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_e_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_e_sig"
-        sigma_e_sig = ROOT.RooRealVar(name,"mzz_sigma_e_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_e_sig".format(year=self.year)
+        sigma_e_sig = ROOT.RooRealVar(name,"mzz_sigma_e_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_e_sig.setVal(0.0)
         ## m
-        name = "CMS_zz2l2q_mean_m_sig"
-        mean_m_sig = ROOT.RooRealVar(name,"mzz_mean_m_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_m_sig".format(year=self.year)
+        mean_m_sig = ROOT.RooRealVar(name,"mzz_mean_m_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_m_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_m_sig"
-        sigma_m_sig = ROOT.RooRealVar(name,"mzz_sigma_m_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_m_sig".format(year=self.year)
+        sigma_m_sig = ROOT.RooRealVar(name,"mzz_sigma_m_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_m_sig.setVal(0.0)
         ## resolved jet JES JER
-        name = "CMS_zz2l2q_mean_j_sig"
-        mean_j_sig = ROOT.RooRealVar(name,"mzz_mean_j_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_mean_j_sig".format(year=self.year)
+        mean_j_sig = ROOT.RooRealVar(name,"mzz_mean_j_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_j_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2l2q_sigma_j_sig"
-        sigma_j_sig = ROOT.RooRealVar(name,"mzz_sigma_j_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2l2q_sigma_j_sig".format(year=self.year)
+        sigma_j_sig = ROOT.RooRealVar(name,"mzz_sigma_j_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_j_sig.setVal(0.0)
         ## merged jet JEC JER
-        name = "CMS_zz2lJ_mean_J_sig"
-        mean_J_sig = ROOT.RooRealVar(name,"mzz_mean_J_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2lJ_mean_J_sig".format(year=self.year)
+        mean_J_sig = ROOT.RooRealVar(name,"mzz_mean_J_sig".format(year=self.year),0.0,-5.0,5.0)
         mean_J_sig.setVal(0.0)
         ## resolution
-        name = "CMS_zz2lJ_sigma_J_sig"
-        sigma_J_sig = ROOT.RooRealVar(name,"mzz_sigma_J_sig",0.0,-5.0,5.0)
+        name = "CMS_zz2lJ_sigma_J_sig".format(year=self.year)
+        sigma_J_sig = ROOT.RooRealVar(name,"mzz_sigma_J_sig".format(year=self.year),0.0,-5.0,5.0)
         sigma_J_sig.setVal(0.0)
 
         ########################
         ## JES lepton scale uncertainty
-        name = "mean_m_err"
+        name = "mean_m_err".format(year=self.year)
         mean_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_m_err']))
-        name = "mean_e_err"
+        name = "mean_e_err".format(year=self.year)
         mean_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_e_err']))
-        name = "mean_j_err"
+        name = "mean_j_err".format(year=self.year)
         mean_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_mean_j_err']))
-        name = "mean_J_err"
+        name = "mean_J_err".format(year=self.year)
         mean_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_mean_J_err']))
         ###
         ## resolution uncertainty
-        name = "sigma_m_err"
+        name = "sigma_m_err".format(year=self.year)
         sigma_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_m_err']))
         if self.DEBUG: print(name,' ',sigma_m_err.getVal())
-        name = "sigma_e_err"
+        name = "sigma_e_err".format(year=self.year)
         sigma_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_e_err']))
         if self.DEBUG: print(name,' ',sigma_e_err.getVal())
-        name = "sigma_j_err"
+        name = "sigma_j_err".format(year=self.year)
         sigma_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_j_err']))
         if self.DEBUG: print(name,' ',sigma_j_err.getVal())
-        name = "sigma_J_err"
+        name = "sigma_J_err".format(year=self.year)
         sigma_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_sigma_J_err']))
         if self.DEBUG: print(name,' ',sigma_J_err.getVal())
 
@@ -193,18 +194,18 @@ class datacardClass:
 
 
         # mean (bias) of DCB
-        name = "bias_ggH_"+(self.channel)
+        name = "bias_ggH_"+(self.channel)+"_"+str(self.year)
         bias_ggH = ROOT.RooRealVar(name,name, ggHshape.Get("mean").GetListOfFunctions().First().Eval(self.mH)-self.mH)
-        name = "mean_ggH_"+(self.channel)
+        name = "mean_ggH_"+(self.channel)+"_"+str(self.year)
         mean_ggH = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(self.MH,bias_ggH))
 
-        name = "bias_VBF_"+(self.channel)
+        name = "bias_VBF_"+(self.channel)+"_"+str(self.year)
         bias_VBF = ROOT.RooRealVar(name,name, VBFshape.Get("mean").GetListOfFunctions().First().Eval(self.mH)-self.mH)
-        name = "mean_VBF_"+(self.channel)
+        name = "mean_VBF_"+(self.channel)+"_"+str(self.year)
         mean_VBF = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(self.MH,bias_VBF))
 
         mean_err = ROOT.RooFormulaVar()
-        name = "mean_err_"+(self.channel)
+        name = "mean_err_"+(self.channel)+"_"+str(self.year)
         if (self.channel == self.ID_2eResolved) :
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_e_sig,mean_j_sig,mean_e_err,mean_j_err))
         elif (self.channel == self.ID_2eMerged) :
@@ -215,20 +216,20 @@ class datacardClass:
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_m_sig,mean_J_sig,mean_m_err,mean_J_err))
         if self.DEBUG: print('mean error ', mean_err.getVal())
 
-        name = "rfv_mean_ggH_"+(self.channel)
+        name = "rfv_mean_ggH_"+(self.channel)+"_"+str(self.year)
         rfv_mean_ggH = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_ggH,mean_err))
-        name = "rfv_mean_VBF_"+(self.channel)
+        name = "rfv_mean_VBF_"+(self.channel)+"_"+str(self.year)
         rfv_mean_VBF = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_VBF,mean_err))
         if self.DEBUG: print('mean ggH ', rfv_mean_ggH.getVal(),'; mean VBF ',rfv_mean_VBF.getVal())
 
         # sigma of DCB
-        name = "sigma_ggH_"+(self.channel)
+        name = "sigma_ggH_"+(self.channel)+"_"+str(self.year)
         sigma_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("sigma")).GetListOfFunctions().First().Eval(self.mH))
-        name = "sigma_VBF_"+(self.channel)
+        name = "sigma_VBF_"+(self.channel)+"_"+str(self.year)
         sigma_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("sigma")).GetListOfFunctions().First().Eval(self.mH))
 
         rfv_sigma_SF = ROOT.RooFormulaVar()
-        name = "sigma_SF_"+(self.channel)
+        name = "sigma_SF_"+(self.channel)+"_"+str(self.year)
         if (self.channel == self.ID_2muResolved) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_m_sig, sigma_j_sig, sigma_m_err,sigma_j_err))
         if (self.channel == self.ID_2eResolved) :
@@ -242,35 +243,35 @@ class datacardClass:
 
         ##################
 
-        name = "rfv_sigma_ggH_"+(self.channel)
+        name = "rfv_sigma_ggH_"+(self.channel)+"_"+str(self.year)
         rfv_sigma_ggH = ROOT.RooFormulaVar(name,"@0*@1",ROOT.RooArgList(sigma_ggH,rfv_sigma_SF) )
-        name = "rfv_sigma_VBF_"+(self.channel)
+        name = "rfv_sigma_VBF_"+(self.channel)+"_"+str(self.year)
         rfv_sigma_VBF = ROOT.RooFormulaVar(name,"@0*@1",ROOT.RooArgList(sigma_VBF,rfv_sigma_SF) )
 
         ## tail parameters
-        name = "a1_ggH_"+(self.channel)+"_"+(self.year)
+        name = "a1_ggH_"+(self.channel)+"_"+str(self.year)
         a1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_ggH_"+(self.channel)+"_"+(self.year)
+        name = "a2_ggH_"+(self.channel)+"_"+str(self.year)
         a2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_ggH_"+(self.channel)+"_"+(self.year)
+        name = "n1_ggH_"+(self.channel)+"_"+str(self.year)
         n1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_ggH_"+(self.channel)+"_"+(self.year)
+        name = "n2_ggH_"+(self.channel)+"_"+str(self.year)
         n2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
         ###
-        name = "a1_VBF_"+(self.channel)+"_"+(self.year)
+        name = "a1_VBF_"+(self.channel)+"_"+str(self.year)
         a1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_VBF_"+(self.channel)+"_"+(self.year)
+        name = "a2_VBF_"+(self.channel)+"_"+str(self.year)
         a2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_VBF_"+(self.channel)+"_"+(self.year)
+        name = "n1_VBF_"+(self.channel)+"_"+str(self.year)
         n1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_VBF_"+(self.channel)+"_"+(self.year)
+        name = "n2_VBF_"+(self.channel)+"_"+str(self.year)
         n2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
 
         ## --------------------- SHAPE FUNCTIONS ---------------------- ##
 
-        name = "signalCB_ggH_"+(self.channel)
+        name = "signalCB_ggH_"+(self.channel)+"_"+str(self.year)
         signalCB_ggH = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_ggH,rfv_sigma_ggH,a1_ggH,n1_ggH,a2_ggH,n2_ggH)
-        name = "signalCB_VBF_"+(self.channel)
+        name = "signalCB_VBF_"+(self.channel)+"_"+str(self.year)
         signalCB_VBF = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_VBF,rfv_sigma_VBF,a1_VBF,n1_VBF,a2_VBF,n2_VBF)
 
         fullRangeSigRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange") ).getVal()
@@ -408,8 +409,8 @@ class datacardClass:
         bkg_ttbar = ROOT.RooHistPdf(ttbarTemplateName+"Pdf",ttbarTemplateName+"Pdf",RooArgSet(zz2l2q_mass),ttbarTempDataHistMVV)
 
         #JES TAG nuisances #FIXME: check if this is correct
-        JES = ROOT.RooRealVar("JES","JES",0,-3,3)
-        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -3,3)
+        JES = ROOT.RooRealVar("JES_{}".format(self.year),"JES_{}".format(self.year),0,-3,3)
+        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType+"_"+str(self.year),"BTAG_"+self.jetType+"_"+str(self.year),0, -3,3)
 
         ## rates for vz
         #bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()*self.lumi
@@ -424,22 +425,22 @@ class datacardClass:
 
         rfvSigRate_vz = ROOT.RooFormulaVar()
         if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="resolved" and self.cat=='untagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.05*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1-0.05*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
         elif(self.jetType=="merged" and self.cat=='vbf_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="merged" and self.cat=='untagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.2*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm_"+str(self.year),"(1-0.2*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
 
         ## rates for ttbar+ww
@@ -625,12 +626,15 @@ class datacardClass:
         if self.DEBUG: print('cat ',cat)
         if self.DEBUG: print('jetType ',self.jetType)
         if(self.cat=="untagged" and self.jetType=="resolved") :
+          # bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2l2q_mass_"+str(self.year)+")+TMath::Exp("+p1_str+"-"+l1_str+"*zz2l2q_mass_"+str(self.year)+")"
           bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2l2q_mass)+TMath::Exp("+p1_str+"-"+l1_str+"*zz2l2q_mass)"
           bkg_zjets = ROOT.RooGenericPdf("bkg_zjets_"+self.jetType+"_"+cat,bkg_zjets_TString,ROOT.RooArgList(zz2l2q_mass,eig0,eig1,eig2,eig3) )
         elif(self.cat!="untagged" and self.jetType=="resolved") :
+          # bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2l2q_mass_"+str(self.year)+")"
           bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2l2q_mass)"
           bkg_zjets = ROOT.RooGenericPdf("bkg_zjets_"+self.jetType+"_"+cat,bkg_zjets_TString,ROOT.RooArgList(zz2l2q_mass,eig0,eig1) )
         elif(self.jetType=="merged") :
+          # bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2lJ_mass_"+str(self.year)+")"
           bkg_zjets_TString = "TMath::Exp("+p0_str+"-"+l0_str+"*zz2lJ_mass)"
           bkg_zjets = ROOT.RooGenericPdf("bkg_zjets_"+self.jetType+"_"+cat,bkg_zjets_TString,ROOT.RooArgList(zz2l2q_mass,eig0,eig1) )
         if self.DEBUG: print('bkg_zjets_TString ',bkg_zjets_TString)
@@ -676,9 +680,9 @@ class datacardClass:
 
         rfvSigRate_zjets = ROOT.RooFormulaVar()
         if(self.cat=="untagged" and self.jetType=="resolved") :
-           rfvSigRate_zjets = ROOT.RooFormulaVar("bkg_zjets_norm", bkgRate_zjets_TString,ROOT.RooArgList(eig0,eig1,eig2,eig3) )
+           rfvSigRate_zjets = ROOT.RooFormulaVar("bkg_zjets_norm_"+str(self.year), bkgRate_zjets_TString,ROOT.RooArgList(eig0,eig1,eig2,eig3) )
         else :
-           rfvSigRate_zjets = ROOT.RooFormulaVar("bkg_zjets_norm", bkgRate_zjets_TString,ROOT.RooArgList(eig0,eig1) )
+           rfvSigRate_zjets = ROOT.RooFormulaVar("bkg_zjets_norm_"+str(self.year), bkgRate_zjets_TString,ROOT.RooArgList(eig0,eig1) )
 
         if self.DEBUG: print('Debug rfvSigRate_zjets from TF1 ',bkgRate_zjets_Shape,' from Rfv ',rfvSigRate_zjets.getVal())
 
@@ -745,7 +749,7 @@ class datacardClass:
            funcList_VBF.add(sigTemplatePdf_VBF_Down)
 
         # FIXME: Check if sig/bkg MELA should be correlated or uncorrelated
-        morphSigVarName = "CMS_zz2l2q_sigMELA_"+self.jetType
+        morphSigVarName = "CMS_zz2l2q_sigMELA_"+self.jetType+"_"+str(self.year)
         alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-20,20)
         if(self.sigMorph): alphaMorphSig.setConstant(False)
         else: alphaMorphSig.setConstant(True)
@@ -755,16 +759,16 @@ class datacardClass:
           morphVarListSig.add(alphaMorphSig)  ## just one morphing for all signal processes
 
         true=True
-        TemplateName = "sigTemplateMorphPdf_ggH_"+TString_sig
+        TemplateName = "sigTemplateMorphPdf_ggH_"+TString_sig+"_"+str(self.year)
         sigTemplateMorphPdf_ggH = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_ggH,morphVarListSig,1.0,1)
 
-        TemplateName = "sigTemplateMorphPdf_VBF_"+TString_sig
+        TemplateName = "sigTemplateMorphPdf_VBF_"+TString_sig+"_"+str(self.year)
         sigTemplateMorphPdf_VBF = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_VBF,morphVarListSig,1.0,1)
 
         ##### 2D -> mzz + Djet
-        name = "sigCB2d_ggH"
+        name = "sigCB2d_ggH"+"_"+str(self.year)
         sigCB2d_ggH = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(signalCB_ggH),ROOT.RooFit.Conditional(ROOT.RooArgSet(sigTemplateMorphPdf_ggH), ROOT.RooArgSet(D) ) )
-        name = "sigCB2d_qqH"
+        name = "sigCB2d_qqH"+"_"+str(self.year)
         sigCB2d_VBF = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(signalCB_VBF),ROOT.RooFit.Conditional(ROOT.RooArgSet(sigTemplateMorphPdf_VBF), ROOT.RooArgSet(D) ) )
 
         ## ----------------- 2D BACKGROUND SHAPES --------------- ##
@@ -814,18 +818,18 @@ class datacardClass:
         ttbarTemplate_Up = ttbarTempFileUp.Get(TString_bkg+"_up")
         ttbarTemplate_Down = ttbarTempFileDn.Get(TString_bkg+"_dn")
 
-        TemplateName = "ttbarTempDataHist_"+TString_bkg
+        TemplateName = "ttbarTempDataHist_"+TString_bkg+"_"+str(self.year)
         ttbarTempDataHist = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),ttbarTemplate)
-        TemplateName = "ttbarTempDataHist_"+TString_bkg+"_Up"
+        TemplateName = "ttbarTempDataHist_"+TString_bkg+"_Up"+"_"+str(self.year)
         ttbarTempDataHist_Up = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),ttbarTemplate_Up)
-        TemplateName = "ttbarTempDataHist_"+TString_bkg+"_Down"
+        TemplateName = "ttbarTempDataHist_"+TString_bkg+"_Down"+"_"+str(self.year)
         ttbarTempDataHist_Down = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),ttbarTemplate_Down)
 
-        TemplateName = "ttbarTemplatePdf_"+TString_bkg
+        TemplateName = "ttbarTemplatePdf_"+TString_bkg+"_"+str(self.year)
         bkgTemplatePdf_ttbar = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),ttbarTempDataHist)
-        TemplateName = "ttbarTemplatePdf_"+TString_bkg+"_Up"
+        TemplateName = "ttbarTemplatePdf_"+TString_bkg+"_Up"+"_"+str(self.year)
         bkgTemplatePdf_ttbar_Up = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),ttbarTempDataHist_Up)
-        TemplateName = "ttbarTemplatePdf_"+TString_bkg+"_Down"
+        TemplateName = "ttbarTemplatePdf_"+TString_bkg+"_Down"+"_"+str(self.year)
         bkgTemplatePdf_ttbar_Down = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),ttbarTempDataHist_Down)
 
         ### VZ KD
@@ -840,18 +844,18 @@ class datacardClass:
         vzTemplate_Up = vzTempFileUp.Get(TString_bkg+"_up")
         vzTemplate_Down = vzTempFileDn.Get(TString_bkg+"_dn")
 
-        TemplateName = "vzTempDataHist_"+TString_bkg
+        TemplateName = "vzTempDataHist_"+TString_bkg+"_"+str(self.year)
         vzTempDataHist = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),vzTemplate)
-        TemplateName = "vzTempDataHist_"+TString_bkg+"_Up"
+        TemplateName = "vzTempDataHist_"+TString_bkg+"_Up"+"_"+str(self.year)
         vzTempDataHist_Up = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),vzTemplate_Up)
-        TemplateName = "vzTempDataHist_"+TString_bkg+"_Down"
+        TemplateName = "vzTempDataHist_"+TString_bkg+"_Down"+"_"+str(self.year)
         vzTempDataHist_Down = ROOT.RooDataHist(TemplateName,TemplateName,ROOT.RooArgList(zz2l2q_mass,D),vzTemplate_Down)
 
-        TemplateName = "vzTemplatePdf_"+TString_bkg
+        TemplateName = "vzTemplatePdf_"+TString_bkg+"_"+str(self.year)
         bkgTemplatePdf_vz = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),vzTempDataHist)
-        TemplateName = "vzTemplatePdf_"+TString_bkg+"_Up"
+        TemplateName = "vzTemplatePdf_"+TString_bkg+"_Up"+"_"+str(self.year)
         bkgTemplatePdf_vz_Up = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),vzTempDataHist_Up)
-        TemplateName = "vzTemplatePdf_"+TString_bkg+"_Down"
+        TemplateName = "vzTemplatePdf_"+TString_bkg+"_Down"+"_"+str(self.year)
         bkgTemplatePdf_vz_Down = ROOT.RooHistPdf(TemplateName,TemplateName,ROOT.RooArgSet(zz2l2q_mass,D),vzTempDataHist_Down)
 
         ####
@@ -860,7 +864,7 @@ class datacardClass:
         funcList_zjets = ROOT.RooArgList()
         funcList_ttbar = ROOT.RooArgList()
         funcList_vz = ROOT.RooArgList()
-        morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType
+        morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType+"_"+str(self.year)
         alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-20,20)
         morphVarListBkg = ROOT.RooArgList()
 
@@ -880,19 +884,19 @@ class datacardClass:
             funcList_zjets.add(bkgTemplatePdf_zjets)
             alphaMorphBkg.setConstant(True)
 
-        TemplateName = "bkgTemplateMorphPdf_zjets_"+self.jetType
+        TemplateName = "bkgTemplateMorphPdf_zjets_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_zjets = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
-        TemplateName = "bkgTemplateMorphPdf_ttbar_"+self.jetType
+        TemplateName = "bkgTemplateMorphPdf_ttbar_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_ttbar = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
-        TemplateName = "bkgTemplateMorphPdf_vz_"+self.jetType
+        TemplateName = "bkgTemplateMorphPdf_vz_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_vz = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
 
         #### bkg 2D : mzz + Djet;
-        name = "bkg2d_zjets"
+        name = "bkg2d_zjets"+"_"+str(self.year)
         bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjets),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) )
-        name = "bkg2d_ttbar"
+        name = "bkg2d_ttbar"+"_"+str(self.year)
         bkg2d_ttbar = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_ttbar),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_ttbar),ROOT.RooArgSet(D) ) )
-        name = "bkg2d_vz"
+        name = "bkg2d_vz"+"_"+str(self.year)
         bkg2d_vz= ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_vz),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_vz),ROOT.RooArgSet(D) ) )
 
         '''
@@ -934,7 +938,7 @@ class datacardClass:
         ggh_accxeff_untag = ggH_accxeff.Get("spin0_ggH_"+self.channel+"_untagged").GetListOfFunctions().First().Eval(self.mH)
 
         vbfRatioGGH = ggh_accxeff_vbf/(ggh_accxeff_untag+ggh_accxeff_btag)
-        btagRatioGGH = ggh_accxeff_btag/ggh_accxeff_untag # FIXME: Why this is not like vbf_accxeff_btag/(vbf_accxeff_untag+vbf_accxeff_btag)
+        btagRatioGGH = ggh_accxeff_btag/ggh_accxeff_untag
 
         ########
         vbf_accxeff_vbf = VBF_accxeff.Get("spin0_VBF_"+self.channel+"_vbf-tagged").GetListOfFunctions().First().Eval(self.mH)
@@ -963,22 +967,10 @@ class datacardClass:
 
         # VBF branching ratio
         if self.DEBUG: print('VBF/ggH ratio')
-        # Define fraction of events coming from VBF process
-        frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", theFracVBF, 0.0, 1.0)
+        frac_VBF = ROOT.RooRealVar("frac_VBF","frac_VBF", theFracVBF, 0.0, 1.0)
         #frac_VBF.setConstant(True)
-
-        # Define fraction of events coming from ggH process
-        frac_ggH = ROOT.RooFormulaVar("frac_ggH", "(1-@0)",ROOT.RooArgList(frac_VBF))
-
-        # Define branching ratio for ZZ->2l2q (l=e,mu) process without tau decays in signal MC
-        # This value is calculated as the product of:
-        # - 2: number of either Z-boson can decay to leptons or quarks and its indistinguishable partner
-        # - 0.69911: branching ratio of each Z boson to decay into 2 quarks (q)
-        # - 0.033662: branching ratio of Z boson to decay into 2 electrons
-        # - 0.033662: branching ratio of Z boson to decay into 2 muons
-        # - 2: as the Z boson can decay to either electrons or muons
-        # - 1000: scaling factor used to convert the cross-section in femtobarns (fb) to the appropriate units for the analysis
-        BR = ROOT.RooRealVar("BR", "BR", 2*0.69911*2*0.033662*1000)
+        frac_ggH = ROOT.RooFormulaVar("frac_ggH","(1-@0)",ROOT.RooArgList(frac_VBF))
+        BR = ROOT.RooRealVar("BR","BR", 2*0.7*2*0.033*1000) # ZZ->2l2q (l = e,mu) no Z->taus in signal MC
 
         rfvSigRate_ggH = ROOT.RooFormulaVar()
         rfvSigRate_VBF = ROOT.RooFormulaVar()

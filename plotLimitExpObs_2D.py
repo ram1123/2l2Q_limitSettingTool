@@ -17,6 +17,7 @@ year = sys.argv[4]
 blind = sys.argv[5]
 datacard = sys.argv[6]
 SearchString4Datacard = sys.argv[7]
+outputDir = sys.argv[8]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -163,12 +164,13 @@ legend.Draw("same")
 
 gPad.RedrawAxis()
 
+outputDir = os.path.join(outputDir, 'figs')
 OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}'.format(year = year)
 
-c.SaveAs(OutputFileName+".pdf")
-c.SaveAs(OutputFileName+".png")
-c.SaveAs(OutputFileName+".C")
-c.SaveAs(OutputFileName+".root")
+c.SaveAs(outputDir + '/' + OutputFileName+".pdf")
+c.SaveAs(outputDir + '/' + OutputFileName+".png")
+c.SaveAs(outputDir + '/' + OutputFileName+".C")
+c.SaveAs(outputDir + '/' + OutputFileName+".root")
 
 if len(GetZombieMassPointList) > 0:
     logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))
