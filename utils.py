@@ -1,5 +1,6 @@
 import os
 import logging
+import datetime
 
 class bcolors:
     HEADER = '\033[95m'
@@ -19,10 +20,10 @@ class ColorLogFormatter(logging.Formatter):
      """
 
      # FORMAT = "%(prefix)s%(msg)s%(suffix)s"
-    #  FORMAT = "\n[%(levelname)s] - [%(filename)s:#%(lineno)d] - %(prefix)s%(levelname)s - %(message)s %(suffix)s\n"
-     FORMAT = "\n{}[%(levelname)5s] - [%(filename)s:#%(lineno)d] - [%(funcName)s; %(module)s]{} - %(prefix)s%(message)s %(suffix)s\n".format(
-         bcolors.HEADER, bcolors.ENDC
-     )
+     FORMAT = "%(prefix)s[%(levelname)s] - [%(filename)s:#%(lineno)d] - %(message)s %(suffix)s"
+    #  FORMAT = "{}[%(levelname)5s] - [%(filename)s:#%(lineno)d] - [%(funcName)s; %(module)s]{} - %(prefix)s%(message)s %(suffix)s".format(
+        #  bcolors.HEADER, bcolors.ENDC
+    #  )
     #  FORMAT = "\n%(asctime)s - [%(filename)s:#%(lineno)d] - %(prefix)s%(levelname)s - %(message)s %(suffix)s\n"
 
      LOG_LEVEL_COLOR = {
@@ -50,9 +51,24 @@ stream_handler.setFormatter(ColorLogFormatter())
 logger.addHandler(stream_handler)
 logger.setLevel( logging.ERROR)
 
+def SaveInfoToTextFile(Info):
+    # Get the CMSSW environment path
+    cmssw_base = os.environ.get('CMSSW_BASE', '')
+    file_path = os.path.join(cmssw_base, 'src/2l2Q_limitSettingTool/commands.txt')
+    with open(file_path, 'a') as file:
+        # Get the current date and time, and format it as a string
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Get the current working directory (pwd)
+        current_working_directory = os.getcwd()
+        # Write the command to the file
+        file.write('===> Current time: ' + current_time + '\n')
+        file.write('pwd: ' + current_working_directory + '\n')
+        file.write('Command: ' + Info + '\n')
+
 def RunCommand(command, dry_run=False):
     logger.debug("="*51)
     logger.info("Command: {}".format(command))
+    SaveInfoToTextFile(command)
     if not dry_run:
         logger.debug("Inside module RunCommand(command, dry_run=False):")
         os.system(command)

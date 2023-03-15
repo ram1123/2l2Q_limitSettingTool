@@ -268,7 +268,7 @@ class DirectoryCreator:
             RunCommand(command, self.dry_run)
 
             # STEP - 4
-            command = "plotImpacts.py -i impacts_{name}.json -o impacts_{name} ".format(name = AppendOutName) # --blind
+            command = "plotImpacts.py -i impacts_{name}.json -o {pathh}/impacts_{name} ".format(pathh =  '../../figs', name = AppendOutName) # --blind
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -312,7 +312,7 @@ class DirectoryCreator:
             command += CommonArguments.replace(str(pointsToScan), str(pointsToScan + 100))
             RunCommand(command + " | tee LHS_AllConstrained.log", self.dry_run)
 
-            command = 'plot1DScan.py higgsCombine.{name}.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.{name2}.MultiDimFit.mH{mH}.root:"Stat-only":2 -o {outPDFName} --breakdown syst,stat'.format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, name = name, name2 = name2, outPDFName = outPDFName)
+            command = 'plot1DScan.py higgsCombine.{name}.MultiDimFit.mH{mH}.root --main-label "With systematics" --main-color 1 --others higgsCombine.{name2}.MultiDimFit.mH{mH}.root:"Stat-only":2 -o {outPDFName} --breakdown syst,stat'.format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, name = name, name2 = name2, outPDFName = '../../figs/'+outPDFName)
             RunCommand(command + " | tee LHS_plot.log", self.dry_run)
         os.chdir(cwd)
 
@@ -587,6 +587,10 @@ if __name__ == "__main__":
     parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string")
 
     args = parser.parse_args()
+
+    # Get the full command line used to run the current Python script
+    command_line = ' '.join(sys.argv)
+    SaveInfoToTextFile('python '+command_line+'\n\n')
 
     # Set the logging level based on the command line argument
     logger.setLevel(args.log_level)

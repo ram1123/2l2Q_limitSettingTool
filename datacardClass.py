@@ -19,11 +19,6 @@ gROOT.ProcessLine(
    Double_t zz2lJ_mass;\
    };" );
 
-# gROOT.ProcessLine(
-#    "struct zz2lJ_massStruct_2016 {\
-#    Double_t zz2lJ_mass_2016;\
-#    };" );
-
 from ROOT import zz2lJ_massStruct
 
 ## ------------------------------------
