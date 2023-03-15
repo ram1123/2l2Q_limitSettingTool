@@ -1,3 +1,5 @@
+*.bat
+*.json
 cards_*/
 tmpFile.root
 *.pyc
@@ -5,7 +7,9 @@ arguments*.txt
 condor_job*.jdl
 *.pdf
 *.png
+.__afs*
 output/
 run_script*.sh
 *.C
 *.root
+commands.txt

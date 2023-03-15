@@ -1,115 +1,96 @@
-# 2l2Q_limitSettingTool
+# Introduction
 
-# Aim of this tool
+This is a command line tool designed to perform a high mass Higgs search analysis using the combine software. It includes options for creating datacards, combining them, and running combine on the resulting cards to produce various results including limit values and impact plots.
 
-1. Alpha  ratio method information: **Independent code**:
-    - [BackgroundEstimation/AlphaMethod.py](https://github.com/jialin-guo1/HZZAnalysis/blob/994e9a59b67da505dbe7d15605558ab414eb1310/BackgroundEstimation/AlphaMethod.py)
-1.  Resolution: Macro: **Independent code**
-    -
-1. Signal efficiency: **Independent code**
-1. templates 1D and 2D: **Independent code**
+# Installation
 
+## Setup Higgs combine tool
 
-# Input information required
+**Step-1:** Combine setup inheritted from [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/)
 
-1. Directory `HM_inputs_2018UL` that contains basic systematic information
-2. Resolution info in directory: `Resolution`
-3. Templates: `templates1D` and  `templates2D`
-4. Directory: `CMSdata`
-5. Signal Efficiency: `SigEff`
+```bash
+export SCRAM_ARCH=slc7_amd64_gcc700
+cmsrel CMSSW_11_3_4
+cd CMSSW_11_3_4/src
+cmsenv
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v9.0.0
+scramv1 b clean; scramv1 b # always make a clean build
+cd $CMSSW_BASE/src
+bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
+scramv1 b -j 8
+```
 
-# Setup
-
-1. Setup combine (Reference: [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/)
-
-    ```bash
-    export SCRAM_ARCH=slc7_amd64_gcc700
-    cmsrel CMSSW_11_3_4
-    cd CMSSW_11_3_4/src
-    cmsenv
-    git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
-    cd HiggsAnalysis/CombinedLimit
-    cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
-    git fetch origin
-    git checkout v9.0.0
-    scramv1 b clean; scramv1 b # always make a clean build
-    cd $CMSSW_BASE/src
-    bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
-    scramv1 b -j 8
-    ```
-
-2. Get the custom tool for datacard creation and limit computation
+**Step-2:** Get the custom tool for datacard creation and limit computation
 
   ```bash
   cd $CMSSW_BASE/src
-  git clone git@github.com:jialin-guo1/2l2q_limitsettingtool.git -b develop
+  git clone git@github.com:ram1123/2l2q_limitsettingtool.git -b main
   ```
 
-3. To make datacards
+# Usage
 
-    ```bash
-    cd 2l2q_limitsettingtool
-    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s dc
-    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s cc
-    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
-    python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
-    ```
+The tool is run from the command line with various options. Here is a list of available options:
 
-    - In `HM_inputs_*` you should prepare 12 systematics files  ((resolved, merged * b-tagged, un-tagged , vbf-tagged) * ee,mumu). Now, you can just go into these .txt files and change the value of systematics.
-    - `-y` is year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all
-    - `-a` append name for cards dir. i.e `-a` test will create `cards_test` to stroe all datacards. When you run this tool, it better to keep option `-a` same as `-y`. in `cards_2016`, `cards_2017` and `cards_2018`. There already have combine and plot script.
+- `-i`, `--input`: Specify the input directory (default: "")
+- `-d`, `--is2D`: Specify if the input is 2D template or 1D (default: 1)
+- `-mi`, `--MassStartVal`: Specify the starting mass value (default: 500)
+- `-mf`, `--MassEndVal`: Specify the ending mass value (default: 3001)
+- `-ms`, `--MassStepVal`: Specify the step value (default: 50)
+- `-a`, `--append`: Append a name for the cards directory (default: "")
+- `-f`, `--fracVBF`: Specify the fraction of VBF (default: 0.5%)
+- `-y`, `--year`: Specify the year to run or run for all three years. Options: 2016, 2017, 2018, all (to run all 3 year), run2 (for combination of all 3 years).
+- `-s`, `--step`: Specify which step to run. Options: dc (DataCardCreation), cc - (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and - without syst), fast (FastScan) or all (default: dc)
+- `-c`, `--ifCondor`: Set to 1 to run combine command for all mass points in parallel using - condor (default: False)
+- `-b`, `--blind`: Set to False to run unblinded (default: True)
+- `-allDatacard`, `--allDatacard`: Set to True if limit values or impact plots are needed for - each datacard (default: False)
+- `-bOnly`, `--bOnly`: Set to True to perform background only fit (default: False)
+- `-v`, `--verbose`: Set to True to print status messages to stdout (default: False)
+- `--log-level:` Set the logging level. Options: DEBUG, INFO, WARNING, ERROR (default: - `WARNING`)
+- `--dry-run:` Set to True to print the command without actually running it (default: False)
+- `-p`, `--parallel`: Set to True to run jobs in parallel (default: False)
+- `-date`, `--date`: Specify a date string (default: "")
+- `-tag`, `--tag`: Specify a tag string (default: "")
 
-    Help command of makeDCsandWSs.py:
-
-    ```bash
-    Usage: makeDCsandWSs.py [options] datasetList
-    makeDCsandWSs.py -h for help
-
-    Options:
-    -h, --help            show this help message and exit
-    -i INPUT_DIR, --input=INPUT_DIR
-                            inputs directory
-    -d IS_2D, --is2D=IS_2D
-                            is2D (default:1)
-    -a APPEND_NAME, --append=APPEND_NAME
-                            append name for cards dir
-    -f FRAC_VBF, --fracVBF=FRAC_VBF
-                            fracVBF (default:0.5%)
-    -y YEAR, --year=YEAR  year to run or run for all three year. Options: 2016,
-                            2016APV, 2017,2018,all
-    -s STEP, --step=STEP  Which step to run: dc (DataCardCreation), cc
-                            (CombineCards), rc (RunCombine), or all
-    ```
-
-# General commands:
+Here is few example command:
 
 ```bash
-# local
-combine -n testt -m 500 -M AsymptoticLimits hzz2l2q_13TeV_xs_NoNuisance.txt --rMax 1 --rAbsAcc 0 --run blind
+# Run datacard step for year 2018. For now all 3 years datacard can't be created. There is some issue that need to be addressed
+python makeDCsandWSs.py -y 2018 -s dc
 
-# batch
-combineTool.py -M AsymptoticLimits -d hzz2l2q_13TeV_xs_NoNuisance.root --rMax 1 --rAbsAcc 0 --run blind -m 500 --job-mode condor
+# Run 2018 datacard/workspace creation step
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s dc
+# Run 2018 combine card step
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s cc
+# Run 2018 asymptotic combine command step to get the limit
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
+
+# To run all steps (except datacard creation one) and for all years, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
+time(python makeDCsandWSs.py -s all -y all -p -c)
+
+# To run all steps (except datacard creation one) and for all years and on all datacards specified in file `ListOfDatacards.py`, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
+time(python makeDCsandWSs.py -s all -y all -p -c --allDatacard)
 ```
 
-# Impact plot
+# Input Information Required
 
-```bash
-text2workspace.py hzz2l2q_13TeV_xs.txt -m 550 -o hzz2l2q_13TeV_xs.root
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doInitialFit  -t -1 --expectSignal 1
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --doFits
-combineTool.py -M Impacts -d hzz2l2q_13TeV_xs.root -m 500 --rMin -1 --rMax 2 --robustFit 1 --output impacts.json
-plotImpacts.py -i impacts.json -o impacts
-```
+To run this tool, you will need to have the following input information:
 
-All above 5 commands can be run using `makeDCsandWSs.py` script:
+- Directory `HM_inputs_2018UL` that contains systematic information.
+- Resolution info in directory: `Resolution`.
+- Templates: `templates1D` and `templates2D`.
+- Directory: `CMSdata`.
+- Signal Efficiency: `SigEff`.
 
-```bash
-python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s ri
-```
+Please make sure that you have all of these directories and files available and that they are properly formatted before running the tool.
 
-# for diffNuisance
+# Additional Information
 
-```bash
-python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py --help
-python $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py fitDiagnosticsTest.root  --all
-```
+Here are some additional details to keep in mind when running this tool:
+
+- In `HM_inputs_*`, you should prepare 12 systematics files ((resolved, merged) * (b_tagged, un-tagged, vbf_tagged) * (ee, mumu)). Now, you can just go into these `.txt` files and change the value of systematics.
+- `-a` appends a name for the cards directory. For example, `-a` test will create `cards_test` to store all datacards. When you run this tool, it is better to keep the option `-a` the same as `-y`. For example, in `cards_2016`, `cards_2017`, and `cards_2018`.
+
