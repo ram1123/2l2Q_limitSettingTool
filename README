@@ -1,0 +1,30 @@
+
+
+   #HIG-16-034
+
+   #Datacard for narrow width resonance Spin0/Spin2 at 650/950GeV
+   #The difference between spin-0 and spin-2 datacards is spin-0 datacards don't have "vbf-tagged" category. 
+   #The difference between 650GeV and 950GeV datacards is 650GeV datacards don't have "merged" category.
+
+   #To combine the cards
+
+    cd Spin0_650
+    sh prepare.sh
+ 
+    combine -n test -m ${mH} -M Asymptotic hzz2l2q_mH${mH}_13TeV_xs_${type}.root --run expected --rMax 0.2
+ 
+
+    #To test signal strength
+
+     combine -M MaxLikelihoodFit -t -1 --expectSignal 0 -m 650 hzz2l2q_13TeV_xs.root
+
+    #To test using pseudo-Asimov dataset
+
+     combine -M MaxLikelihoodFit -t -1 --expectSignal 0 -m 650 hzz2l2q_13TeV_xs.root --X-rtd TMCSO_AdaptivePseudoAsimov=0 --X-rtd  TMCSO_PseudoAsimov=100000
+
+     #Test nuisances
+
+     python ../diffNuisances.py -a mlfit.root -g plots.root
+  
+   #In spin-0 sets, frac_VBF is the fraction of VBF produced cross section of total pp->X->ZZ cross section
+   #Signal strength "r" is the pp->X->ZZ cross section in pb.

@@ -88,7 +88,6 @@ class datacardClass:
 
         self.MH = ROOT.RooRealVar("MH","MH",self.mH)
         self.MH.setConstant(True)
-
         self.jetType = "resolved"
         if('Merged' in self.channel or 'merged' in self.channel) :
           self.jetType = "merged"
@@ -367,7 +366,6 @@ class datacardClass:
 
               break # FIXME: is this break correct?
 
-
         ####### TTbar
         for i in range(0,int(self.high_M-self.low_M)/10) :
 
@@ -521,7 +519,6 @@ class datacardClass:
         eigen = TMatrixDSymEigen(cov)
         vecs = eigen.GetEigenVectors()
         vals  = eigen.GetEigenValues()
-
         # nuisances without correlation that would control Z+jets spectrum (shape and normalization)
         eig0Name = "eig0_"+self.jetType+"_"+self.cat_tree+"_"+str(self.year)
         eig1Name = "eig1_"+self.jetType+"_"+self.cat_tree+"_"+str(self.year)
@@ -1091,13 +1088,11 @@ class datacardClass:
         w.importClassCode(RooFormulaVar.Class(),True)
 
         getattr(w,'import')(data_obs,ROOT.RooFit.Rename("data_obs")) ### Should this be renamed?
-
         if (self.is2D == 0):
                     signalCB_ggH.SetNameTitle("ggH_hzz","ggH_hzz")
                     signalCB_VBF.SetNameTitle("qqH_hzz","qqH_hzz")
                     getattr(w,'import')(signalCB_ggH, ROOT.RooFit.RecycleConflictNodes())
                     getattr(w,'import')(signalCB_VBF, ROOT.RooFit.RecycleConflictNodes())
-
         if (self.is2D == 1):
                     sigCB2d_ggH.SetNameTitle("ggH_hzz","ggH_hzz")
                     sigCB2d_VBF.SetNameTitle("qqH_hzz","qqH_hzz")
@@ -1128,7 +1123,6 @@ class datacardClass:
         zz2l2q_mass.setRange(self.low_M,self.high_M)
 
         w.writeToFile(name_ShapeWS)
-
         ## --------------------------- DATACARDS -------------------------- ##
 
         rates = {}
@@ -1189,7 +1183,6 @@ class datacardClass:
                 if chan.startswith("ggH") and theInputs["all"] :
                     file.write("{0} ".format(self.appendName))
         file.write("\n")
-
         file.write("process ")
 
         i=0
@@ -1220,7 +1213,6 @@ class datacardClass:
 
         file.write(processLine)
         file.write("\n")
-
         file.write("rate ")
         for chan in channelList:
             if theInputs[chan] or (chan.startswith("ggH") and theInputs["all"]):
@@ -1229,14 +1221,12 @@ class datacardClass:
         file.write("------------\n")
 
 
-
     def numberOfSigChan(self,inputs):
 
         counter=0
 
         if inputs['ggH']: counter+=1
         if inputs['qqH']: counter+=1
-
         return counter
 
     def numberOfBgChan(self,inputs):

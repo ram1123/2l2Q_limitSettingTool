@@ -170,7 +170,6 @@ class inputReader:
                 if f[1].lower().startswith("p1_zjets"): self.p1_zjets = f[2]
                 if f[1].lower().startswith("l0_zjets"): self.l0_zjets = f[2]
                 if f[1].lower().startswith("l1_zjets"):  self.l1_zjets = f[2]
-
                 if f[1].lower().startswith("p0_alt_zjets"):  self.p0_alt_zjets = f[2]
                 if f[1].lower().startswith("p1_alt_zjets"): self.p1_alt_zjets = f[2]
                 if f[1].lower().startswith("l0_alt_zjets"): self.l0_alt_zjets = f[2]
@@ -188,7 +187,6 @@ class inputReader:
                 if f[1].lower().startswith("l1l1_cov_zjets"):  self.l1l1_cov_zjets = f[2]
 
             if f[0].lower().startswith("systematic"):
-
                 if f[1].lower().startswith("zjet") and f[1].lower().find("alphalow") >= 0 :
                     self.zjetsAlphaLow = f[2]
                 if f[1].lower().startswith("zjet") and f[1].lower().find("alphahigh") >= 0 :
@@ -203,7 +201,6 @@ class inputReader:
                     self.elecFullUnc = f[2]
                 if f[1].lower().startswith("elec_trig") or f[1].lower().startswith("electrig"):
                     self.elecTrigUnc = f[2]
-
                 if f[1].lower().startswith("param"):
                     if f[2].lower().startswith("cms_zz2l2q_mean_m_err"):
                         self.CMS_zz2l2q_mean_m_err = f[3]
@@ -275,7 +272,6 @@ class inputReader:
         if not self.goodEntry(self.ttbar_lumi): self.ttbar_lumi = self.lumi
 
       ## Set dictionary entries to be passed to datacard class ##
-
         dict['decayChannel'] = str(self.decayChan)
         dict['cat'] = str(self.cat)
         dict['model'] = str(self.model)
