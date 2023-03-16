@@ -67,6 +67,7 @@ class systematicsClass:
         self.rateBkg_vz = rates['vz']
         self.rateBkg_ttbar = rates['ttbar']
         self.rateBkg_zjets = rates['zjets']
+
         self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
         self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
@@ -173,6 +174,7 @@ class systematicsClass:
             systLine['ttbar']= "- "
             systLine['vz']  = "1.03 "
             self.Write_Systematics_Line(systLine,theFile,theInputs)
+
     def Write_pdf_gg(self,theFile,theInputs):
 
         if not self.isForXSxBR:
@@ -269,6 +271,7 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "- "
+
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_e(self,theFile,theInputs):
@@ -284,7 +287,6 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
 
-
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_m(self,theFile,theInputs):
@@ -295,6 +297,7 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "{0:.3f} ".format(self.muSelError)
+
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
 
@@ -404,21 +407,21 @@ class systematicsClass:
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("BTAG_{0} param  0  1  [-3,3]\n".format(channel))
+        theFile.write("BTAG_{channel} param  0  1  [-3,3]\n".format(channel=channel))
 
     def Write_CMS_zz2l2q_bkgMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_bkgMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
+        theFile.write("CMS_zz2l2q_bkgMELA_{0} param 0  1  [-3,3]\n".format(channel))
 
     def Write_CMS_zz2l2q_sigMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_sigMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
+        theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-3,3]\n".format(channel))
 
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
@@ -432,6 +435,7 @@ class systematicsClass:
 
         if theInputs['usePdf_qqbar']:
             self.Write_pdf_qqbar(theFile,theInputs)
+
         if theInputs['usePdf_hzz2l2q_accept']:
             self.Write_pdf_hzz2l2q_accept(theFile,theInputs)
 
