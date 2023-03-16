@@ -167,7 +167,7 @@ class DirectoryCreator:
                 if self.year == 'run2':
                     command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 else:
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"microcentury\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
                 # microcentury = 1 hr
                 # longlunch = 2 hr
@@ -515,14 +515,19 @@ class DirectoryCreator:
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() in ('dc'): # or (self.step).lower() == 'all': # Fixme: all year is not working for 'dc'
-            logger.debug("[INFO] declar datacardClass")
+            # get git diff patch and move it to each mass directory
+            logger.debug("get git diff patch")
+            RunCommand("git diff > git_diff.patch", self.dry_run)
+
+            logger.debug("Declar datacardClass")
             datacard_class = datacardClass(str(self.year), self.verbose)
 
-            logger.debug("[INFO] load root module")
+            logger.debug("load root module")
             datacard_class.loadIncludes()
 
             for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
                 self.create_workspaces(current_mass, datacard_class)
+                RunCommand("mv git_diff.patch {}/".format(self.dir_name + '/HCG/' + str(current_mass)), self.dry_run)
 
             # exit the program after creating datacards and workspaces
             logger.debug("Exiting the program after creating datacards and workspaces")
@@ -552,6 +557,11 @@ class DirectoryCreator:
                 SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category)
                 logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
 
+                # Collect summary of limits in the json file
+                command = 'combineTool.py -M CollectLimits {pathh}/HCG/*/higgsCombine.{name}.AsymptoticLimits.mH*.root --use-dirs -o {oPath}/limits_{name2}.json'.format(pathh = self.dir_name, name = SearchString4Datacard.replace("REPLACEMASS","*"), name2 = SearchString4Datacard.replace("mHREPLACEMASS","Summary"), oPath =  os.path.join(self.dir_name, 'figs'))
+                RunCommand(command, self.dry_run)
+
+                # Plot the limits
                 command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard, self.dir_name)
                 RunCommand(command, self.dry_run)
 
@@ -600,8 +610,8 @@ if __name__ == "__main__":
     if args.year == '2016': years = [2016]
     if args.year == '2017': years = [2017]
     if args.year == '2018': years = [2018]
-    if (args.year).lower() == 'all': years = [ 2016, 2017, 2018]
-    # if (args.year).lower() == 'all': years = [ 2016, 2017, 2018, "run2"]
+    # if (args.year).lower() == 'all': years = [ 2016, 2017, 2018]
+    if (args.year).lower() == 'all': years = [ 2016, 2017, 2018, "run2"]
     if (args.year).lower() == 'run2': years = ["run2"]
     if (args.year).lower() == 'run2':
         RunCommand("ulimit -s unlimited", args.dry_run)
