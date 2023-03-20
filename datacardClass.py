@@ -476,7 +476,7 @@ class datacardClass:
         ## Reducible backgrounds : Z+jets ################
         ###################################################################
 
-        bkg_zjets = ROOT.RooGenericPdf();
+        bkg_zjets = ROOT.RooGenericPdf()
         if self.DEBUG: print("zjets mass shape")
 
         ### cov matrix to account for shape+norm uncertainty

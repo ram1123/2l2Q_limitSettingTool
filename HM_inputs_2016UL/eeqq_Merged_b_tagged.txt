@@ -50,9 +50,23 @@ systematic param CMS_zz2lJ_sigma_J_err  0.1
 systematic elec_full 0.08
 systematic elec_trig 0.0075
 
+##Split JEC systematic ##
+systematic splitjec Abs 1
+systematic splitjec Abs_year 1
+systematic splitjec BBEC1 1
+systematic splitjec BBEC1 1
+systematic splitjec EC2 1
+systematic splitjec EC2_year 1
+systematic splitjec FlavQCD 1
+systematic splitjec HF 1
+systematic splitjec HF_year 1
+systematic splitjec RelBal
+systematic splitjec RelSample_year 1
+
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
+systematic CMS_scale_j_split False
 systematic luminosity True
 systematic pdf_hzz2l2q_accept True
 systematic QCDscale_ggH True

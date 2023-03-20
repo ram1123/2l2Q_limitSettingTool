@@ -61,6 +61,8 @@ class systematicsClass:
         self.qqVV_pdfSys = 1. + 0.0035*math.sqrt(self.mH - 30.)
         self.DEBUG = DEBUG
 
+        self.SplitSource = ['Abs','BBEC1','EC2','FlavQCD', 'HF', 'RelBal']
+        self.SplitSourceYears = ['Abs','BBEC1','EC2','HF','RelSample']
 
     def setSystematics(self,rates):
 
@@ -173,6 +175,7 @@ class systematicsClass:
             systLine['ttbar']= "- "
             systLine['vz']  = "1.03 "
             self.Write_Systematics_Line(systLine,theFile,theInputs)
+    
     def Write_pdf_gg(self,theFile,theInputs):
 
         if not self.isForXSxBR:
@@ -297,7 +300,6 @@ class systematicsClass:
         systLine['vz']  = "{0:.3f} ".format(self.muSelError)
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
-
     def Write_CMS_hzz2l2q_Zjets(self,theFile,theInputs):
 
         channel="resolved"
@@ -420,6 +422,30 @@ class systematicsClass:
 
         theFile.write("CMS_zz2l2q_sigMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
 
+    def Write_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        for source in self.SplitSource:
+            theFile.weite('CMS_scale_j_{}'.format(source))
+            systLine={'ggH':"{} ".format(theinputs['{}_ggH'.format(source)])}
+            systLine['ggH'] = "{} ".format(theinputs['{}_qqH'.format(source)])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}_ttbar'.format(source)])
+            systLine['vz'] = "{} ".format(theinputs['{}_vz'.format(source)])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        for source in self.SplitSourceYears:
+            theFile.weite('CMS_scale_j_{}_{}'.format(source,self.year))
+            systLine={'ggH':"{} ".format(theinputs['{}_year_ggH'.format(source)])}
+            systLine['ggH'] = "{} ".format(theinputs['{}_year_qqH'.format(source)])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}_year_ttbar'.format(source)])
+            systLine['vz'] = "{} ".format(theinputs['{}_year_vz'.format(source)])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        pass
+    
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
         if theInputs['useLumiUnc']:

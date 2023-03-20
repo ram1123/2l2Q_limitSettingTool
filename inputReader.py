@@ -100,7 +100,7 @@ class inputReader:
         self.useCMS_zz2lJ_mean = False
         self.useCMS_zz2lJ_sigma = False
         self.useQCDscale_vz = False
-
+        self.useSplitJEC = False
         # --- VBFtag/Btag systematics
 
         self.gghJESLow = -999.9
@@ -116,6 +116,19 @@ class inputReader:
         self.vbfBTAGHigh = -999.9
         self.vzBTAGLow = -999.9
         self.vzBTAGHigh = -999.9
+
+        ####split JEC systematics for ak4
+        self.Abs = -999.9
+        self.Abs_year = -999.9
+        self.BBEC1 = -999.9
+        self.BBEC1_year = -999.9
+        self.EC2 = -999.9
+        self.EC2_year = -999.9
+        self.FlavQCD = -999.9
+        self.HF = -999.9
+        self.HF_year = -999.9
+        self.RelBal = -999.9
+        self.RelSample_year = -999.9
 
 
     def goodEntry(self,variable):
@@ -218,7 +231,31 @@ class inputReader:
                         self.CMS_zz2lJ_mean_J_err = f[3]
                     if f[2].lower().startswith("cms_zz2lj_sigma_j_err"):
                         self.CMS_zz2lJ_sigma_J_err = f[3]
-
+                ###Split JEC uncertainty
+                if f[1].lower().startswith('splitjec'):
+                    if f[2]=='Abs':
+                        self.Abs = f[3]
+                    if f[2]=='Abs_year':
+                        self.Abs_year = f[3]
+                    if f[2]=='BBEC1':
+                        self.BBEC1 = f[3]
+                    if f[2]=='BBEC1_year':
+                        self.BBEC1_year = f[3]
+                    if f[2]=='EC2':
+                        self.EC2 = f[3]
+                    if f[2]=='EC2_year':
+                        self.EC2_year = f[3]
+                    if f[2]=='FlavQCD':
+                        self.FlavQCD = f[3]
+                    if f[2]=='HF':
+                        self.HF = f[3]
+                    if f[2]=='HF_year':
+                        self.HF_year = f[3]
+                    if f[2]=='RelBal':
+                        self.RelBal = f[3]
+                    if f[2]=='RelSample_year':
+                        self.RelSample_year = f[3]
+                    
                 if f[1].lower().startswith("luminosity"):
                     self.useLumiUnc = self.parseBoolString(f[2])
                 if f[1].lower().startswith("qcdscale_ggh"):
@@ -247,6 +284,9 @@ class inputReader:
                     self.useCMS_zz2lJ_mean = self.parseBoolString(f[2])
                 if f[1].lower().startswith("cms_zz2lj_sigma"):
                     self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])
+                ##JEC split
+                if f[1].lower().startswith("CMS_scale_j_split"):
+                    self.self.useSplitJEC = self.parseBoolString(f[2])
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -348,6 +388,8 @@ class inputReader:
         dict['usePdf_qqbar'] = True
         dict['usePdf_gg'] = True
         dict['useTheoryUncXS_HighMH'] = True
+        ##JEC split
+        dict['useSplitJEC'] = self.useSplitJEC
 
         dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err)
         dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err)
@@ -357,5 +399,6 @@ class inputReader:
         dict['CMS_zz2l2q_sigma_j_err'] = float(self.CMS_zz2l2q_sigma_j_err)
         dict['CMS_zz2lJ_mean_J_err'] = float(self.CMS_zz2lJ_mean_J_err)
         dict['CMS_zz2lJ_sigma_J_err'] = float(self.CMS_zz2lJ_sigma_J_err)
+        
 
         return dict
