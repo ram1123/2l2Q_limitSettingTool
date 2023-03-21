@@ -11,6 +11,7 @@ from ROOT import *
 
 from systematicsClass import *
 from inputReader import *
+from utils import *
 
 
 gROOT.ProcessLine(
@@ -58,6 +59,7 @@ class datacardClass:
         self.cat = theCat
         self.FracVBF = theFracVBF
         self.SanityCheckPlot = SanityCheckPlot
+        logger.debug("self.channel: {}".format(self.channel))
 
         fs="2e"
         if (self.channel == self.ID_2muResolved) :
@@ -118,6 +120,7 @@ class datacardClass:
           zz2l2q_mass.SetName("zz2lJ_mass")
           zz2l2q_mass.SetTitle("zz2lJ_mass")
 
+        # FIXME: Check the ranges
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
         zz2l2q_mass.setRange("fullsignalrange",300,4000)
 
@@ -188,6 +191,7 @@ class datacardClass:
 
 
         # mean (bias) of DCB
+        # MOREINFO: Did not understand why we get the bias from the mean of the gaussian then again obtain the mean of the DCB by adding the bias to the mean of the gaussian?
         name = "bias_ggH_"+(self.channel)
         bias_ggH = ROOT.RooRealVar(name,name, ggHshape.Get("mean").GetListOfFunctions().First().Eval(self.mH)-self.mH)
         name = "mean_ggH_"+(self.channel)
@@ -224,7 +228,7 @@ class datacardClass:
 
         rfv_sigma_SF = ROOT.RooFormulaVar()
         name = "sigma_SF_"+(self.channel)
-        if (self.channel == self.ID_2muResolved) :
+        if (self.channel == self.ID_2muResolved) : # FIXME: How we get the number 0.05?
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_m_sig, sigma_j_sig, sigma_m_err,sigma_j_err))
         if (self.channel == self.ID_2eResolved) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_e_sig, sigma_j_sig, sigma_e_err,sigma_j_err))
@@ -267,15 +271,15 @@ class datacardClass:
         signalCB_ggH = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_ggH,rfv_sigma_ggH,a1_ggH,n1_ggH,a2_ggH,n2_ggH)
         name = "signalCB_VBF_"+(self.channel)
         signalCB_VBF = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_VBF,rfv_sigma_VBF,a1_VBF,n1_VBF,a2_VBF,n2_VBF)
-
+        logger.debug("signalCB_ggH name: {}".format(name))
         fullRangeSigRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange") ).getVal()
         fullRangRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullrange") ).getVal()
         sigFraction = fullRangRate/fullRangeSigRate
         sigFraction = 1.0   # FIXME: #2 Why its hardcoded to 1.0?
 
-        if self.DEBUG: print('fullRangRate ',fullRangRate)
-        if self.DEBUG: print('fullRangeSigRate ',fullRangeSigRate)
-        if self.DEBUG: print('fraction of signal in the mass range is ',sigFraction)
+        logger.debug("fullRangRate: {}".format(fullRangRate))
+        logger.debug("fullRangeSigRate: {}".format(fullRangeSigRate))
+        logger.debug("fraction of signal in the mass range is: {}".format(sigFraction))
 
         ## --------------------- BKG mZZ Templates ---------------------##
 
@@ -926,8 +930,9 @@ class datacardClass:
           zzframe_s.Draw()
           legend.Draw("same")  # Draw the legend on the same canvas
 
-          figName = "{0}/figs/mzz_{1}_{2}.png".format(self.outputDir, self.mH, self.appendName)
-          czz.SaveAs(figName)
+          figName = "{0}/figs/mzz_mH{1}_{2}_{3}".format(self.outputDir, self.mH, self.year, self.appendName)
+          czz.SaveAs(figName+".png")
+          czz.SaveAs(figName+".pdf")
           del czz
 
 
@@ -959,10 +964,12 @@ class datacardClass:
 
         ####
         # the numbers written to the datacards
-        print("self.appendName: ", self.appendName)
+        logger.debug("self.appendName: {}".format(self.appendName))
         sigRate_ggH_Shape = ggH_accxeff.Get("spin0_ggH_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
         sigRate_VBF_Shape = VBF_accxeff.Get("spin0_VBF_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
 
+        logger.debug("sigRate_ggH_Shape: {}".format(sigRate_ggH_Shape))
+        logger.debug("sigFraction: {}".format(sigFraction))
         sigRate_ggH_Shape = sigRate_ggH_Shape*sigFraction
         sigRate_VBF_Shape = sigRate_VBF_Shape*sigFraction
 

@@ -9,6 +9,9 @@ import multiprocessing as mp
 from functools import partial
 import datetime
 
+import ROOT
+
+
 today = datetime.datetime.now()
 date_string = today.strftime("%d%b").lower()
 import common_strings_pars
@@ -69,7 +72,7 @@ class DirectoryCreator:
         for channel in self.channels:
             for cat in self.cats:
                 input_reader_txt = self.input_dir+"/"+channel+"_"+cat+".txt"
-                logger.debug("inputreadertext: ", input_reader_txt)
+                logger.debug("inputreadertext: {}".format(input_reader_txt))
                 input_reader = inputReader(input_reader_txt)
                 input_reader.readInputs()
                 theInputs = input_reader.getInputs()
@@ -589,6 +592,12 @@ if __name__ == "__main__":
         type=lambda x: getattr(logging, x.upper()),
         help="Configure the logging level."
         )
+    parser.add_argument(
+        "--log-level-roofit",
+        default=ROOT.RooFit.WARNING,
+        type=lambda x: getattr(ROOT.RooFit, x.upper()),
+        help="Configure the logging level."
+        )
     parser.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
     parser.add_argument("-p", "--parallel", action="store_true", help="Run jobs parallelly")
     # parser.add_argument("-n", "--ncores", dest="ncores", type=int, default=8, help="number of cores to use")
@@ -604,6 +613,9 @@ if __name__ == "__main__":
 
     # Set the logging level based on the command line argument
     logger.setLevel(args.log_level)
+
+    # # Set the global message level to WARNING
+    ROOT.RooMsgService.instance().setGlobalKillBelow(args.log_level_roofit)
 
     DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly, args.dry_run, args.parallel)
     # DirectoryCreatorObj.validate()
