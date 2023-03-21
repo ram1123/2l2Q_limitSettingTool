@@ -50,8 +50,59 @@ systematic param CMS_zz2lJ_sigma_J_err  0.1
 systematic muon_full 0.04
 systematic muon_trig 0.0075
 
+##Split JEC systematic ##
+systematic splitjec ggH Abs 1
+systematic splitjec ggH Abs_year 1
+systematic splitjec ggH BBEC1 1
+systematic splitjec ggH BBEC1 1
+systematic splitjec ggH EC2 1
+systematic splitjec ggH EC2_year 1
+systematic splitjec ggH FlavQCD 1
+systematic splitjec ggH HF 1
+systematic splitjec ggH HF_year 1
+systematic splitjec ggH RelBal 1
+systematic splitjec ggH RelSample_year 1
+
+systematic splitjec qqH Abs 1
+systematic splitjec qqH Abs_year 1
+systematic splitjec qqH BBEC1 1
+systematic splitjec qqH BBEC1 1
+systematic splitjec qqH EC2 1
+systematic splitjec qqH EC2_year 1
+systematic splitjec qqH FlavQCD 1
+systematic splitjec qqH HF 1
+systematic splitjec qqH HF_year 1
+systematic splitjec qqH RelBal 1
+systematic splitjec qqH RelSample_year 1
+
+systematic splitjec ttbar Abs 1
+systematic splitjec ttbar Abs_year 1
+systematic splitjec ttbar BBEC1 1
+systematic splitjec ttbar BBEC1 1
+systematic splitjec ttbar EC2 1
+systematic splitjec ttbar EC2_year 1
+systematic splitjec ttbar FlavQCD 1
+systematic splitjec ttbar HF 1
+systematic splitjec ttbar HF_year 1
+systematic splitjec ttbar RelBal 1
+systematic splitjec ttbar RelSample_year 1
+
+systematic splitjec vz Abs 1
+systematic splitjec vz Abs_year 1
+systematic splitjec vz Abs_year 1
+systematic splitjec vz BBEC1 1
+systematic splitjec vz EC2 1
+systematic splitjec vz EC2_year 1
+systematic splitjec vz FlavQCD 1
+systematic splitjec vz HF 1
+systematic splitjec vz HF_year 1
+systematic splitjec vz RelBal 1
+systematic splitjec vz RelSample_year 1
+
 ##### Add Systematic to Cards ####
-##### allowed True/false ####
+
+##### allowed True/True ####
+systematic CMS_scale_j_split False
 systematic luminosity True
 systematic pdf_hzz2l2q_accept True
 systematic QCDscale_ggH True

@@ -118,18 +118,31 @@ class inputReader:
         self.vzBTAGHigh = -999.9
 
         ####split JEC systematics for ak4
-        self.Abs = -999.9
-        self.Abs_year = -999.9
-        self.BBEC1 = -999.9
-        self.BBEC1_year = -999.9
-        self.EC2 = -999.9
-        self.EC2_year = -999.9
-        self.FlavQCD = -999.9
-        self.HF = -999.9
-        self.HF_year = -999.9
-        self.RelBal = -999.9
-        self.RelSample_year = -999.9
-
+        self.Abs = {}
+        self.Abs_year = {}
+        self.BBEC1 = {}
+        self.BBEC1_year = {}
+        self.EC2 = {}
+        self.EC2_year = {}
+        self.FlavQCD = {}
+        self.HF = {}
+        self.HF_year = {}
+        self.RelBal = {}
+        self.RelSample_year = {}
+        self.splitproccess = ['ggH','qqH','ttbar','vz']
+        self.SplitSource = ['Abs','BBEC1','EC2','FlavQCD', 'HF', 'RelBal','Abs_year','BBEC1_year','EC2_year','HF_year','RelSample_year']
+        for process in self.splitproccess:
+            self.Abs[process] = -999.9
+            self.Abs_year[process] = -999.99
+            self.BBEC1[process] = -999.99
+            self.BBEC1_year[process] = -999.99
+            self.EC2[process] = -999.99
+            self.EC2_year[process] = -999.99
+            self.FlavQCD[process] = -999.99
+            self.HF[process] = -999.99
+            self.HF_year[process] = -999.99
+            self.RelBal[process] = -999.99
+            self.RelSample_year[process] = -999.99
 
     def goodEntry(self,variable):
         if variable == -999.9:
@@ -233,28 +246,30 @@ class inputReader:
                         self.CMS_zz2lJ_sigma_J_err = f[3]
                 ###Split JEC uncertainty
                 if f[1].lower().startswith('splitjec'):
-                    if f[2]=='Abs':
-                        self.Abs = f[3]
-                    if f[2]=='Abs_year':
-                        self.Abs_year = f[3]
-                    if f[2]=='BBEC1':
-                        self.BBEC1 = f[3]
-                    if f[2]=='BBEC1_year':
-                        self.BBEC1_year = f[3]
-                    if f[2]=='EC2':
-                        self.EC2 = f[3]
-                    if f[2]=='EC2_year':
-                        self.EC2_year = f[3]
-                    if f[2]=='FlavQCD':
-                        self.FlavQCD = f[3]
-                    if f[2]=='HF':
-                        self.HF = f[3]
-                    if f[2]=='HF_year':
-                        self.HF_year = f[3]
-                    if f[2]=='RelBal':
-                        self.RelBal = f[3]
-                    if f[2]=='RelSample_year':
-                        self.RelSample_year = f[3]
+                    for process in self.splitproccess:
+                        if f[2] == process:
+                            if f[3]=='Abs':
+                                self.Abs[process] = f[4]
+                            if f[3]=='Abs_year':
+                                self.Abs_year[process] = f[4]
+                            if f[3]=='BBEC1':
+                                self.BBEC1[process] = f[4]
+                            if f[3]=='BBEC1_year':
+                                self.BBEC1_year[process] = f[4]
+                            if f[3]=='EC2':
+                                self.EC2[process] = f[4]
+                            if f[3]=='EC2_year':
+                                self.EC2_year[process] = f[4]
+                            if f[3]=='FlavQCD':
+                                self.FlavQCD[process] = f[4]
+                            if f[3]=='HF':
+                                self.HF[process] = f[4]
+                            if f[3]=='HF_year':
+                                self.HF_year[process] = f[4]
+                            if f[3]=='RelBal':
+                                self.RelBal[process] = f[4]
+                            if f[3]=='RelSample_year':
+                                self.RelSample_year[process] = f[4]
                     
                 if f[1].lower().startswith("luminosity"):
                     self.useLumiUnc = self.parseBoolString(f[2])
@@ -285,8 +300,8 @@ class inputReader:
                 if f[1].lower().startswith("cms_zz2lj_sigma"):
                     self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])
                 ##JEC split
-                if f[1].lower().startswith("CMS_scale_j_split"):
-                    self.self.useSplitJEC = self.parseBoolString(f[2])
+                if f[1].lower().startswith("cms_scale_j_split"):
+                    self.useSplitJEC = self.parseBoolString(f[2])
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -399,6 +414,22 @@ class inputReader:
         dict['CMS_zz2l2q_sigma_j_err'] = float(self.CMS_zz2l2q_sigma_j_err)
         dict['CMS_zz2lJ_mean_J_err'] = float(self.CMS_zz2lJ_mean_J_err)
         dict['CMS_zz2lJ_sigma_J_err'] = float(self.CMS_zz2lJ_sigma_J_err)
+
+        ##JEC split valus
+        for source in self.SplitSource:
+            dict[source] = {}
+        for process in self.splitproccess:
+            dict['Abs'][process] = float(self.Abs[process])
+            dict['Abs_year'][process] = float(self.Abs_year[process])
+            dict['BBEC1'][process] = float(self.BBEC1[process])
+            dict['BBEC1_year'][process] = float(self.BBEC1[process])
+            dict['EC2'][process] = float(self.EC2[process])
+            dict['EC2_year'][process] = float(self.EC2_year[process])
+            dict['FlavQCD'][process] = float(self.FlavQCD[process])
+            dict['HF'][process] = float(self.HF[process])
+            dict['HF_year'][process] = float(self.HF_year[process])
+            dict['RelBal'][process] = float(self.RelBal[process])
+            dict['RelSample_year'][process] = float(self.RelSample_year[process])
         
 
         return dict

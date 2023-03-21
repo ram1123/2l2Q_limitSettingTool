@@ -425,26 +425,26 @@ class systematicsClass:
     def Write_Split_JEC(self,theFile,theinputs):
         ##add these split JEC uncertainty for ak4
         for source in self.SplitSource:
-            theFile.weite('CMS_scale_j_{}'.format(source))
-            systLine={'ggH':"{} ".format(theinputs['{}_ggH'.format(source)])}
-            systLine['ggH'] = "{} ".format(theinputs['{}_qqH'.format(source)])
+            theFile.write('CMS_scale_j_{} lnN '.format(source))
+            systLine={'ggH':"{} ".format(theinputs['{}'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}'.format(source)]['qqH'])
             systLine['zjets'] = "- "
-            systLine['ttbar'] = "{} ".format(theinputs['{}_ttbar'.format(source)])
-            systLine['vz'] = "{} ".format(theinputs['{}_vz'.format(source)])
+            systLine['ttbar'] = "{} ".format(theinputs['{}'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}'.format(source)]['vz'])
 
             self.Write_Systematics_Line(systLine,theFile,theinputs)
 
         for source in self.SplitSourceYears:
-            theFile.weite('CMS_scale_j_{}_{}'.format(source,self.year))
-            systLine={'ggH':"{} ".format(theinputs['{}_year_ggH'.format(source)])}
-            systLine['ggH'] = "{} ".format(theinputs['{}_year_qqH'.format(source)])
+            #print(source)
+            #print(theinputs['{}_year'.format(source)].keys())
+            theFile.write('CMS_scale_j_{}_{} lnN '.format(source,self.year))
+            systLine={'ggH':"{} ".format(theinputs['{}_year'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}_year'.format(source)]['qqH'])
             systLine['zjets'] = "- "
-            systLine['ttbar'] = "{} ".format(theinputs['{}_year_ttbar'.format(source)])
-            systLine['vz'] = "{} ".format(theinputs['{}_year_vz'.format(source)])
+            systLine['ttbar'] = "{} ".format(theinputs['{}_year'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}_year'.format(source)]['vz'])
 
             self.Write_Systematics_Line(systLine,theFile,theinputs)
-
-        pass
     
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
@@ -472,7 +472,15 @@ class systematicsClass:
                 self.Write_QCDscale_ggH(theFile,theInputs)
 
         if theInputs['useQCDscale_qqH'] :
+                
                 self.Write_QCDscale_qqH(theFile,theInputs)
+        ##JEC split
+        print("==================================================\n")
+        print(theInputs['useSplitJEC'])
+        print("==================================================\n")
+        if theInputs['useSplitJEC']:
+            self.Write_Split_JEC(theFile,theInputs)
+            
 
     ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :
