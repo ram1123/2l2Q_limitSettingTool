@@ -61,6 +61,8 @@ class systematicsClass:
         self.qqVV_pdfSys = 1. + 0.0035*math.sqrt(self.mH - 30.)
         self.DEBUG = DEBUG
 
+        self.SplitSource = ['Abs','BBEC1','EC2','FlavQCD', 'HF', 'RelBal']
+        self.SplitSourceYears = ['Abs','BBEC1','EC2','HF','RelSample']
 
     def setSystematics(self,rates):
 
@@ -300,7 +302,6 @@ class systematicsClass:
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
-
     def Write_CMS_hzz2l2q_Zjets(self,theFile,theInputs):
 
         channel="resolved"
@@ -423,6 +424,30 @@ class systematicsClass:
 
         theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-3,3]\n".format(channel))
 
+    def Write_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        for source in self.SplitSource:
+            theFile.write('CMS_scale_j_{} lnN '.format(source))
+            systLine={'ggH':"{} ".format(theinputs['{}'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        for source in self.SplitSourceYears:
+            #print(source)
+            #print(theinputs['{}_year'.format(source)].keys())
+            theFile.write('CMS_scale_j_{}_{} lnN '.format(source,self.year))
+            systLine={'ggH':"{} ".format(theinputs['{}_year'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}_year'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}_year'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}_year'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
         if theInputs['useLumiUnc']:
@@ -450,7 +475,15 @@ class systematicsClass:
                 self.Write_QCDscale_ggH(theFile,theInputs)
 
         if theInputs['useQCDscale_qqH'] :
+
                 self.Write_QCDscale_qqH(theFile,theInputs)
+        ##JEC split
+        print("==================================================\n")
+        print(theInputs['useSplitJEC'])
+        print("==================================================\n")
+        if theInputs['useSplitJEC']:
+            self.Write_Split_JEC(theFile,theInputs)
+
 
     ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :

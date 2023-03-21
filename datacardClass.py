@@ -248,22 +248,22 @@ class datacardClass:
         rfv_sigma_VBF = ROOT.RooFormulaVar(name,"@0*@1",ROOT.RooArgList(sigma_VBF,rfv_sigma_SF) )
 
         ## tail parameters
-        name = "a1_ggH_"+(self.channel)+"_"+(self.year)
+        name = "a1_ggH_"+(self.channel)+"_"+str(self.year)
         a1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_ggH_"+(self.channel)+"_"+(self.year)
+        name = "a2_ggH_"+(self.channel)+"_"+str(self.year)
         a2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_ggH_"+(self.channel)+"_"+(self.year)
+        name = "n1_ggH_"+(self.channel)+"_"+str(self.year)
         n1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_ggH_"+(self.channel)+"_"+(self.year)
+        name = "n2_ggH_"+(self.channel)+"_"+str(self.year)
         n2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
         ###
-        name = "a1_VBF_"+(self.channel)+"_"+(self.year)
+        name = "a1_VBF_"+(self.channel)+"_"+str(self.year)
         a1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_VBF_"+(self.channel)+"_"+(self.year)
+        name = "a2_VBF_"+(self.channel)+"_"+str(self.year)
         a2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_VBF_"+(self.channel)+"_"+(self.year)
+        name = "n1_VBF_"+(self.channel)+"_"+str(self.year)
         n1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_VBF_"+(self.channel)+"_"+(self.year)
+        name = "n2_VBF_"+(self.channel)+"_"+str(self.year)
         n2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
 
         ## --------------------- SHAPE FUNCTIONS ---------------------- ##
@@ -481,7 +481,7 @@ class datacardClass:
         ## Reducible backgrounds : Z+jets ################
         ###################################################################
 
-        bkg_zjets = ROOT.RooGenericPdf();
+        bkg_zjets = ROOT.RooGenericPdf()
         if self.DEBUG: print("zjets mass shape")
 
         ### cov matrix to account for shape+norm uncertainty
