@@ -91,6 +91,7 @@ class datacardClass:
         self.MH = ROOT.RooRealVar("MH","MH",self.mH)
         self.MH.setConstant(True)
 
+
         self.jetType = "resolved"
         if('Merged' in self.channel or 'merged' in self.channel) :
           self.jetType = "merged"
