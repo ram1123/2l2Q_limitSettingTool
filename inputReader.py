@@ -419,17 +419,17 @@ class inputReader:
         for source in self.SplitSource:
             dict[source] = {}
         for process in self.splitproccess:
-            dict['Abs'][process] = float(self.Abs[process])
-            dict['Abs_year'][process] = float(self.Abs_year[process])
-            dict['BBEC1'][process] = float(self.BBEC1[process])
-            dict['BBEC1_year'][process] = float(self.BBEC1[process])
-            dict['EC2'][process] = float(self.EC2[process])
-            dict['EC2_year'][process] = float(self.EC2_year[process])
-            dict['FlavQCD'][process] = float(self.FlavQCD[process])
-            dict['HF'][process] = float(self.HF[process])
-            dict['HF_year'][process] = float(self.HF_year[process])
-            dict['RelBal'][process] = float(self.RelBal[process])
-            dict['RelSample_year'][process] = float(self.RelSample_year[process])
+            dict['Abs'][process] =            (self.Abs[process])
+            dict['Abs_year'][process] =       (self.Abs_year[process])
+            dict['BBEC1'][process] =          (self.BBEC1[process])
+            dict['BBEC1_year'][process] =     (self.BBEC1[process])
+            dict['EC2'][process] =            (self.EC2[process])
+            dict['EC2_year'][process] =       (self.EC2_year[process])
+            dict['FlavQCD'][process] =        (self.FlavQCD[process])
+            dict['HF'][process] =             (self.HF[process])
+            dict['HF_year'][process] =        (self.HF_year[process])
+            dict['RelBal'][process] =         (self.RelBal[process])
+            dict['RelSample_year'][process] = (self.RelSample_year[process])
 
 
         return dict
