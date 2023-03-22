@@ -70,7 +70,7 @@ class datacardClass:
         postfix=postfix+'_'
         postfix=postfix+self.cat
         self.appendName = postfix
-        if self.DEBUG: print('appendName is channel + cat ',postfix)
+        logger.debug("Appending name is channel + cat:  {}".format(postfix))
 
         self.cat_tree = "untagged"
         if(self.cat=="b_tagged") :
@@ -175,18 +175,18 @@ class datacardClass:
         ## resolution uncertainty
         name = "sigma_m_err"
         sigma_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_m_err']))
-        if self.DEBUG: print(name,' ',sigma_m_err.getVal())
+        logger.debug("{}: {}".format(name, sigma_m_err.getVal()))
         name = "sigma_e_err"
         sigma_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_e_err']))
-        if self.DEBUG: print(name,' ',sigma_e_err.getVal())
+        logger.debug("{}: {}".format(name, sigma_e_err.getVal()))
         name = "sigma_j_err"
         sigma_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_j_err']))
-        if self.DEBUG: print(name,' ',sigma_j_err.getVal())
+        logger.debug("{}: {}".format(name, sigma_j_err.getVal()))
         name = "sigma_J_err"
         sigma_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_sigma_J_err']))
-        if self.DEBUG: print(name,' ',sigma_J_err.getVal())
+        logger.debug("{}: {}".format(name, sigma_J_err.getVal()))
 
-        if self.DEBUG: print('read signal parameters')
+        logger.info("Read signal parameters from file: {}".format("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root"))
         ggHshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
         VBFshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
 
@@ -213,13 +213,14 @@ class datacardClass:
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_m_sig,mean_j_sig,mean_m_err,mean_j_err))
         elif (self.channel == self.ID_2muMerged) :
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_m_sig,mean_J_sig,mean_m_err,mean_J_err))
-        if self.DEBUG: print('mean error ', mean_err.getVal())
+        logger.debug("{}: {}".format(name, mean_err.getVal()))
 
         name = "rfv_mean_ggH_"+(self.channel)
         rfv_mean_ggH = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_ggH,mean_err))
         name = "rfv_mean_VBF_"+(self.channel)
         rfv_mean_VBF = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_VBF,mean_err))
-        if self.DEBUG: print('mean ggH ', rfv_mean_ggH.getVal(),'; mean VBF ',rfv_mean_VBF.getVal())
+        logger.debug("{}: {}".format("Mean ggH", rfv_mean_ggH.getVal()))
+        logger.debug("{}: {}".format("Mean VBF", rfv_mean_VBF.getVal()))
 
         # sigma of DCB
         name = "sigma_ggH_"+(self.channel)
@@ -238,7 +239,7 @@ class datacardClass:
         if (self.channel == self.ID_2eMerged) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_e_sig, sigma_J_sig, sigma_e_err,sigma_J_err))
 
-        if self.DEBUG: print(name,' ',rfv_sigma_SF.getVal())
+        logger.debug("{}: {}".format(name, rfv_sigma_SF.getVal()))
 
         ##################
 
@@ -313,16 +314,21 @@ class datacardClass:
         #vz yields from a given fs
         TempFile_fs = TFile("templates1D/Template1D_spin0_"+fs+"_"+self.year+".root","READ")
         #vz yields for all cats in a given channel
+        logger.debug("Histogram name to fetch: {}".format("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV"))
         vzTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_VZ_perInvFb_Bin50GeV")
+        logger.debug("vzTemplateMVV_fs_untagged.Integral() = {}".format(vzTemplateMVV_fs_untagged.Integral()))
+        logger.debug("vzTemplateMVV_fs_btagged.Integral() = {}".format(vzTemplateMVV_fs_btagged.Integral()))
+        logger.debug("vzTemplateMVV_fs_vbftagged.Integral() = {}".format(vzTemplateMVV_fs_vbftagged.Integral()))
 
         ttbarTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_TTplusWW_perInvFb_Bin50GeV")
-        if self.DEBUG: print("ttbarTemplateMVV_fs_vbftagged = ",ttbarTemplateMVV_fs_vbftagged.Integral())
+        logger.debug("ttbarTemplateMVV_fs_untagged.Integral() = {}".format(ttbarTemplateMVV_fs_untagged.Integral()))
+        logger.debug("ttbarTemplateMVV_fs_btagged.Integral() = {}".format(ttbarTemplateMVV_fs_btagged.Integral()))
+        logger.debug("ttbarTemplateMVV_fs_vbftagged.Integral() = {}".format(ttbarTemplateMVV_fs_vbftagged.Integral()))
 
-        if self.DEBUG: print("hmass_",self.jetType,"SRvbf_VZ_Bin50GeV_perInvFb")
 
         vz_smooth_fs_untagged = TH1F("vz_"+fs+"_untagged","vz_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
         vz_smooth_fs_btagged = TH1F("vz_"+fs+"_btagged","vz_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
@@ -334,8 +340,8 @@ class datacardClass:
 
         # shape from 2e+2mu
         TempFile = TFile("templates1D/Template1D_spin0_2l_{}.root".format(self.year),"READ")
-        if self.DEBUG: print('vzTemplateMVV_Name ',vzTemplateMVV_Name)
-        if self.DEBUG: print('ttbarpluswwTemplateMVV_Name ',ttbarpluswwTemplateMVV_Name)
+        logger.debug("VZ template name: {}".format(vzTemplateMVV_Name))
+        logger.debug("ttbar template name: {}".format(ttbarpluswwTemplateMVV_Name))
         vzTemplateMVV = TempFile.Get(vzTemplateMVV_Name)
         ttbarTemplateMVV = TempFile.Get(ttbarpluswwTemplateMVV_Name)
 
