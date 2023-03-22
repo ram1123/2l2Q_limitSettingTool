@@ -270,7 +270,7 @@ class inputReader:
                                 self.RelBal[process] = f[4]
                             if f[3]=='RelSample_year':
                                 self.RelSample_year[process] = f[4]
-                    
+
                 if f[1].lower().startswith("luminosity"):
                     self.useLumiUnc = self.parseBoolString(f[2])
                 if f[1].lower().startswith("qcdscale_ggh"):
@@ -430,6 +430,6 @@ class inputReader:
             dict['HF_year'][process] = float(self.HF_year[process])
             dict['RelBal'][process] = float(self.RelBal[process])
             dict['RelSample_year'][process] = float(self.RelSample_year[process])
-        
+
 
         return dict
