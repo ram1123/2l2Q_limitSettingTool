@@ -100,7 +100,7 @@ c.SetGridy()
 c.SetRightMargin(0.06)
 c.SetLeftMargin(0.15)
 
-dummy = TH1D("dummy","dummy", 1, 400,3000)
+dummy = TH1D("dummy","dummy", 1, 500,3000)
 dummy.SetBinContent(1,0.0)
 dummy.GetXaxis().SetTitle('m(X)[GeV]')
 dummy.GetYaxis().SetTitle('#sigma(pp#rightarrowX)#timesBR(X#rightarrowZZ) [pb]')

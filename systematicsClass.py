@@ -477,10 +477,7 @@ class systematicsClass:
         if theInputs['useQCDscale_qqH'] :
 
                 self.Write_QCDscale_qqH(theFile,theInputs)
-        ##JEC split
-        print("==================================================\n")
-        print(theInputs['useSplitJEC'])
-        print("==================================================\n")
+                
         if theInputs['useSplitJEC']:
             self.Write_Split_JEC(theFile,theInputs)
 

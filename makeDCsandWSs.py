@@ -50,6 +50,7 @@ class DirectoryCreator:
         self.ifParallel = ifParallel
 
     def SetDirName(self):
+        #self.dir_name = 'datacards_HIG_23_001_debug/cards_'+self.append_name
         self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
         for sub in self.subdir:
             make_directory(self.dir_name + '/'+sub)
