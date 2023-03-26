@@ -106,7 +106,7 @@ class datacardClass:
         ## systematic uncertainty for Xsec X BR, no uncertainies on signal PDF/QCD scale
         systematics = systematicsClass( self.mH, True, theInputs, self.year, self.DEBUG) # FIXME: True / False?
 
-        self.low_M = 300
+        self.low_M = 0
         #if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") : # if merge selected, start from 600GeV
         #if(self.jetType=="merged") :
         #  self.low_M = 700
@@ -123,7 +123,7 @@ class datacardClass:
 
         # FIXME: Check the ranges
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
-        zz2l2q_mass.setRange("fullsignalrange",300,4000)
+        zz2l2q_mass.setRange("fullsignalrange",0,4000)
 
         ## -------------------------- SIGNAL SHAPE ----------------------------------- ##
 
