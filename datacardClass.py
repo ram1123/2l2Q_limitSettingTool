@@ -121,7 +121,7 @@ class datacardClass:
           zz2l2q_mass.SetName("zz2lJ_mass")
           zz2l2q_mass.SetTitle("zz2lJ_mass")
 
-        # FIXME: Check the ranges
+        # FIXME: Check the ranges?
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
         zz2l2q_mass.setRange("fullsignalrange",0,4000)
 
@@ -906,6 +906,7 @@ class datacardClass:
           czz = ROOT.TCanvas(canv_name, canv_name, 750, 700)
           czz.cd()
           zzframe_s = zz2l2q_mass.frame(220)
+          #zzframe_s = zz2l2q_mass.frame(ROOT.RooFit.Range(300, 1500))
 
           if self.DEBUG:  print('plot signal')
           signalCB_ggH.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(1), ROOT.RooFit.Name("signalCB_ggH"))

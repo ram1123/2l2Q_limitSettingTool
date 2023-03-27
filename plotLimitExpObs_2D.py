@@ -100,7 +100,7 @@ c.SetGridy()
 c.SetRightMargin(0.06)
 c.SetLeftMargin(0.15)
 
-dummy = TH1D("dummy","dummy", 1, 500,3000)
+dummy = TH1D("dummy","dummy", 1, int(start_mass), 3000)
 dummy.SetBinContent(1,0.0)
 dummy.GetXaxis().SetTitle('m(X)[GeV]')
 dummy.GetYaxis().SetTitle('#sigma(pp#rightarrowX)#timesBR(X#rightarrowZZ) [pb]')
@@ -169,7 +169,7 @@ legend.Draw("same")
 gPad.RedrawAxis()
 
 outputDir = os.path.join(outputDir, 'figs')
-OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}_{name}'.format(year = year, name = SearchString4Datacard.replace("_mHREPLACEMASS",""))
+OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}_{name}'.format(year = year, name = SearchString4Datacard.replace("mHREPLACEMASS",""))
 
 c.SaveAs(outputDir + '/' + OutputFileName+".pdf")
 c.SaveAs(outputDir + '/' + OutputFileName+".png")
