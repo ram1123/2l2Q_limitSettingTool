@@ -529,9 +529,24 @@ class DirectoryCreator:
             logger.debug("load root module")
             datacard_class.loadIncludes()
 
-            for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                self.create_workspaces(current_mass, datacard_class)
-                RunCommand("mv git_diff.patch {}/".format(self.dir_name + '/HCG/' + str(current_mass)), self.dry_run)
+            # Run the create_workspaces function as parallel for each mass point
+            if self.ifParallel:
+                # FIXME: This is not working
+                logger.error("Parallel is not working for datacard creation step")
+                exit(1)
+                # create_workspaces takes two arguments, mass and datacard_class
+                pool = mp.Pool()
+                try:
+                    pool.map(partial(self.create_workspaces, datacard_class=datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+                except Exception as e:
+                    logger.error(e)
+                    pool.close()
+                    pool.join()
+                    exit(1)
+            else:
+                for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
+                    self.create_workspaces(current_mass, datacard_class)
+                    RunCommand("mv git_diff.patch {}/".format(self.dir_name + '/HCG/' + str(current_mass)), self.dry_run)
 
             # exit the program after creating datacards and workspaces
             logger.debug("Exiting the program after creating datacards and workspaces")
@@ -597,14 +612,14 @@ if __name__ == "__main__":
         "--log-level-roofit",
         default=ROOT.RooFit.WARNING,
         type=lambda x: getattr(ROOT.RooFit, x.upper()),
-        help="Configure the logging level."
+        help="Configure the logging level for RooFit."
         )
     parser.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
     parser.add_argument("-p", "--parallel", action="store_true", help="Run jobs parallelly")
     # parser.add_argument("-n", "--ncores", dest="ncores", type=int, default=8, help="number of cores to use")
 
-    parser.add_argument("-date", "--date", dest="date", type=str, default='', help="date string")
-    parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string")
+    parser.add_argument("-date", "--date", dest="date", type=str, default='', help="date string") # This resets the date string to be added in the combine related input/output files
+    parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string") # This appends additional string in the combine related input/output files
 
     args = parser.parse_args()
 
