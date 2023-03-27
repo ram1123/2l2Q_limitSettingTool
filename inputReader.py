@@ -100,7 +100,8 @@ class inputReader:
         self.useCMS_zz2lJ_mean = False
         self.useCMS_zz2lJ_sigma = False
         self.useQCDscale_vz = False
-        self.useSplitJEC = False
+        self.useAk4SplitJEC = False
+        self.useAk8SplitJEC = False
         # --- VBFtag/Btag systematics
 
         self.gghJESLow = -999.9
@@ -300,8 +301,10 @@ class inputReader:
                 if f[1].lower().startswith("cms_zz2lj_sigma"):
                     self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])
                 ##JEC split
-                if f[1].lower().startswith("cms_scale_j_split"):
-                    self.useSplitJEC = self.parseBoolString(f[2])
+                if f[1].startswith("CMS_scale_j_split"):
+                    self.useAk4SplitJEC = self.parseBoolString(f[2])
+                if f[1].startswith("CMS_scale_J_split"):
+                    self.useAk8SplitJEC = self.parseBoolString(f[2])
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -404,7 +407,8 @@ class inputReader:
         dict['usePdf_gg'] = True
         dict['useTheoryUncXS_HighMH'] = True
         ##JEC split
-        dict['useSplitJEC'] = self.useSplitJEC
+        dict['useAk4SplitJEC'] = self.useAk4SplitJEC
+        dict['useAk8SplitJEC'] = self.useAk8SplitJEC
 
         dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err)
         dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err)

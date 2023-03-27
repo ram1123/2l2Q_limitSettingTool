@@ -49,8 +49,60 @@ systematic param CMS_zz2lJ_sigma_J_err  0.1
 systematic muon_full 0.04
 systematic muon_trig 0.0075
 
+##Split JEC systematic ##
+systematic splitjec ggH Abs 1.0188616998282198/0.9809562813555851
+systematic splitjec ggH Abs_year 1.0085207558331342/0.9920821814955121
+systematic splitjec ggH BBEC1 1.0108528719156342/0.9891926327884145
+systematic splitjec ggH BBEC1 1.0108528719156342/0.9891926327884145
+systematic splitjec ggH EC2 1.0/1.0
+systematic splitjec ggH EC2_year 1.0/1.0
+systematic splitjec ggH FlavQCD 1.011717461292561/0.9890106139722193
+systematic splitjec ggH HF 1.0/1.0
+systematic splitjec ggH HF_year 1.0/1.0
+systematic splitjec ggH RelBal 1.0079746993845489/0.9936975984892438
+systematic splitjec ggH RelSample_year 1.0160404081771952/0.9885896954597682
+
+systematic splitjec qqH Abs 1.0317579730782664/0.970015314758591
+systematic splitjec qqH Abs_year 1.0157446465514925/0.9840941454633386
+systematic splitjec qqH BBEC1 1.0175716703834063/0.9816491576882775
+systematic splitjec qqH BBEC1 1.0175716703834063/0.9816491576882775
+systematic splitjec qqH EC2 1.0/1.0
+systematic splitjec qqH EC2_year 1.0/1.0
+systematic splitjec qqH FlavQCD 1.013568338751713/0.9854106773422177
+systematic splitjec qqH HF 1.0/1.0
+systematic splitjec qqH HF_year 1.0/1.0
+systematic splitjec qqH RelBal 1.0162282705069992/0.9854912813348021
+systematic splitjec qqH RelSample_year 1.0269486015207288/0.9737768344125313
+
+systematic splitjec ttbar Abs 1.09375/0.9114583333333334
+systematic splitjec ttbar Abs_year 1.0364583333333333/0.9635416666666666
+systematic splitjec ttbar BBEC1 1.0416666666666667/0.9427083333333334
+systematic splitjec ttbar BBEC1 1.0416666666666667/0.9427083333333334
+systematic splitjec ttbar EC2 1.0/1.0
+systematic splitjec ttbar EC2_year 1.0/1.0
+systematic splitjec ttbar FlavQCD 1.0729166666666667/0.921875
+systematic splitjec ttbar HF 1.0/1.0
+systematic splitjec ttbar HF_year 1.0/1.0
+systematic splitjec ttbar RelBal 1.0520833333333333/0.9583333333333334
+systematic splitjec ttbar RelSample_year 1.0520833333333333/0.9583333333333334
+
+systematic splitjec vz Abs 1.044062106588334/0.9601342845153168
+systematic splitjec vz Abs_year 1.0205623164078892/0.9765002098195552
+systematic splitjec vz Abs_year 1.0205623164078892/0.9765002098195552
+systematic splitjec vz BBEC1 1.0230801510700798/0.975660931598825
+systematic splitjec vz EC2 1.0/1.0
+systematic splitjec vz EC2_year 1.0/1.0
+systematic splitjec vz FlavQCD 1.0310532941670163/0.9727234578262695
+systematic splitjec vz HF 1.0/1.0
+systematic splitjec vz HF_year 1.0/1.0
+systematic splitjec vz RelBal 1.0222408728493495/0.9815358791439363
+systematic splitjec vz RelSample_year 1.0264372639530004/0.9744020142677298
+
 ##### Add Systematic to Cards ####
-##### allowed True/false ####
+
+##### allowed True/True ####
+systematic CMS_scale_j_split False
+systematic CMS_scale_J_split True
 systematic luminosity True
 systematic pdf_hzz2l2q_accept True
 systematic QCDscale_ggH True

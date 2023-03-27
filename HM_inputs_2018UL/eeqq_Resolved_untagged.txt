@@ -103,6 +103,7 @@ systematic splitjec vz RelSample_year 1.0171098879236025/0.9832216990516612
 
 ##### allowed True/True ####
 systematic CMS_scale_j_split True
+systematic CMS_scale_J_split False
 systematic luminosity True
 systematic pdf_hzz2l2q_accept True
 systematic QCDscale_ggH True
