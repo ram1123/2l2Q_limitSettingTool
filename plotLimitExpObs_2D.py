@@ -8,7 +8,8 @@ import sys
 import os
 from array import array
 
-
+def is_file_recovered(root_file):
+    return root_file.TestBit(ROOT.TFile.kRecovered)
 
 start_mass = sys.argv[1]
 end_val = sys.argv[2]
@@ -35,11 +36,13 @@ logger.info('step_sizes: {}'.format(step_sizes))
 logger.info('year: {}'.format(year))
 
 GetZombieMassPointList = []
+GetNotClosedMassPointList = []
 
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = SearchString4Datacard.replace("REPLACEMASS",str(current_mass)))
+        inputDir = os.path.join(outputDir, 'HCG')
+        InputFile = inputDir + "/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = SearchString4Datacard.replace("REPLACEMASS",str(current_mass)))
 
         # check if InputFile exists
         if not os.path.isfile(InputFile):
@@ -54,6 +57,11 @@ for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         if f.IsZombie():
             logger.error("File is zombie: {}".format(InputFile))
             GetZombieMassPointList.append(current_mass)
+            continue
+        if is_file_recovered(f):
+            print("Skipping recovered file: {}".format(InputFile))
+            GetNotClosedMassPointList.append(current_mass)
+            f.Close()
             continue
 
         t = f.Get("limit")
@@ -177,4 +185,7 @@ c.SaveAs(outputDir + '/' + OutputFileName+".C")
 c.SaveAs(outputDir + '/' + OutputFileName+".root")
 
 if len(GetZombieMassPointList) > 0:
-    logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))
+    logger.critical("Mass Point for which either combine root file does not exists or its zombie: {}; length = {}".format(GetZombieMassPointList, len(GetZombieMassPointList)))
+
+if len(GetNotClosedMassPointList) > 0:
+    logger.critical("Mass Point for which combine root file does not closed properly: {}; length = {}".format(GetNotClosedMassPointList, len(GetNotClosedMassPointList)))

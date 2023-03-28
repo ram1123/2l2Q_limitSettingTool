@@ -1037,7 +1037,7 @@ class datacardClass:
         dataFileDir = "CMSdata"
         dataFileName = "{0}/Data_SR.root".format(dataFileDir)
 
-        if self.DEBUG: print("dataFileName: ",dataFileName)
+        logger.debug("dataFileName: {}".format(dataFileName))
         data_obs_file = ROOT.TFile(dataFileName)
 
         treeName=""
@@ -1067,10 +1067,7 @@ class datacardClass:
         if(self.channel=="mumuqq_Merged" and self.cat=="untagged") :
           treeName="TreeSR11"
 
-        if (self.DEBUG):
-           print(data_obs_file.Get(treeName))
-           print("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
-
+        logger.debug("data_obs_file.Get(treeName): {}".format(data_obs_file.Get(treeName)))
         if not (data_obs_file.Get(treeName)):
             if (self.DEBUG): print("File, \"",dataFileName,"\", or tree, \"",treeName,"\", not found")
             if (self.DEBUG): print("Exiting...")
@@ -1080,14 +1077,14 @@ class datacardClass:
         tmpFile = TFile("tmpFile.root","RECREATE")
         data_obs_tree = (data_obs_file.Get(treeName)).CloneTree(0)
         data_obs_tree.Branch('zz2lJ_mass', zz2lJ_mass_struct, 'zz2lJ_mass/D')
-        print("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
-        if self.DEBUG: print("zz2l2q_mass: {}".format(zz2l2q_mass))
+        logger.info("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
+        logger.debug("zz2l2q_mass: {}".format(zz2l2q_mass))
         for i in range(0,data_obs_file.Get(treeName).GetEntries()) :
           data_obs_file.Get(treeName).GetEntry(i)
           zz2lJ_mass_struct.zz2lJ_mass = data_obs_file.Get(treeName).zz2l2q_mass
           data_obs_tree.Fill()
 
-        print("L1049# data_obs_tree entries: {}".format(data_obs_tree.GetEntries()))
+        logger.info("data_obs_tree entries for {channel}_{category}: {entries}".format(channel=self.channel,category=self.cat,entries=data_obs_tree.GetEntries()))
 
         data_obs = ROOT.RooDataSet()
         datasetName = "data_obs"

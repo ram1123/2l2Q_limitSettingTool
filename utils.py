@@ -27,8 +27,8 @@ class ColorLogFormatter(logging.Formatter):
     #  FORMAT = "\n%(asctime)s - [%(filename)s:#%(lineno)d] - %(prefix)s%(levelname)s - %(message)s %(suffix)s\n"
 
      LOG_LEVEL_COLOR = {
-         "DEBUG": {'prefix': bcolors.OKBLUE, 'suffix': bcolors.ENDC},
          "INFO": {'prefix': bcolors.OKGREEN, 'suffix': bcolors.ENDC},
+         "DEBUG": {'prefix': bcolors.OKBLUE, 'suffix': bcolors.ENDC},
          "WARNING": {'prefix': bcolors.WARNING, 'suffix': bcolors.ENDC},
          "CRITICAL": {'prefix': bcolors.FAIL, 'suffix': bcolors.ENDC},
          "ERROR": {'prefix': bcolors.FAIL+bcolors.BOLD, 'suffix': bcolors.ENDC+bcolors.ENDC},
@@ -54,7 +54,9 @@ logger.setLevel( logging.ERROR)
 def SaveInfoToTextFile(Info):
     # Get the CMSSW environment path
     cmssw_base = os.environ.get('CMSSW_BASE', '')
-    file_path = os.path.join(cmssw_base, 'src/2l2Q_limitSettingTool/commands.txt')
+    today = datetime.datetime.now()
+    date_string = today.strftime("%d%b").lower()
+    file_path = os.path.join(cmssw_base, 'src/2l2Q_limitSettingTool/commands_{}.log'.format(date_string))
     with open(file_path, 'a') as file:
         # Get the current date and time, and format it as a string
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -67,7 +69,7 @@ def SaveInfoToTextFile(Info):
 
 def RunCommand(command, dry_run=False):
     logger.debug("="*51)
-    logger.info("Command: {}".format(command))
+    logger.info("COMMAND TO RUN: {}".format(command))
     SaveInfoToTextFile(command)
     if not dry_run:
         logger.debug("Inside module RunCommand(command, dry_run=False):")
@@ -82,10 +84,10 @@ def RemoveFile(FileName):
 
 def make_directory( sub_dir_name):
     if not os.path.exists(sub_dir_name):
-        logger.info("{}{}\nCreate directory: {}".format('\t\n', '#'*51, sub_dir_name))
+        logger.debug("{}{}\nCreate directory: {}".format('\t\n', '#'*51, sub_dir_name))
         os.makedirs(sub_dir_name)
     else:
-        logger.info('Directory '+sub_dir_name+' already exists. Exiting...')
+        logger.debug('Directory '+sub_dir_name+' already exists. Exiting...')
 
 def border_msg(msg):
     """Print message inside the border

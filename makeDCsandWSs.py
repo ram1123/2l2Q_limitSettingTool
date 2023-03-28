@@ -4,7 +4,7 @@ from inputReader import *
 from datacardClass import *
 from utils import *
 import argparse
-from ListOfDatacards import datacardList
+from ListOfDatacards import datacardList, datacardList_condor
 import multiprocessing as mp
 from functools import partial
 import datetime
@@ -24,7 +24,7 @@ def run_parallel_instance(instance, current_mass):
 class DirectoryCreator:
     DATA_CARD_FILENAME = "hzz2l2q_13TeV_xs.txt"
 
-    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False, ifParallel = False):
+    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False, ifParallel = False, SanityCheckPlotUsingWorkspaces = False):
         self.input_dir = input_dir
         self.is_2d = is_2d
         self.append_name = append_name
@@ -48,16 +48,17 @@ class DirectoryCreator:
         self.verbose = verbose
         self.dry_run = dry_run
         self.ifParallel = ifParallel
+        self.SanityCheckPlotUsingWorkspaces = SanityCheckPlotUsingWorkspaces
 
     def SetDirName(self):
-        #self.dir_name = 'datacards_HIG_23_001_debug/cards_'+self.append_name
-        self.dir_name = 'datacards_HIG_23_001/cards_'+self.append_name
+        self.dir_name = 'datacards_HIG_23_001/cards_'+str(self.year)
+        if self.append_name != "":
+            self.dir_name = self.dir_name + '_' + self.append_name
         for sub in self.subdir:
             make_directory(self.dir_name + '/'+sub)
 
     def SetYearRelatedStrings(self, year):
         self.year = year
-        self.append_name = '{}'.format(year)
         self.input_dir = 'HM_inputs_{}UL'.format(year)
 
     def create_workspaces(self, current_mass, datacard_class):
@@ -77,7 +78,7 @@ class DirectoryCreator:
                 input_reader = inputReader(input_reader_txt)
                 input_reader.readInputs()
                 theInputs = input_reader.getInputs()
-                datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf)
+                datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf, self.SanityCheckPlotUsingWorkspaces)
 
     def combine_cards(self, current_mass, current_mass_directory, cwd):
         # STEP - 2: Get the combined cards
@@ -168,11 +169,13 @@ class DirectoryCreator:
                 command = "combineTool.py " + CombineCommonArguments
                 commandHybrid = "combineTool.py " + CombineCommonArgumentsHybrid
 
+                Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                 if self.year == 'run2':
                     command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 else:
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"microcentury\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString, Condor_queue = Condor_queue)
                 commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
+                # espresso = 20min
                 # microcentury = 1 hr
                 # longlunch = 2 hr
                 # workday = 8 hr
@@ -214,10 +217,11 @@ class DirectoryCreator:
             # command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
             # command +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
 
+            Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
             if self.year == 'run2':
                 command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             else:
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category), Condor_queue = Condor_queue)
 
             RunCommand(command, self.dry_run)
             countDatacards += 1
@@ -242,10 +246,12 @@ class DirectoryCreator:
             if self.blind: command += " -t -1 --expectSignal 1 "
             command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
             command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
+
+            Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
             if self.year == 'run2':
                 command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
             else:
-                command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category))
+                command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category), Condor_queue = Condor_queue)
 
 
             RunCommand(command, self.dry_run)
@@ -485,7 +491,7 @@ class DirectoryCreator:
         os.chdir(cwd)
 
     def run_parallel(self, current_mass):
-        border_msg("Running {step} for mass {current_mass}".format(step=self.step, current_mass=current_mass))
+        border_msg("Running step {step} for mass {current_mass}, year: {year}".format(step=self.step, current_mass=current_mass, year = self.year))
         actions = {
             "cc": self.combine_cards,
             "rc": self.run_combine,
@@ -502,7 +508,7 @@ class DirectoryCreator:
         current_mass_directory = os.path.join(self.dir_name, 'HCG', str(current_mass))
         cwd = os.getcwd()   # Get present working directory
 
-        logger.debug("Running {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
+        logger.debug("Running step {step} for mass {current_mass} in directory {current_mass_directory}".format(step=self.step, current_mass=current_mass, current_mass_directory= current_mass_directory))
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
@@ -598,7 +604,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--step", dest="step", type=str, default='dc', help="Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and without syst) , fast (FastScan) or all")
     parser.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
     parser.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
-    parser.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards")
+    parser.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
     parser.add_argument("-bOnly", "--bOnly", action="store_true", dest="bOnly", default=False, help="If this option given then it will set --expectSignal 0, which means this is background only fit. By default it will always perform S+B limit/fit")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
     # parser.add_argument("--log-level", help="Set the logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
@@ -620,6 +626,7 @@ if __name__ == "__main__":
 
     parser.add_argument("-date", "--date", dest="date", type=str, default='', help="date string") # This resets the date string to be added in the combine related input/output files
     parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string") # This appends additional string in the combine related input/output files
+    parser.add_argument("-SanityCheckPlotUsingWorkspaces", "--SanityCheckPlotUsingWorkspaces", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option given then it will plot the sanity check plots using workspaces") # This plots the mZZ plots for signal and background using workspaces
 
     args = parser.parse_args()
 
@@ -633,7 +640,7 @@ if __name__ == "__main__":
     # # Set the global message level to WARNING
     ROOT.RooMsgService.instance().setGlobalKillBelow(args.log_level_roofit)
 
-    DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly, args.dry_run, args.parallel)
+    DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.bOnly, args.dry_run, args.parallel, args.SanityCheckPlotUsingWorkspaces)
     # DirectoryCreatorObj.validate()
     if args.year == '2016': years = [2016]
     if args.year == '2017': years = [2017]

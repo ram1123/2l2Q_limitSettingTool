@@ -501,7 +501,7 @@ class systematicsClass:
         if theInputs['useQCDscale_qqH'] :
 
                 self.Write_QCDscale_qqH(theFile,theInputs)
-                
+
         if theInputs['useAk4SplitJEC']:
             self.Write_Ak4_Split_JEC(theFile,theInputs)
         if theInputs['useAk8SplitJEC']:
@@ -532,7 +532,7 @@ class systematicsClass:
         if theInputs['useCMS_zz2l2q_sigMELA']:
             self.Write_CMS_zz2l2q_sigMELA(theFile,theInputs)
 
-        self.Write_CMS_hzz2l2q_JES(theFile,theInputs)
+        # self.Write_CMS_hzz2l2q_JES(theFile,theInputs) # Now we use split JEC
         #changed by Jialin
         #self.Write_CMS_hzz2l2q_BTAG(theFile,theInputs)
 
