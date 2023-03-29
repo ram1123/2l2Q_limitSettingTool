@@ -127,7 +127,7 @@ class DirectoryCreator:
         logger.debug("Current directory: {}".format(os.getcwd()))
         AllCardsCombination = 'combineCards.py -s '
         for year in ['2016', '2017', '2018']:
-            AllCardsCombination = AllCardsCombination +' Era{year}=../../../cards_{year}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME)
+            AllCardsCombination = AllCardsCombination +' Era{year}=../../../cards_{year}{additionalString}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name)
         AllCardsCombination = AllCardsCombination +' > {datacard}'.format(datacard = "hzz2l2q_13TeV_xs_NoNuisance.txt")
         AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
         AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
@@ -171,7 +171,7 @@ class DirectoryCreator:
 
                 Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                 if self.year == 'run2':
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                    command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
                 else:
                     command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString, Condor_queue = Condor_queue)
                 commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
@@ -314,11 +314,11 @@ class DirectoryCreator:
             name2 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
             outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
 
-            command = "combine -M MultiDimFit -d {datacard} -m {mH} --freezeParameters MH -n .{name} --setParameterRanges r={rRange} --saveWorkspace  {blindString}".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, blindString = blindString, rRange = rRange, name = name)
+            command = "combine -M MultiDimFit -d {datacard} -m {mH} --freezeParameters MH -n .{name} --setParameterRanges r={rRange} --saveWorkspace  {blindString}  --verbose -1".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, blindString = blindString, rRange = rRange, name = name)
             command += CommonArguments
             RunCommand(command + " | tee LHS_Float.log", self.dry_run)
 
-            command ="combine -M MultiDimFit higgsCombine.{name}.MultiDimFit.mH{mH}.root -m {mH} --freezeParameters MH,allConstrainedNuisances -n .{name2} --setParameterRanges r={rRange} --snapshotName MultiDimFit  {blindString}".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, blindString = blindString, rRange = rRange, name = name, name2 = name2)
+            command ="combine -M MultiDimFit higgsCombine.{name}.MultiDimFit.mH{mH}.root -m {mH} --freezeParameters MH,allConstrainedNuisances -n .{name2} --setParameterRanges r={rRange} --snapshotName MultiDimFit  {blindString}  --verbose -1".format(datacard=self.DATA_CARD_FILENAME.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, blindString = blindString, rRange = rRange, name = name, name2 = name2)
             command += CommonArguments.replace(str(pointsToScan), str(pointsToScan + 100))
             RunCommand(command + " | tee LHS_AllConstrained.log", self.dry_run)
 
@@ -632,6 +632,7 @@ if __name__ == "__main__":
 
     # Get the full command line used to run the current Python script
     command_line = ' '.join(sys.argv)
+    SaveInfoToTextFile("#"*75+'\n\n')
     SaveInfoToTextFile('python '+command_line+'\n\n')
 
     # Set the logging level based on the command line argument

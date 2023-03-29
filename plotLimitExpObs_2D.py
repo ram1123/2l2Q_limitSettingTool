@@ -117,8 +117,8 @@ dummy.SetLineColor(0)
 dummy.SetLineWidth(0)
 dummy.SetFillColor(0)
 if "Resolved" in SearchString4Datacard:
-     dummy.SetMinimum(0.0001)
-     dummy.SetMaximum(50.0)
+     dummy.SetMinimum(0.001)
+     dummy.SetMaximum(500.0)
 else:
      dummy.SetMinimum(0.0001)
      dummy.SetMaximum(1)
