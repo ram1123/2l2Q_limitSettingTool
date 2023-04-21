@@ -46,7 +46,7 @@ The tool is run from the command line with various options. Here is a list of av
 - `-s`, `--step`: Specify which step to run. Options: dc (DataCardCreation), cc - (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and - without syst), fast (FastScan) or all (default: dc)
 - `-c`, `--ifCondor`: Set to 1 to run combine command for all mass points in parallel using - condor (default: False)
 - `-b`, `--blind`: Set to False to run unblinded (default: True)
-- `-allDatacard`, `--allDatacard`: Set to True if limit values or impact plots are needed for - each datacard (default: False)
+- `-allDatacard`, `--allDatacard`: Set to True if limit values or impact plots are needed for - each datacard written in file [ListOfDatacards.py](ListOfDatacards.py) (default: False)
 - `-bOnly`, `--bOnly`: Set to True to perform background only fit (default: False)
 - `-v`, `--verbose`: Set to True to print status messages to stdout (default: False)
 - `--log-level:` Set the logging level. Options: DEBUG, INFO, WARNING, ERROR (default: - `WARNING`)
