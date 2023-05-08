@@ -24,7 +24,7 @@ def run_parallel_instance(instance, current_mass):
 class DirectoryCreator:
     DATA_CARD_FILENAME = "hzz2l2q_13TeV_xs.txt"
 
-    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False, ifParallel = False, SanityCheckPlotUsingWorkspaces = False):
+    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", ifCondor=False, blind=True, verbose=True, allDatacard = False, bOnly = False, dry_run=False, ifParallel = False, SanityCheckPlotUsingWorkspaces = True):
         self.input_dir = input_dir
         self.is_2d = is_2d
         self.append_name = append_name
@@ -513,8 +513,8 @@ class DirectoryCreator:
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
             actions["rc"](current_mass, current_mass_directory, cwd)
-            actions["ri"](current_mass, current_mass_directory, cwd)
-            actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
+            #actions["ri"](current_mass, current_mass_directory, cwd)
+            #actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
         else:
             action = actions.get(self.step.lower())
             if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
