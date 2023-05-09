@@ -1246,7 +1246,7 @@ class datacardClass:
 
         getattr(w,'import')(rfvSigRate_ggH, ROOT.RooFit.RecycleConflictNodes())
         getattr(w,'import')(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
-        getattr(w,'import')(rfvSigRate_zjets, ROOT.RooFit.RecycleConflictNodes())
+        #getattr(w,'import')(rfvSigRate_zjets, ROOT.RooFit.RecycleConflictNodes()) #changed to zjet
         getattr(w,'import')(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
 
         zz2l2q_mass.setRange(self.low_M,self.high_M)
