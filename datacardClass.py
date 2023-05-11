@@ -1095,20 +1095,30 @@ class datacardClass:
         rfvSigRate_ggH = ROOT.RooFormulaVar()
         rfvSigRate_VBF = ROOT.RooFormulaVar()
         if(self.cat=='vbf_tagged') :
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.1*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_ggH,BR))
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_VBF,BR))
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.1*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.16*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_ggH,BR)) #FIXME to 0.16 for RunII
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_VBF,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.12*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.04*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR)) #FIXME to RunII
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.13*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR)) #FIXME to RunII
         elif(self.jetType=="resolved" and self.cat=='untagged') :
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.05*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.05*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.05*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.03*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR)) #FIXME to RunII
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.05*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.11*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR)) #FIXME to RunII
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.2*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.08*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR)) #FIXME to RunII
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.2*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.07*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="merged" and self.cat=='untagged') :
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.2*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.2*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.2*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.16*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR)) #FIXME to RunII
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.2*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.2*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR)) #FIXME to RunII
 
         if self.DEBUG: print('Rates ggH ',rfvSigRate_ggH.getVal(),' VBF ',rfvSigRate_VBF.getVal())
 
