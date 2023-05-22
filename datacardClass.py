@@ -1077,7 +1077,12 @@ class datacardClass:
         if self.DEBUG: print('VBF/ggH ratio')
         # Define fraction of events coming from VBF process
         frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", theFracVBF, 0.0, 1.0) #FIXME
+        ##fix frac_VBF to 0.0
+        #frac_VBF.setVal(0.0)
         #frac_VBF.setConstant(True)
+        ##fix frac_VBF to 1.0
+        frac_VBF.setVal(1.0)
+        frac_VBF.setConstant(True)
 
         # Define fraction of events coming from ggH process
         frac_ggH = ROOT.RooFormulaVar("frac_ggH", "(1-@0)",ROOT.RooArgList(frac_VBF))
