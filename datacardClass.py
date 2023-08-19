@@ -425,10 +425,10 @@ class datacardClass:
              ttbar_smooth_fs_vbftagged.SetBinError(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinError(j+1)*10.0/50.0)
 
              break
-        
+
         ######## Zjet
         for i in range(0,int(self.high_M-self.low_M)/10) :
-         
+
          mVV_tmp = zjet_smooth.GetBinCenter(i+1)
 
          for j in range(0,zjetTemplateMVV.GetXaxis().GetNbins()) :
@@ -501,7 +501,7 @@ class datacardClass:
         elif(self.jetType=="merged" and self.cat=='untagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.2*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
-        
+
         ## rates for zjet
         #bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()*self.lumi
         #bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()*self.lumi
@@ -509,7 +509,7 @@ class datacardClass:
         bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()
         bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()
         bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.Integral()
-        
+
         if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
           bkgRate_zjet_Shape = bkgRate_zjet_Shape_vbftagged
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
@@ -526,7 +526,7 @@ class datacardClass:
         if self.DEBUG: print('bkgRate_zjet_Shape = ',bkgRate_zjet_Shape)
 
 
-        
+
         ## rates for ttbar+ww
         #bkgRate_ttbar_Shape_untagged = ttbar_smooth_fs_untagged.Integral()*self.lumi
         #bkgRate_ttbar_Shape_btagged = ttbar_smooth_fs_btagged.Integral()*self.lumi
@@ -1085,14 +1085,6 @@ class datacardClass:
             frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", self.FracVBF, 0.0, 1.0)
             frac_VBF.setVal(self.FracVBF)
             frac_VBF.setConstant(True)
-
-        #frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", theFracVBF, 0.0, 1.0) #FIXME
-        ##fix frac_VBF to 0.0
-        #frac_VBF.setVal(0.0)
-        #frac_VBF.setConstant(True)
-        ##fix frac_VBF to 1.0
-        #frac_VBF.setVal(1.0)
-        #frac_VBF.setConstant(True)
 
         # Define fraction of events coming from ggH process
         frac_ggH = ROOT.RooFormulaVar("frac_ggH", "(1-@0)",ROOT.RooArgList(frac_VBF))
