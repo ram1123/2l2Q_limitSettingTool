@@ -59,20 +59,20 @@ Here is few example command:
 
 ```bash
 # Run datacard step for year 2018. For now all 3 years datacard can't be created. There is some issue that need to be addressed
-python makeDCsandWSs.py -y 2018 -s dc
+python makeDCsandWSs.py -y 2018 step -s dc
 
 # Run 2018 datacard/workspace creation step
-python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s dc
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s dc
 # Run 2018 combine card step
-python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s cc
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s cc
 # Run 2018 asymptotic combine command step to get the limit
-python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 -s rc
+python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s rc
 
 # To run all steps (except datacard creation one) and for all years, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
-time(python makeDCsandWSs.py -s all -y all -p -c)
+time(python makeDCsandWSs.py -y all -p -c step -s all)
 
 # To run all steps (except datacard creation one) and for all years and on all datacards specified in file `ListOfDatacards.py`, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
-time(python makeDCsandWSs.py -s all -y all -p -c --allDatacard)
+time(python makeDCsandWSs.py  -y all -p -c --allDatacard step -s all)
 ```
 
 # Input Information Required
@@ -93,4 +93,3 @@ Here are some additional details to keep in mind when running this tool:
 
 - In `HM_inputs_*`, you should prepare 12 systematics files ((resolved, merged) * (b_tagged, un-tagged, vbf_tagged) * (ee, mumu)). Now, you can just go into these `.txt` files and change the value of systematics.
 - `-a` appends a name for the cards directory. For example, `-a` test will create `cards_test` to store all datacards. When you run this tool, it is better to keep the option `-a` the same as `-y`. For example, in `cards_2016`, `cards_2017`, and `cards_2018`.
-
