@@ -319,6 +319,7 @@ class datacardClass:
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
         '''
         #vz yields from a given fs
+        logger.debug("Name of Input ROOT file: templates1D/Template1D_spin0_"+fs+"_"+self.year+".root")
         TempFile_fs = TFile("templates1D/Template1D_spin0_"+fs+"_"+self.year+".root","READ")
         #vz yields for all cats in a given channel
         logger.debug("Histogram name to fetch: {}".format("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV"))
@@ -337,6 +338,7 @@ class datacardClass:
         logger.debug("ttbarTemplateMVV_fs_vbftagged.Integral() = {}".format(ttbarTemplateMVV_fs_vbftagged.Integral()))
 
         #zjet yields for all cats in a given channel
+        logger.debug("self.jetType: {}".format(self.jetType))
         zjetTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_Zjet_perInvFb_Bin50GeV")
         zjetTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_Zjet_perInvFb_Bin50GeV")
         zjetTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_Zjet_perInvFb_Bin50GeV")

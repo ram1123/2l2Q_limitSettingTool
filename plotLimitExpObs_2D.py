@@ -19,6 +19,7 @@ blind = sys.argv[5]
 datacard = sys.argv[6]
 SearchString4Datacard = sys.argv[7]
 outputDir = sys.argv[8]
+frac_vbf = sys.argv[9]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -34,6 +35,7 @@ logger.info('start_mass: {}'.format(start_mass))
 logger.info('end_val: {}'.format(end_val))
 logger.info('step_sizes: {}'.format(step_sizes))
 logger.info('year: {}'.format(year))
+logger.info('frac_vbf: {}'.format(frac_vbf))
 
 GetZombieMassPointList = []
 GetNotClosedMassPointList = []
@@ -163,6 +165,13 @@ latex2.SetTextSize(0.7*c.GetTopMargin())
 latex2.SetTextFont(52)
 latex2.SetTextAlign(11)
 latex2.DrawLatex(0.25, 0.8, "Preliminary")
+
+if frac_vbf == "-1":
+    latex2.SetTextSize(0.5*c.GetTopMargin())
+    latex2.DrawLatex(0.61, 0.65, "VBF fraction: floating")
+else:
+    latex2.SetTextSize(0.5*c.GetTopMargin())
+    latex2.DrawLatex(0.61, 0.65, "VBF fraction: {}".format(frac_vbf))
 
 legend = TLegend(.60,.70,.90,.90)
 #legend.AddEntry(gr_obs , "Observed 95% CL ", "l")
