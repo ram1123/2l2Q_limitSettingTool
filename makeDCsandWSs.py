@@ -55,6 +55,8 @@ class DirectoryCreator:
         self.dir_name = 'datacards_HIG_23_001/cards_'+str(self.year)
         if self.append_name != "":
             self.dir_name = self.dir_name + '_' + self.append_name
+        if self.frac_vbf != -1:
+            self.dir_name = self.dir_name + '_fVBF' + str(self.frac_vbf)
         for sub in self.subdir:
             make_directory(self.dir_name + '/'+sub)
 
@@ -638,10 +640,10 @@ class DirectoryCreator:
 
                 # Collect summary of limits in the json file
                 command = 'combineTool.py -M CollectLimits {pathh}/HCG/*/higgsCombine.{name}.AsymptoticLimits.mH*.root --use-dirs -o {oPath}/limits_{name2}.json'.format(pathh = self.dir_name, name = SearchString4Datacard.replace("REPLACEMASS","*"), name2 = SearchString4Datacard.replace("mHREPLACEMASS","Summary"), oPath =  os.path.join(self.dir_name, 'figs'))
-                RunCommand(command, self.dry_run)
+                # RunCommand(command, self.dry_run)
 
                 # Plot the limits
-                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard, self.dir_name)
+                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard, self.dir_name, self.frac_vbf)
                 RunCommand(command, self.dry_run)
 
 
