@@ -100,7 +100,8 @@ class inputReader:
         self.useCMS_zz2lJ_mean = False
         self.useCMS_zz2lJ_sigma = False
         self.useQCDscale_vz = False
-
+        self.useAk4SplitJEC = False
+        self.useAk8SplitJEC = False
         # --- VBFtag/Btag systematics
 
         self.gghJESLow = -999.9
@@ -117,6 +118,32 @@ class inputReader:
         self.vzBTAGLow = -999.9
         self.vzBTAGHigh = -999.9
 
+        ####split JEC systematics for ak4
+        self.Abs = {}
+        self.Abs_year = {}
+        self.BBEC1 = {}
+        self.BBEC1_year = {}
+        self.EC2 = {}
+        self.EC2_year = {}
+        self.FlavQCD = {}
+        self.HF = {}
+        self.HF_year = {}
+        self.RelBal = {}
+        self.RelSample_year = {}
+        self.splitproccess = ['ggH','qqH','ttbar','vz']
+        self.SplitSource = ['Abs','BBEC1','EC2','FlavQCD', 'HF', 'RelBal','Abs_year','BBEC1_year','EC2_year','HF_year','RelSample_year']
+        for process in self.splitproccess:
+            self.Abs[process] = -999.9
+            self.Abs_year[process] = -999.99
+            self.BBEC1[process] = -999.99
+            self.BBEC1_year[process] = -999.99
+            self.EC2[process] = -999.99
+            self.EC2_year[process] = -999.99
+            self.FlavQCD[process] = -999.99
+            self.HF[process] = -999.99
+            self.HF_year[process] = -999.99
+            self.RelBal[process] = -999.99
+            self.RelSample_year[process] = -999.99
 
     def goodEntry(self,variable):
         if variable == -999.9:
@@ -218,6 +245,32 @@ class inputReader:
                         self.CMS_zz2lJ_mean_J_err = f[3]
                     if f[2].lower().startswith("cms_zz2lj_sigma_j_err"):
                         self.CMS_zz2lJ_sigma_J_err = f[3]
+                ###Split JEC uncertainty
+                if f[1].lower().startswith('splitjec'):
+                    for process in self.splitproccess:
+                        if f[2] == process:
+                            if f[3]=='Abs':
+                                self.Abs[process] = f[4]
+                            if f[3]=='Abs_year':
+                                self.Abs_year[process] = f[4]
+                            if f[3]=='BBEC1':
+                                self.BBEC1[process] = f[4]
+                            if f[3]=='BBEC1_year':
+                                self.BBEC1_year[process] = f[4]
+                            if f[3]=='EC2':
+                                self.EC2[process] = f[4]
+                            if f[3]=='EC2_year':
+                                self.EC2_year[process] = f[4]
+                            if f[3]=='FlavQCD':
+                                self.FlavQCD[process] = f[4]
+                            if f[3]=='HF':
+                                self.HF[process] = f[4]
+                            if f[3]=='HF_year':
+                                self.HF_year[process] = f[4]
+                            if f[3]=='RelBal':
+                                self.RelBal[process] = f[4]
+                            if f[3]=='RelSample_year':
+                                self.RelSample_year[process] = f[4]
 
                 if f[1].lower().startswith("luminosity"):
                     self.useLumiUnc = self.parseBoolString(f[2])
@@ -247,6 +300,11 @@ class inputReader:
                     self.useCMS_zz2lJ_mean = self.parseBoolString(f[2])
                 if f[1].lower().startswith("cms_zz2lj_sigma"):
                     self.useCMS_zz2lJ_sigma = self.parseBoolString(f[2])
+                ##JEC split
+                if f[1].startswith("CMS_scale_j_split"):
+                    self.useAk4SplitJEC = self.parseBoolString(f[2])
+                if f[1].startswith("CMS_scale_J_split"):
+                    self.useAk8SplitJEC = self.parseBoolString(f[2])
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -348,6 +406,9 @@ class inputReader:
         dict['usePdf_qqbar'] = True
         dict['usePdf_gg'] = True
         dict['useTheoryUncXS_HighMH'] = True
+        ##JEC split
+        dict['useAk4SplitJEC'] = self.useAk4SplitJEC
+        dict['useAk8SplitJEC'] = self.useAk8SplitJEC
 
         dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err)
         dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err)
@@ -357,5 +418,22 @@ class inputReader:
         dict['CMS_zz2l2q_sigma_j_err'] = float(self.CMS_zz2l2q_sigma_j_err)
         dict['CMS_zz2lJ_mean_J_err'] = float(self.CMS_zz2lJ_mean_J_err)
         dict['CMS_zz2lJ_sigma_J_err'] = float(self.CMS_zz2lJ_sigma_J_err)
+
+        ##JEC split valus
+        for source in self.SplitSource:
+            dict[source] = {}
+        for process in self.splitproccess:
+            dict['Abs'][process] =            (self.Abs[process])
+            dict['Abs_year'][process] =       (self.Abs_year[process])
+            dict['BBEC1'][process] =          (self.BBEC1[process])
+            dict['BBEC1_year'][process] =     (self.BBEC1[process])
+            dict['EC2'][process] =            (self.EC2[process])
+            dict['EC2_year'][process] =       (self.EC2_year[process])
+            dict['FlavQCD'][process] =        (self.FlavQCD[process])
+            dict['HF'][process] =             (self.HF[process])
+            dict['HF_year'][process] =        (self.HF_year[process])
+            dict['RelBal'][process] =         (self.RelBal[process])
+            dict['RelSample_year'][process] = (self.RelSample_year[process])
+
 
         return dict

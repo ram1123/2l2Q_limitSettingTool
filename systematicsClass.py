@@ -61,12 +61,15 @@ class systematicsClass:
         self.qqVV_pdfSys = 1. + 0.0035*math.sqrt(self.mH - 30.)
         self.DEBUG = DEBUG
 
+        self.SplitSource = ['Abs','BBEC1','EC2','FlavQCD', 'HF', 'RelBal']
+        self.SplitSourceYears = ['Abs','BBEC1','EC2','HF','RelSample']
 
     def setSystematics(self,rates):
 
         self.rateBkg_vz = rates['vz']
         self.rateBkg_ttbar = rates['ttbar']
         self.rateBkg_zjets = rates['zjets']
+
         self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
         self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
@@ -173,6 +176,7 @@ class systematicsClass:
             systLine['ttbar']= "- "
             systLine['vz']  = "1.03 "
             self.Write_Systematics_Line(systLine,theFile,theInputs)
+
     def Write_pdf_gg(self,theFile,theInputs):
 
         if not self.isForXSxBR:
@@ -269,6 +273,7 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "- "
+
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_e(self,theFile,theInputs):
@@ -284,7 +289,6 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
 
-
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_m(self,theFile,theInputs):
@@ -295,8 +299,8 @@ class systematicsClass:
         systLine['zjets']= "- "
         systLine['ttbar']= "- "
         systLine['vz']  = "{0:.3f} ".format(self.muSelError)
-        self.Write_Systematics_Line(systLine,theFile,theInputs)
 
+        self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_CMS_hzz2l2q_Zjets(self,theFile,theInputs):
 
@@ -404,21 +408,69 @@ class systematicsClass:
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("BTAG_{0} param  0  1  [-3,3]\n".format(channel))
+        theFile.write("BTAG_{channel} param  0  1  [-3,3]\n".format(channel=channel))
 
     def Write_CMS_zz2l2q_bkgMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_bkgMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
+        theFile.write("CMS_zz2l2q_bkgMELA_{0} param 0  1  [-3,3]\n".format(channel))
 
     def Write_CMS_zz2l2q_sigMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_sigMELA_{0}_{1} param 0  1  [-3,3]\n".format(channel, self.year))
+        theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-3,3]\n".format(channel))
+
+    def Write_Ak4_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        for source in self.SplitSource:
+            theFile.write('CMS_scale_j_{} lnN '.format(source))
+            systLine={'ggH':"{} ".format(theinputs['{}'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        for source in self.SplitSourceYears:
+            #print(source)
+            #print(theinputs['{}_year'.format(source)].keys())
+            theFile.write('CMS_scale_j_{}_{} lnN '.format(source,self.year))
+            systLine={'ggH':"{} ".format(theinputs['{}_year'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}_year'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}_year'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}_year'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+    def Write_Ak8_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        for source in self.SplitSource:
+            theFile.write('CMS_scale_J_{} lnN '.format(source))
+            systLine={'ggH':"{} ".format(theinputs['{}'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        for source in self.SplitSourceYears:
+            #print(source)
+            #print(theinputs['{}_year'.format(source)].keys())
+            theFile.write('CMS_scale_J_{}_{} lnN '.format(source,self.year))
+            systLine={'ggH':"{} ".format(theinputs['{}_year'.format(source)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['{}_year'.format(source)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['{}_year'.format(source)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['{}_year'.format(source)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
 
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
@@ -432,6 +484,7 @@ class systematicsClass:
 
         if theInputs['usePdf_qqbar']:
             self.Write_pdf_qqbar(theFile,theInputs)
+
         if theInputs['usePdf_hzz2l2q_accept']:
             self.Write_pdf_hzz2l2q_accept(theFile,theInputs)
 
@@ -446,7 +499,14 @@ class systematicsClass:
                 self.Write_QCDscale_ggH(theFile,theInputs)
 
         if theInputs['useQCDscale_qqH'] :
+
                 self.Write_QCDscale_qqH(theFile,theInputs)
+
+        if theInputs['useAk4SplitJEC']:
+            self.Write_Ak4_Split_JEC(theFile,theInputs)
+        if theInputs['useAk8SplitJEC']:
+            self.Write_Ak8_Split_JEC(theFile,theInputs)
+
 
     ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :
@@ -472,7 +532,7 @@ class systematicsClass:
         if theInputs['useCMS_zz2l2q_sigMELA']:
             self.Write_CMS_zz2l2q_sigMELA(theFile,theInputs)
 
-        self.Write_CMS_hzz2l2q_JES(theFile,theInputs)
+        # self.Write_CMS_hzz2l2q_JES(theFile,theInputs) # Now we use split JEC
         #changed by Jialin
         #self.Write_CMS_hzz2l2q_BTAG(theFile,theInputs)
 

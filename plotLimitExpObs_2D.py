@@ -8,7 +8,8 @@ import sys
 import os
 from array import array
 
-
+def is_file_recovered(root_file):
+    return root_file.TestBit(ROOT.TFile.kRecovered)
 
 start_mass = sys.argv[1]
 end_val = sys.argv[2]
@@ -18,6 +19,7 @@ blind = sys.argv[5]
 datacard = sys.argv[6]
 SearchString4Datacard = sys.argv[7]
 outputDir = sys.argv[8]
+frac_vbf = sys.argv[9]
 
 mass = array('d',[])
 zeros = array('d',[])
@@ -33,13 +35,16 @@ logger.info('start_mass: {}'.format(start_mass))
 logger.info('end_val: {}'.format(end_val))
 logger.info('step_sizes: {}'.format(step_sizes))
 logger.info('year: {}'.format(year))
+logger.info('frac_vbf: {}'.format(frac_vbf))
 
 GetZombieMassPointList = []
+GetNotClosedMassPointList = []
 
 for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         m = current_mass
 
-        InputFile = "./datacards_HIG_23_001/cards_{year}/HCG/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = SearchString4Datacard.replace("REPLACEMASS",str(current_mass)))
+        inputDir = os.path.join(outputDir, 'HCG')
+        InputFile = inputDir + "/{mH}/higgsCombine.{name}.AsymptoticLimits.mH{mH}.root".format(year = year, mH = current_mass, name = SearchString4Datacard.replace("REPLACEMASS",str(current_mass)))
 
         # check if InputFile exists
         if not os.path.isfile(InputFile):
@@ -54,6 +59,11 @@ for current_mass in range(int(start_mass), int(end_val), int(step_sizes)):
         if f.IsZombie():
             logger.error("File is zombie: {}".format(InputFile))
             GetZombieMassPointList.append(current_mass)
+            continue
+        if is_file_recovered(f):
+            print("Skipping recovered file: {}".format(InputFile))
+            GetNotClosedMassPointList.append(current_mass)
+            f.Close()
             continue
 
         t = f.Get("limit")
@@ -100,7 +110,7 @@ c.SetGridy()
 c.SetRightMargin(0.06)
 c.SetLeftMargin(0.15)
 
-dummy = TH1D("dummy","dummy", 1, 500,3000)
+dummy = TH1D("dummy","dummy", 1, int(start_mass), 3000)
 dummy.SetBinContent(1,0.0)
 dummy.GetXaxis().SetTitle('m(X)[GeV]')
 dummy.GetYaxis().SetTitle('#sigma(pp#rightarrowX)#timesBR(X#rightarrowZZ) [pb]')
@@ -108,8 +118,12 @@ dummy.GetYaxis().SetTitleSize(0.05)
 dummy.SetLineColor(0)
 dummy.SetLineWidth(0)
 dummy.SetFillColor(0)
-dummy.SetMinimum(0.0001)
-dummy.SetMaximum(1)
+if "Resolved" in SearchString4Datacard:
+     dummy.SetMinimum(0.001)
+     dummy.SetMaximum(500.0)
+else:
+     dummy.SetMinimum(0.0001)
+     dummy.SetMaximum(1)
 dummy.GetXaxis().SetMoreLogLabels(kTRUE)
 dummy.GetXaxis().SetNoExponent(kTRUE)
 dummy.GetXaxis().SetTitleSize(0.05)
@@ -152,6 +166,13 @@ latex2.SetTextFont(52)
 latex2.SetTextAlign(11)
 latex2.DrawLatex(0.25, 0.8, "Preliminary")
 
+if frac_vbf == "-1":
+    latex2.SetTextSize(0.5*c.GetTopMargin())
+    latex2.DrawLatex(0.61, 0.65, "VBF fraction: floating")
+else:
+    latex2.SetTextSize(0.5*c.GetTopMargin())
+    latex2.DrawLatex(0.61, 0.65, "VBF fraction: {}".format(frac_vbf))
+
 legend = TLegend(.60,.70,.90,.90)
 #legend.AddEntry(gr_obs , "Observed 95% CL ", "l")
 legend.AddEntry(gr_exp , "Expected 95% CL ", "l")
@@ -165,7 +186,7 @@ legend.Draw("same")
 gPad.RedrawAxis()
 
 outputDir = os.path.join(outputDir, 'figs')
-OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}'.format(year = year)
+OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}_{name}'.format(year = year, name = SearchString4Datacard.replace("mHREPLACEMASS",""))
 
 c.SaveAs(outputDir + '/' + OutputFileName+".pdf")
 c.SaveAs(outputDir + '/' + OutputFileName+".png")
@@ -173,4 +194,7 @@ c.SaveAs(outputDir + '/' + OutputFileName+".C")
 c.SaveAs(outputDir + '/' + OutputFileName+".root")
 
 if len(GetZombieMassPointList) > 0:
-    logger.error("Mass Point for which either combine root file does not exists or its zombie: {}".format(GetZombieMassPointList))
+    logger.critical("Mass Point for which either combine root file does not exists or its zombie: {}; length = {}".format(GetZombieMassPointList, len(GetZombieMassPointList)))
+
+if len(GetNotClosedMassPointList) > 0:
+    logger.critical("Mass Point for which combine root file does not closed properly: {}; length = {}".format(GetNotClosedMassPointList, len(GetNotClosedMassPointList)))

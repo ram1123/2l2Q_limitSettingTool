@@ -9,6 +9,7 @@ def compare_variables(vars1, vars2):
     """Compare the variables in two RooWorkspace objects."""
     if len(vars1) != len(vars2):
         logger.warning("Number of variables is different!")
+        compare_variables_printDiff(vars1, vars2)
     else:
         count_diff_var = 0
         for i in range(len(vars1)):
@@ -17,6 +18,28 @@ def compare_variables(vars1, vars2):
                 logger.warning("Count: %d", count_diff_var)
                 logger.warning("%4d: Variable names are different! %s %s", i, vars1[i].GetName(), vars2[i].GetName())
                 logger.warning("%4d: Variable values are different! %s %s\n\n", i, vars1[i].getVal(), vars2[i].getVal())
+
+def compare_variables_printDiff(vars1, vars2):
+    """Compare the variables in two RooWorkspace objects."""
+    if len(vars1) != len(vars2):
+        logger.warning("Number of variables is different!")
+
+    # Sort the variables alphabetically
+    sorted_vars1 = sorted(vars1, key=lambda x: x.GetName())
+    sorted_vars2 = sorted(vars2, key=lambda x: x.GetName())
+
+    logger.info("sorted vars1: {}".format([var.GetName() for var in sorted_vars1]))
+    logger.info("sorted vars2: {}".format([var.GetName() for var in sorted_vars2]))
+
+    Sorted_VarNames1 = [var.GetName() for var in sorted_vars1]
+    Sorted_VarNames2 = [var.GetName() for var in sorted_vars2]
+
+    # Find the variables not present in both lists
+    unique_vars1 = [var for var in Sorted_VarNames1 if var not in Sorted_VarNames2]
+    unique_vars2 = [var for var in Sorted_VarNames2 if var not in Sorted_VarNames1]
+
+    print("list of unique variables from the first workspace: {}".format(unique_vars1))
+    print("list of unique variables from the second workspace: {}".format(unique_vars2))
 
 def compare_pdfs(pdfs1, pdfs2):
     """Compare the PDFs in two RooWorkspace objects."""
@@ -88,11 +111,12 @@ def compare_datasets_PrintDiff(data_obs1, data_obs2):
     logger.info("#" * 100)
 
 # Open the first ROOT file and retrieve the RooWorkspace object
-file1 = ROOT.TFile("/afs/cern.ch/work/r/rasharma/LearnCombine/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2018/HCG/600_SigParsUncorrelated/hzz2l2q_13TeV_xs.root")
+# file1 = ROOT.TFile("/afs/cern.ch/work/r/rasharma/LearnCombine/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2016/HCG/850/hzz2l2q_13TeV_xs.root")
+file1 = ROOT.TFile("/afs/cern.ch/work/r/rasharma/LearnCombine/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2017/HCG/850_v13/hzz2l2q_13TeV_xs.root")
 ws1 = file1.Get("w")
 
 # Open the second ROOT file and retrieve the RooWorkspace object
-file2 = ROOT.TFile("/afs/cern.ch/work/r/rasharma/LearnCombine/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2018/HCG/600_AllCorrelated/hzz2l2q_13TeV_xs.root")
+file2 = ROOT.TFile("/afs/cern.ch/work/r/rasharma/LearnCombine/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2017/HCG/850_v14/hzz2l2q_13TeV_xs.root")
 ws2 = file2.Get("w")
 
 # Compare the variables in the workspaces
@@ -114,5 +138,5 @@ data_obs1 = ws1.data("data_obs")
 data_obs2 = ws2.data("data_obs")
 logger.info("Number of entries in data_obs1: %d", data_obs1.numEntries())
 logger.info("Number of entries in data_obs2: %d", data_obs2.numEntries())
-compare_datasets(data_obs1, data_obs2)
+# compare_datasets(data_obs1, data_obs2)
 compare_datasets_PrintDiff(data_obs1, data_obs2)

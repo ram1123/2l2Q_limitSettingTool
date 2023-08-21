@@ -19,6 +19,6 @@ with open("Eff_{}_{}.txt".format(sam,year), "w") as fout:
                 fout.write('============================================================================\n')
                 fout.write('========================={}_{}_{}tagged===========================\n'.format(channel,case,tag))
                 fout.write('============================================================================\n')
-                for mass in range(500,3000,50):
+                for mass in range(400,3200,50):
                         eff = infile.Get("spin0_{}_{}_{}_{}tagged".format(sam,channel,case,tag)).GetListOfFunctions().First().Eval(mass)
                         fout.write('eff = {} in {}_{}_{}_{}_{}\n'.format(eff,sam,channel,case,tag,mass))

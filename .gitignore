@@ -12,4 +12,4 @@ output/
 run_script*.sh
 *.C
 *.root
-commands.txt
+commands*.log
