@@ -130,7 +130,8 @@ class DirectoryCreator:
         logger.debug("Current directory: {}".format(os.getcwd()))
         AllCardsCombination = 'combineCards.py -s '
         for year in ['2016', '2017', '2018']:
-            AllCardsCombination = AllCardsCombination +' Era{year}=../../../cards_{year}{additionalString}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name)
+            # AllCardsCombination = AllCardsCombination +' Era{year}=../../../{cards_{year}{additionalString}}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name)
+            AllCardsCombination = AllCardsCombination +' Era{year}=../../../{Run2_Cards}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name, Run2_Cards = (self.dir_name).replace("datacards_HIG_23_001/","").replace("run2",year))
         AllCardsCombination = AllCardsCombination +' > {datacard}'.format(datacard = "hzz2l2q_13TeV_xs_NoNuisance.txt")
         AllCardsCombination = AllCardsCombination +' > hzz2l2q_13TeV_xs_NoNuisance.txt'
         AllCardsWithNuisance = (AllCardsCombination.replace('-s','  ')).replace('_NoNuisance','')
