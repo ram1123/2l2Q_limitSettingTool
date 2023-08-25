@@ -251,10 +251,10 @@ class DirectoryCreator:
 
             if args.substep == 1:
                 # STEP - 1
-                command = "combineTool.py -M Impacts -d {datacard}  -m {mH}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
+                command = "combineTool.py -M Impacts -d {datacard}  -m {mH} -n .{name}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)   # Main command
                 #command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --doInitialFit -v 3 ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
                 #if self.blind: command += " -t -1 --expectSignal 1 "
-                if self.blind: command += self.blindString
+                command += self.blindString
                 # command += " -v 1 "
 
                 Stat1 = " --setParameterRanges r=-1,2 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
@@ -264,15 +264,16 @@ class DirectoryCreator:
 
                 # freeze the nuisance JES and JER
                 freeze1 =  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-                freeze = " --freezeParameters JES,BTAG_resolved "
+                freeze = " --freezeParameters BTAG_resolved "
+                freeze = " --freezeParameters allConstrainedNuisances "
                 # command += freeze
 
                 if self.ifCondor:
                     Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                     if self.year == 'run2':
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType))
+                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = AppendOutName)
                     else:
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType), Condor_queue = Condor_queue)
+                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = AppendOutName, Condor_queue = Condor_queue)
                 else:
                     command +=  " | tee {name}.log".format(name = AppendOutName)
 
@@ -280,24 +281,26 @@ class DirectoryCreator:
 
             if args.substep == 2:
                 # STEP - 2
-                command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)
+                command = "combineTool.py -M Impacts -d {datacard}  -m {mH}  -n .{name} --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
                 #if self.blind: command += " -t -1 --expectSignal 1 "
-                if self.blind: command += self.blindString
+                command += self.blindString
                 Stat1 = " --setParameterRanges r=-10,10 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
                 # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
                 # command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
                 command += Stat1
 
                 # freeze the nuisance JES and JER
-                freeze = " --freezeParameters JES,BTAG_resolved "
+                freeze = " --freezeParameters BTAG_resolved "
+                # freeze all nuisance parameters
+                freeze = " --freezeParameters allConstrainedNuisances "
                 # command += freeze
 
                 Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                 if self.ifCondor:
                     if self.year == 'run2':
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType))
+                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = AppendOutName)
                     else:
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType), Condor_queue = Condor_queue)
+                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = AppendOutName, Condor_queue = Condor_queue)
                 else:
                     # use multi core processing to run impact plot
                     command += " --parallel 8 "
@@ -307,12 +310,13 @@ class DirectoryCreator:
 
             if args.substep == 3:
                 # STEP - 3
-                command = "combineTool.py -M Impacts -d {datacard} -m {mH}   --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
+                command = "combineTool.py -M Impacts -d {datacard} -m {mH}  -n .{name}   --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
                 Stat1 = " --setParameterRanges r=-10,10 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
                 command += Stat1
 
                 # freeze the nuisance JES and JER
-                freeze = " --freezeParameters JES,BTAG_resolved "
+                freeze = " --freezeParameters BTAG_resolved "
+                freeze = " --freezeParameters allConstrainedNuisances "
                 # command += freeze
 
                 RunCommand(command, self.dry_run)
@@ -324,10 +328,8 @@ class DirectoryCreator:
         os.chdir(cwd)
 
     def run_LHS(self, current_mass, current_mass_directory, cwd): # Commands taken From Ankita
-        if self.allDatacard:
-            datacards = datacardList
-        else:
-            datacards = [self.DATA_CARD_FILENAME]
+        # Determine which datacards to use
+        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
         logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
 
@@ -499,10 +501,8 @@ class DirectoryCreator:
         Simple fits
         """
 
-        if self.allDatacard:
-            datacards = datacardList
-        else:
-            datacards = [self.DATA_CARD_FILENAME]
+        # Determine which datacards to use
+        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
         logger.debug('datacards: {}'.format(datacards))
         os.chdir(current_mass_directory)
@@ -548,10 +548,8 @@ class DirectoryCreator:
         Analyzing the NLL shape in each parameter: [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter)
         """
 
-        if self.allDatacard:
-            datacards = datacardList
-        else:
-            datacards = [self.DATA_CARD_FILENAME]
+        # Determine which datacards to use
+        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
         logger.debug('datacards: {}'.format(datacards))
         os.chdir(current_mass_directory)
@@ -656,15 +654,13 @@ class DirectoryCreator:
                 pool.join()
 
         if (self.step).lower() == 'plot':
-            if self.allDatacard:
-                datacards = datacardList
-            else:
-                datacards = [self.DATA_CARD_FILENAME]
+            # Determine which datacards to use
+            datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
             logger.debug("Datacard: {}".format(datacards))
             for datacard in datacards:
                 category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category)
+                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
                 logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
 
                 # Collect summary of limits in the json file
@@ -672,7 +668,7 @@ class DirectoryCreator:
                 # RunCommand(command, self.dry_run)
 
                 # Plot the limits
-                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, self.DATA_CARD_FILENAME, SearchString4Datacard, self.dir_name, self.frac_vbf)
+                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, datacard, SearchString4Datacard, self.dir_name, self.frac_vbf)
                 RunCommand(command, self.dry_run)
 
 
