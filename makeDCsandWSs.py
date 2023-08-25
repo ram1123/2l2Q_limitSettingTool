@@ -322,7 +322,9 @@ class DirectoryCreator:
                 RunCommand(command, self.dry_run)
 
                 # STEP - 4
-                command = "plotImpacts.py -i impacts_{name}.json -o {pathh}/impacts_{name} ".format(pathh =  '../../figs', name = AppendOutName) # --blind
+                # create a directory named "impacts" inside figs directory to keep impact plots
+                make_directory('{pathh}/impacts'.format(pathh =  '../../figs'))
+                command = "plotImpacts.py -i impacts_{name}.json -o {pathh}/impacts/impacts_{name} ".format(pathh =  '../../figs', name = AppendOutName) # --blind
                 RunCommand(command, self.dry_run)
             countDatacards += 1
         os.chdir(cwd)

@@ -191,6 +191,12 @@ legend.Draw("same")
 gPad.RedrawAxis()
 
 outputDir = os.path.join(outputDir, 'figs')
+# Create a directory named "limits" in the outputDir to keep limit plots
+if not os.path.exists(os.path.join(outputDir, 'limits')):
+    os.makedirs(os.path.join(outputDir, 'limits'))
+
+outputDir = os.path.join(outputDir, 'limits')
+
 OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}_{name}'.format(year = year, name = SearchString4Datacard.replace("mHREPLACEMASS",""))
 
 c.SaveAs(outputDir + '/' + OutputFileName+".pdf")
