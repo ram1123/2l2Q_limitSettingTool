@@ -82,6 +82,12 @@ class DirectoryCreator:
             self.blindString = "  -t -1  --expectSignal 0 "   # s+b fit diagnostics
             self.FitType = "BkgOnlyHypothesis"
 
+        self.datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
+
+
+    def GetCategory(self, datacard):
+        return ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
+
     def SetDirName(self):
         self.dir_name = 'datacards_HIG_23_001/cards_'+str(self.year)
         if self.append_name != "":
@@ -132,11 +138,10 @@ class DirectoryCreator:
         with cd(current_mass_directory):
             logger.debug("Current directory: {}".format(os.getcwd()))
             # Get the datacards
-            datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
-            logger.debug("Datacards: {}".format(datacards))
+            logger.debug("Datacards: {}".format(self.datacards))
 
-            for datacard in datacards:
+            for datacard in self.datacards:
                 # if datacard.root file exists, then delete it
                 if os.path.exists(datacard.replace(".txt", ".root")):
                     logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
@@ -211,16 +216,10 @@ class DirectoryCreator:
         STEP - 3: run Combine commands
         Runs the combine utility for the given mass and conditions.
         """
-        # Determine which datacards to use
-        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
+        logger.debug("Datacard: {}".format(self.datacards))
 
-        logger.debug("Datacard: {}".format(datacards))
-
-        for datacard in datacards:
-            # TODO:  Combine command should be defined centrally at one place. Whetehr we run using condor or locally it should use the command from one common place.
-
-            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+        for datacard in self.datacards:
+            AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
 
             # -M HybridNew --LHCmode LHC-limits
             CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
@@ -266,122 +265,110 @@ class DirectoryCreator:
                 os.chdir(cwd)
 
     def run_impact(self, current_mass, current_mass_directory, cwd):
-        # Determine which datacards to use
-        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
+        logger.debug('datacards: {}'.format(self.datacards))
+        with cd(current_mass_directory):
+            countDatacards = 1
+            for datacard in self.datacards:
+                logger.debug("===> Submitting {}/{}".format(countDatacards, len(self.datacards)))
+                AppendOutName = CombineStrings.COMBINE_IMPACT.format(
+                    year = self.year, mH = current_mass,
+                    blind = "blind" if self.blind else "",
+                    Category = self.GetCategory(datacard),
+                    bOnlyOrSB = self.FitType
+                    )
 
-        logger.debug('datacards: {}'.format(datacards))
-        os.chdir(current_mass_directory)
-        countDatacards = 1
-        for datacard in datacards:
-            logger.debug("===> Submitting {}/{}".format(countDatacards, len(datacards)))
-            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            AppendOutName = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+                # STEP 1: Check if .root file exists; if not, create it
+                if not os.path.exists(datacard.replace(".txt", ".root")):
+                    command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
+                    RunCommand(command, self.dry_run)
 
-            if not os.path.exists(datacard.replace(".txt", ".root")):
-                command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
-                RunCommand(command, self.dry_run)
+                # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
+                SetParRange = ' --setParameterRanges frac_VBF=0,1'
 
-            # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
-            SetParRange = ' --setParameterRanges frac_VBF=0,1'
-
-            if args.substep == 1:
-                # STEP - 1
-                command = "combineTool.py -M Impacts -d {datacard}  -m {mH} -n .{name}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)   # Main command
-                #command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --doInitialFit -v 3 ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
-                #if self.blind: command += " -t -1 --expectSignal 1 "
-                command += self.blindString
-                # command += " -v 1 "
-
-                Stat1 = " --setParameterRanges r=-1,2 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
-                Stat2 =  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2  " # Added this line as fits were failing
-                Stat3 = " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
-                command += Stat2
+                Stat = " "
+                Stat += " --setRobustFitStrategy 2 "
+                # Stat += " --setParameterRanges r=-1,2 "
+                Stat +=  " --cminFallbackAlgo Minuit,1:10 " # Added this line as fits were failing
+                Stat += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
+                # Stat = " "
 
                 # freeze the nuisance JES and JER
-                freeze1 =  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-                freeze = " --freezeParameters BTAG_resolved "
-                freeze = " --freezeParameters allConstrainedNuisances "
-                # command += freeze
+                freeze = " "
+                # freeze +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
+                freeze += " --freezeParameters BTAG_resolved "
+                freeze += " --freezeParameters allConstrainedNuisances "
+                freeze = " "
 
-                if self.ifCondor:
-                    Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
-                    if self.year == 'run2':
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = AppendOutName)
+                if args.substep == 1:
+                    # STEP - 1
+                    command = "combineTool.py -M Impacts -d {datacard}  -m {mH} -n .{name}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)   # Main command
+                    #command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --doInitialFit -v 3 ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
+                    #if self.blind: command += " -t -1 --expectSignal 1 "
+                    command += self.blindString
+                    # command += " -v 1 "
+                    command += Stat
+                    command += freeze
+
+                    if self.ifCondor:
+                        Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
+                        if self.year == 'run2':
+                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = AppendOutName)
+                        else:
+                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = AppendOutName, Condor_queue = Condor_queue)
                     else:
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = AppendOutName, Condor_queue = Condor_queue)
-                else:
-                    command +=  " | tee {name}.log".format(name = AppendOutName)
+                        command +=  " | tee {name}.log".format(name = AppendOutName)
 
-                RunCommand(command, self.dry_run)
+                    RunCommand(command, self.dry_run)
 
-            if args.substep == 2:
-                # STEP - 2
-                command = "combineTool.py -M Impacts -d {datacard}  -m {mH}  -n .{name} --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
-                #if self.blind: command += " -t -1 --expectSignal 1 "
-                command += self.blindString
-                Stat1 = " --setParameterRanges r=-10,10 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
-                # command +=  " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 " # Added this line as fits were failing
-                # command += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases # 2018 mH3000
-                command += Stat1
+                if args.substep == 2:
+                    # STEP - 2
+                    command = "combineTool.py -M Impacts -d {datacard}  -m {mH}  -n .{name} --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
+                    #if self.blind: command += " -t -1 --expectSignal 1 "
+                    command += self.blindString
+                    command += Stat
+                    command += freeze
 
-                # freeze the nuisance JES and JER
-                freeze = " --freezeParameters BTAG_resolved "
-                # freeze all nuisance parameters
-                freeze = " --freezeParameters allConstrainedNuisances "
-                # command += freeze
-
-                Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
-                if self.ifCondor:
-                    if self.year == 'run2':
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = AppendOutName)
+                    if self.ifCondor:
+                        Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
+                        if self.year == 'run2':
+                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = AppendOutName)
+                        else:
+                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = AppendOutName, Condor_queue = Condor_queue)
                     else:
-                        command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = AppendOutName, Condor_queue = Condor_queue)
-                else:
-                    # use multi core processing to run impact plot
-                    command += " --parallel 8 "
+                        # use multi core processing to run impact plot
+                        command += " --parallel 8 "
 
 
-                RunCommand(command, self.dry_run)
+                    RunCommand(command, self.dry_run)
 
-            if args.substep == 3:
-                # STEP - 3
-                command = "combineTool.py -M Impacts -d {datacard} -m {mH}  -n .{name}   --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
-                Stat1 = " --setParameterRanges r=-10,10 --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2 "
-                command += Stat1
+                if args.substep == 3:
+                    # STEP - 3
+                    command = "combineTool.py -M Impacts -d {datacard} -m {mH}  -n .{name}   --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
+                    command += Stat
+                    command += freeze
 
-                # freeze the nuisance JES and JER
-                freeze = " --freezeParameters BTAG_resolved "
-                freeze = " --freezeParameters allConstrainedNuisances "
-                # command += freeze
+                    RunCommand(command, self.dry_run)
 
-                RunCommand(command, self.dry_run)
-
-                # STEP - 4
-                # create a directory named "impacts" inside figs directory to keep impact plots
-                make_directory('{pathh}/impacts'.format(pathh =  '../../figs'))
-                command = "plotImpacts.py -i impacts_{name}.json -o {pathh}/impacts/impacts_{name} ".format(pathh =  '../../figs', name = AppendOutName) # --blind
-                RunCommand(command, self.dry_run)
-            countDatacards += 1
-        os.chdir(cwd)
+                    # STEP - 4
+                    # create a directory named "impacts" inside figs directory to keep impact plots
+                    make_directory('{pathh}/impacts'.format(pathh =  '../../figs'))
+                    command = "plotImpacts.py -i impacts_{name}.json -o {pathh}/impacts/impacts_{name} ".format(pathh =  '../../figs', name = AppendOutName) # --blind
+                    RunCommand(command, self.dry_run)
+                countDatacards += 1
 
     def run_LHS(self, current_mass, current_mass_directory, cwd): # Commands taken From Ankita
-        # Determine which datacards to use
-        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
         logger.debug('datacard: {}'.format(self.DATA_CARD_FILENAME))
 
         os.chdir(current_mass_directory)
 
-        for datacard in datacards:
+        for datacard in self.datacards:
             # if datacard.root file exists, then skip this step
             if not os.path.exists(datacard.replace(".txt", ".root")):
                 command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
                 RunCommand(command, self.dry_run)
 
-            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
-
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard))
 
             if (not self.blind):
                 logger.debug("Analysis is blinded")
@@ -395,7 +382,7 @@ class DirectoryCreator:
                 name3 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
                 outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
 
-                CondorCommandPatch = " -v -1  --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_LHS".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType))
+                CondorCommandPatch = " -v -1  --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_LHS".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType))
 
                 if args.substep == 1:
                     # STEP - 1
@@ -484,8 +471,7 @@ class DirectoryCreator:
         command = "text2workspace.py " + self.DATA_CARD_FILENAME + " -m " + str(current_mass)  + " -o " + self.DATA_CARD_FILENAME.replace(".txt", ".root")
         logger.debug(command)
 
-        category = ((((self.DATA_CARD_FILENAME.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-        OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+        OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard))
 
         if (not self.blind):
             logger.debug("Analysis is blinded")
@@ -538,15 +524,11 @@ class DirectoryCreator:
         Simple fits
         """
 
-        # Determine which datacards to use
-        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
-
-        logger.debug('datacards: {}'.format(datacards))
+        logger.debug('self.datacards: {}'.format(self.datacards))
         os.chdir(current_mass_directory)
         rRange= "-2,2" # for ExpectedSignal = 1
-        for datacard in datacards:
-            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+        for datacard in self.datacards:
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
 
             blindString = ""
             FitType = ""
@@ -587,15 +569,11 @@ class DirectoryCreator:
         Analyzing the NLL shape in each parameter: [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter)
         """
 
-        # Determine which datacards to use
-        datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
-
-        logger.debug('datacards: {}'.format(datacards))
+        logger.debug('self.datacards: {}'.format(self.datacards))
         os.chdir(current_mass_directory)
         rRange= "-2,2" # for ExpectedSignal = 1
-        for datacard in datacards:
-            category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+        for datacard in self.datacards:
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
 
             if not os.path.exists(datacard.replace(".txt", ".root")):
                 logger.debug("Creating workspace for datacard: {}".format(datacard))
@@ -616,6 +594,17 @@ class DirectoryCreator:
             additionalArguments = "   "
             # additionalArguments = " --robustHesse 1"
             # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
+
+            additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
+
+            # fitting options
+            additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
+
+            # additionalArguments += " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
+
+
+
+
             command += additionalArguments
             RunCommand(command, self.dry_run)
 
@@ -702,13 +691,10 @@ class DirectoryCreator:
                 pool.join()
 
         if (self.step).lower() == 'plot':
-            # Determine which datacards to use
-            datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
-            logger.debug("Datacard: {}".format(datacards))
-            for datacard in datacards:
-                category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+            logger.debug("Datacard: {}".format(self.datacards))
+            for datacard in self.datacards:
+                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
                 logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
 
                 # Collect summary of limits in the json file
