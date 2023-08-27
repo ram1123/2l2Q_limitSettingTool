@@ -114,6 +114,40 @@ class DirectoryCreator:
                 theInputs = input_reader.getInputs()
                 datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf, self.SanityCheckPlotUsingWorkspaces)
 
+    def get_text2workspace(self, current_mass, current_mass_directory, cwd):
+        """For each datacard, create a workspace using text2workspace.py
+
+        Args:
+            current_mass (int): scalar mass value
+            current_mass_directory (str): directory where the datacards are stored
+            cwd (str): current working directory
+        """
+        logger.debug("Current mass: {}".format(current_mass))
+        logger.debug("Current mass directory: {}".format(current_mass_directory))
+        logger.debug("Current working directory: {}".format(cwd))
+
+        logger.debug("Current directory: {}".format(os.getcwd()))
+
+        # Change the respective directory where all cards are placed
+        with cd(current_mass_directory):
+            logger.debug("Current directory: {}".format(os.getcwd()))
+            # Get the datacards
+            datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
+
+            logger.debug("Datacards: {}".format(datacards))
+
+            for datacard in datacards:
+                # if datacard.root file exists, then delete it
+                if os.path.exists(datacard.replace(".txt", ".root")):
+                    logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
+                    os.remove(datacard.replace(".txt", ".root"))
+
+                # Create the workspace
+                command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
+                RunCommand(command, self.dry_run)
+
+        logger.debug("Current directory: {}".format(os.getcwd()))
+
     def combine_cards(self, current_mass, current_mass_directory, cwd):
         # STEP - 2: Get the combined cards
         if self.year == 'run2':
@@ -591,12 +625,13 @@ class DirectoryCreator:
         border_msg("Running step {step} for mass {current_mass}, year: {year}".format(step=self.step, current_mass=current_mass, year = self.year))
         actions = {
             "cc": self.combine_cards,
+            "ws": self.get_text2workspace,
             "rc": self.run_combine,
+            "fd": self.FitDiagnostics,
             "ri": self.run_impact,
+            "fs": self.fastScan,
             "rll": self.run_LHS,
-            "correlation": self.run_correlation,
-            "fitdiagnostics": self.FitDiagnostics,
-            "fastscan": self.fastScan,
+            "corr": self.run_correlation,
             "plot": None  # Placeholder for when no function is needed
         }
 
@@ -607,6 +642,7 @@ class DirectoryCreator:
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
+            actions["ws"](current_mass, current_mass_directory, cwd)
             actions["rc"](current_mass, current_mass_directory, cwd)
             #actions["ri"](current_mass, current_mass_directory, cwd)
             #actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
