@@ -107,11 +107,12 @@ class datacardClass:
         ## systematic uncertainty for Xsec X BR, no uncertainies on signal PDF/QCD scale
         systematics = systematicsClass( self.mH, True, theInputs, self.year, self.DEBUG) # FIXME: True / False?
 
-        self.low_M = 0
+        # low and high M is 25 % of the mass self.mH
+        self.low_M = self.mH - 0.25*self.mH
         #if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") : # if merge selected, start from 600GeV
         #if(self.jetType=="merged") :
         #  self.low_M = 700
-        self.high_M = 4000
+        self.high_M = self.mH + 0.25*self.mH
         bins = int((self.high_M-self.low_M)/10)
 
         mzz_name = "zz2l2q_mass"
@@ -124,7 +125,7 @@ class datacardClass:
 
         # FIXME: Check the ranges?
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
-        zz2l2q_mass.setRange("fullsignalrange",0,4000)
+        zz2l2q_mass.setRange("fullsignalrange",300,4000)
 
         ## -------------------------- SIGNAL SHAPE ----------------------------------- ##
 
@@ -476,16 +477,21 @@ class datacardClass:
         all_nuisances = []
         # nuisances for SplitSource
         for source in systematics.SplitSource:
-           all_nuisances.append(ROOT.RooRealVar("CMS_scale_j_{}".format(source), "CMS_scale_j_{}".format(source), 0, -3, 3))
+           jetString = ''
+           if self.jetType == "resolved":
+                jetString = 'j'
+           elif self.jetType == "merged":
+                jetString = 'J'
+           all_nuisances.append(ROOT.RooRealVar("CMS_scale_{}_{}".format(jetString, source), "CMS_scale_j_{}".format(source), 0, -30, 30))
 
         # nuisances for SplitSourceYears
         for source in systematics.SplitSourceYears:
-           all_nuisances.append(ROOT.RooRealVar("CMS_scale_j_{}_{}".format(source, self.year), "CMS_scale_j_{}_{}".format(source, self.year), 0, -3, 3))
+           all_nuisances.append(ROOT.RooRealVar("CMS_scale_{}_{}_{}".format(jetString, source, self.year), "CMS_scale_j_{}_{}".format(source, self.year), 0, -30, 30))
 
         # Create a RooArgList from all_nuisances
         arglist_all_JES = ROOT.RooArgList()
         for nuisance in all_nuisances:
-            logger.debug(nuisance.GetName())
+            logger.debug(nuisance)
             arglist_all_JES.add(nuisance)
 
         num_jes_sources = len(arglist_all_JES)
@@ -493,7 +499,8 @@ class datacardClass:
         cumulative_jes_effect = "+".join("@{}".format(i) for i in range(num_jes_sources))
 
         #BTAG TAG nuisance
-        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -3,3)
+        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -30,30)
+        logger.debug("BTAG roorealvar: {}".format(BTAG))
         # for lines where both JES and BTAG are used, the cumulative JES effect will start from @1 since @0 is reserved for BTAG. so add BTAG to the arglist first
         arglist_all_JES_BTAG = ROOT.RooArgList()
         arglist_all_JES_BTAG.add(BTAG)
@@ -865,7 +872,7 @@ class datacardClass:
 
         # FIXME: Check if sig/bkg MELA should be correlated or uncorrelated
         morphSigVarName = "CMS_zz2l2q_sigMELA_"+self.jetType
-        alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-20,20)
+        alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-30,30)
         if(self.sigMorph): alphaMorphSig.setConstant(False)
         else: alphaMorphSig.setConstant(True)
 
@@ -980,7 +987,7 @@ class datacardClass:
         funcList_ttbar = ROOT.RooArgList()
         funcList_vz = ROOT.RooArgList()
         morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType
-        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-20,20)
+        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-30,30)
         morphVarListBkg = ROOT.RooArgList()
 
         if(self.bkgMorph):

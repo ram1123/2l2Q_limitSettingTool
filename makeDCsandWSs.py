@@ -78,6 +78,7 @@ class DirectoryCreator:
             self.blindString = " -t -1 --expectSignal 1 "   # b-only fit diagnostics
             self.FitType = "SBHypothesis"
         if (not self.SBHypothesis) :
+            # self.blindString = "  -t -1   "   # s+b fit diagnostics
             self.blindString = "  -t -1  --expectSignal 0 "   # s+b fit diagnostics
             self.FitType = "BkgOnlyHypothesis"
 
@@ -511,7 +512,7 @@ class DirectoryCreator:
         rRange= "-2,2" # for ExpectedSignal = 1
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
 
             blindString = ""
             FitType = ""
@@ -521,18 +522,20 @@ class DirectoryCreator:
             FitType = "BkgOnlyHypothesis"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
+            # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
             RunCommand(command, self.dry_run)
 
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
             FitType = "SBHypothesis"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
+            # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"longlunch\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -558,18 +561,25 @@ class DirectoryCreator:
         rRange= "-2,2" # for ExpectedSignal = 1
         for datacard in datacards:
             category = ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
-            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category)
+            OutNameAppend = CombineStrings.COMBINE_FITDIAGNOSTIC.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = category, bOnlyOrSB = self.FitType)
+
+            if not os.path.exists(datacard.replace(".txt", ".root")):
+                logger.debug("Creating workspace for datacard: {}".format(datacard))
+                command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
+                RunCommand(command, self.dry_run)
 
             if self.blind:
-                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys --setParameters r=1 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=0,10 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
                 command += self.blindString
                 RunCommand(command, self.dry_run)
 
             command = "combineTool.py -M FastScan -w {datacard}:w ".format(datacard=datacard.replace(".txt",".root"))
             if self.blind:
-                command += " -d higgsCombine.{name}.GenerateOnly.mH{mH}.123456.root:toys/toy_asimov".format(mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command += " -d higgsCombine.{name}.GenerateOnly.mH{mH}.123456.root:toys/toy_asimov -o ../../figs/fastScan_{name} ".format(mH=current_mass, name = OutNameAppend+"_"+self.FitType)
 
-            additionalArguments = " "
+            command += " --parallel 8 "
+
+            additionalArguments = "   "
             # additionalArguments = " --robustHesse 1"
             # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
             command += additionalArguments
