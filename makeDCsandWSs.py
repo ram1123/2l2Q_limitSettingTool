@@ -282,21 +282,30 @@ class DirectoryCreator:
                     command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
                     RunCommand(command, self.dry_run)
 
-                # SetParRange = ' --setParameterRanges r=-1,2:frac_VBF=0,1'
-                SetParRange = ' --setParameterRanges frac_VBF=0,1'
-
                 Stat = " "
                 Stat += " --setRobustFitStrategy 2 "
-                # Stat += " --setParameterRanges r=-1,2 "
                 Stat +=  " --cminFallbackAlgo Minuit,1:10 " # Added this line as fits were failing
                 Stat += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
+
+                # (BR,BTAG_merged,CMS_Vtagging,CMS_Vtagging_In,CMS_channel,CMS_eff_e,CMS_eff_e_In,CMS_eff_m,CMS_eff_m_In,CMS_scale_J_Abs,CMS_scale_J_Abs_2018,CMS_scale_J_Abs_2018_In,CMS_scale_J_Abs_In,CMS_scale_J_BBEC1,CMS_scale_J_BBEC1_2018,CMS_scale_J_BBEC1_2018_In,CMS_scale_J_BBEC1_In,CMS_scale_J_EC2,CMS_scale_J_EC2_2018,CMS_scale_J_EC2_2018_In,CMS_scale_J_EC2_In,CMS_scale_J_FlavQCD,CMS_scale_J_FlavQCD_In,CMS_scale_J_HF,CMS_scale_J_HF_2018,CMS_scale_J_HF_2018_In,CMS_scale_J_HF_In,CMS_scale_J_RelBal,CMS_scale_J_RelBal_In,CMS_scale_J_RelSample_2018,CMS_scale_J_RelSample_2018_In,CMS_zz2l2q_bkgMELA_merged,CMS_zz2l2q_bkgMELA_merged_In,CMS_zz2l2q_mean_e_sig,CMS_zz2l2q_mean_e_sig_In,CMS_zz2l2q_mean_m_sig,CMS_zz2l2q_mean_m_sig_In,CMS_zz2l2q_sigMELA_merged,CMS_zz2l2q_sigMELA_merged_In,CMS_zz2l2q_sigma_e_sig,CMS_zz2l2q_sigma_e_sig_In,CMS_zz2l2q_sigma_m_sig,CMS_zz2l2q_sigma_m_sig_In,CMS_zz2lJ_mean_J_sig,CMS_zz2lJ_mean_J_sig_In,CMS_zz2lJ_sigma_J_sig,CMS_zz2lJ_sigma_J_sig_In,Dspin0,LUMI_13_2018,MH,QCDscale_vz,QCDscale_vz_In,a1_VBF_eeqq_Merged_2018,a1_VBF_mumuqq_Merged_2018,a1_ggH_eeqq_Merged_2018,a1_ggH_mumuqq_Merged_2018,a2_VBF_eeqq_Merged_2018,a2_VBF_mumuqq_Merged_2018,a2_ggH_eeqq_Merged_2018,a2_ggH_mumuqq_Merged_2018,bias_VBF_eeqq_Merged,bias_VBF_mumuqq_Merged,bias_ggH_eeqq_Merged,bias_ggH_mumuqq_Merged,frac_VBF,lumi_13TeV_2018,lumi_13TeV_2018_In,lumi_13TeV_correlated_16_17_18,       lumi_13TeV_correlated_16_17_18_In,lumi_13TeV_correlated_17_18,lumi_13TeV_correlated_17_18_In,mean_J_err,mean_e_err,mean_m_err,n1_VBF_eeqq_Merged_2018,n1_VBF_mumuqq_Merged_2018,n1_ggH_eeqq_Merged_2018,n1_ggH_mumuqq_Merged_2018,n2_VBF_eeqq_Merged_2018,n2_VBF_mumuqq_Merged_2018,n2_ggH_eeqq_Merged_2018,n2_ggH_mumuqq_Merged_2018,pdf_hzz2l2q_accept,pdf_hzz2l2q_accept_In,pdf_qqbar,pdf_qqbar_In,r,sigma_J_err,sigma_VBF_eeqq_Merged,sigma_VBF_mumuqq_Merged,sigma_e_err,sigma_ggH_eeqq_Merged,sigma_ggH_mumuqq_Merged,sigma_m_err,zjetsAlpha_merged_btagged,zjetsAlpha_merged_btagged_In,zjetsAlpha_merged_untagged,zjetsAlpha_merged_untagged_In,zjetsAlpha_merged_vbftagged,zjetsAlpha_merged_vbftagged_In,zz2lJ_mass)
+
+                # Stat += " --setParameterRanges r=-1,2 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1 "
+                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1:CMS_zz2l2q_sigma_m_sig=0,1 "
+
                 # Stat = " "
 
                 # freeze the nuisance JES and JER
                 freeze = " "
                 # freeze +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-                freeze += " --freezeParameters BTAG_resolved "
-                freeze += " --freezeParameters allConstrainedNuisances "
+                # freeze += " --freezeParameters BTAG_resolved "
+                freeze += " --freezeParameters frac_VBF "
+                # freeze += " --freezeParameters allConstrainedNuisances "
                 freeze = " "
 
                 if args.substep == 1:
@@ -708,46 +717,55 @@ class DirectoryCreator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run combine for high mass Higgs search analysis")
-    parser.add_argument('-i', '--input', dest='input_dir', type=str, default="", help='inputs directory')
-    parser.add_argument('-d', '--is2D', dest='is_2d', type=int, default=1, help='is2D (default:1)')
-    parser.add_argument('-mi', '--MassStartVal', dest='MassStartVal', type=int, default=500, help='MassStartVal (default:1)')
-    parser.add_argument('-mf', '--MassEndVal', dest='MassEndVal', type=int, default=3001, help='MassEndVal (default:1)') # # scan mass end value is 3000, but I added 3001 to include 3000 in for loop. If I write 3000 then it will take last mass value as 2950.
-    parser.add_argument('-ms', '--MassStepVal', dest='MassStepVal', type=int, default=50, help='MassStepVal (default:1)')
-    parser.add_argument('-a', '--append', dest='append_name', type=str, default="", help='append name for cards dir')
-    #parser.add_argument('-f', '--fracVBF', dest='frac_vbf', type=float, default=0.005, help='fracVBF (default:0.5%)')
-    parser.add_argument('-f', '--fracVBF', dest='frac_vbf', type=float, default=-1, help='fracVBF, -1 means float this frac. (default:-1)')
-    parser.add_argument("-y", "--year", dest="year", type=str, default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
-    parser.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
-    parser.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
-    parser.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
-    parser.add_argument("-SBHypothesis", "--SBHypothesis", action="store_true", dest="SBHypothesis", default=False, help="If this option given then it will set --expectSignal 1, which means this is signal + background  fit. By default it will always perform B only limit/fit")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
-    # parser.add_argument("--log-level", help="Set the logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
-    parser.add_argument(
-        "--log-level",
-        default=logging.WARNING,
-        type=lambda x: getattr(logging, x.upper()),
-        help="Configure the logging level."
-        )
-    parser.add_argument(
-        "--log-level-roofit",
-        default=ROOT.RooFit.WARNING,
-        type=lambda x: getattr(ROOT.RooFit, x.upper()),
-        help="Configure the logging level for RooFit."
-        )
-    parser.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
-    parser.add_argument("-p", "--parallel", action="store_true", help="Run jobs parallelly")
-    # parser.add_argument("-n", "--ncores", dest="ncores", type=int, default=8, help="number of cores to use")
 
-    parser.add_argument("-date", "--date", dest="date", type=str, default='', help="date string") # This resets the date string to be added in the combine related input/output files
-    parser.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string") # This appends additional string in the combine related input/output files
-    parser.add_argument("-SanityCheckPlotUsingWorkspaces", "--SanityCheckPlotUsingWorkspaces", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option given then it will plot the sanity check plots using workspaces") # This plots the mZZ plots for signal and background using workspaces
-    parser.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), rc (RunCombine), ri (run Impact), rll (run loglikelihood with and without syst) , fast (FastScan) or all')
-    parser.add_argument('-ss', '--substep', dest='substep', type=int, default=11, help='sub-step help')
+    general_settings = parser.add_argument_group("General Settings")
+    mass_settings = parser.add_argument_group("Mass Settings")
+    year_condor_settings = parser.add_argument_group("Year and Condor Settings")
+    fit_settings = parser.add_argument_group("Fit Settings")
+    logging_settings = parser.add_argument_group("Logging Settings")
+    advanced_settings = parser.add_argument_group("Advanced Settings")
+    step_control = parser.add_argument_group("Step Control")
+
+    # General Settings
+    general_settings.add_argument('-i', '--input', dest='input_dir', type=str, default="", help='inputs directory')
+    general_settings.add_argument('-d', '--is2D', dest='is_2d', type=int, default=1, help='is2D (default:1)')
+    general_settings.add_argument('-a', '--append', dest='append_name', type=str, default="", help='append name for cards dir')
+    general_settings.add_argument("--dry-run", action="store_true", help="Don't actually run the command, just print it.")
+    general_settings.add_argument("-p", "--parallel", action="store_true", help="Run jobs parallelly")
+
+    # Mass Settings
+    mass_settings.add_argument('-mi', '--MassStartVal', dest='MassStartVal', type=int, default=500, help='MassStartVal (default:1)')
+    mass_settings.add_argument('-mf', '--MassEndVal', dest='MassEndVal', type=int, default=3001, help='MassEndVal (default:1)')
+    mass_settings.add_argument('-ms', '--MassStepVal', dest='MassStepVal', type=int, default=50, help='MassStepVal (default:1)')
+
+    # Year and Condor Settings
+    year_condor_settings.add_argument("-y", "--year", dest="year", type=str, default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
+    year_condor_settings.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
+
+    # Fit Settings
+    fit_settings.add_argument('-f', '--fracVBF', dest='frac_vbf', type=float, default=-1, help='fracVBF, -1 means float this frac. (default:-1)')
+    fit_settings.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
+    fit_settings.add_argument("-signalStrength", "--signalStrength", dest="signalStrength", type=float, default=0, help="signal strength for the fit")
+    fit_settings.add_argument("-fitType", "--fitType", dest="fitType", type=str, default="BkgOnlyHypothesis", help="fitType for the fit")
+    fit_settings.add_argument("-SBHypothesis", "--SBHypothesis", action="store_true", dest="SBHypothesis", default=False, help="If this option given then it will set --expectSignal 1, which means this is signal + background  fit. By default it will always perform B only limit/fit")
+    fit_settings.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
+
+    # Logging Settings
+    logging_settings.add_argument("--log-level", default=logging.WARNING, type=lambda x: getattr(logging, x.upper()), help="Configure the logging level.")
+    logging_settings.add_argument("--log-level-roofit", default=ROOT.RooFit.WARNING, type=lambda x: getattr(ROOT.RooFit, x.upper()), help="Configure the logging level for RooFit.")
+    logging_settings.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
+
+    # Advanced Settings
+    advanced_settings.add_argument("-date", "--date", dest="date", type=str, default='', help="date string")
+    advanced_settings.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string")
+    advanced_settings.add_argument("-SanityCheckPlotUsingWorkspaces", "--SanityCheckPlotUsingWorkspaces", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option given then it will plot the sanity check plots using workspaces")
+
+    # Step Control
+    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "fs", "rll", "corr", "plot"])
+    step_control.add_argument('-ss', '--substep', dest='substep', type=int, default=11, help='sub-step help')
 
     args = parser.parse_args()
 
-    #  Add the conditon in the code that when step is ri then its mandatory to give --substep. This is added for running the impact plot various steps.
     if args.step == 'ri' and args.substep == 11:
         parser.error("--substep/-ss is mandatory for step ri")
 
