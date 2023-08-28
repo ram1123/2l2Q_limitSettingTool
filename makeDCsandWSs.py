@@ -1,3 +1,7 @@
+"""
+This script runs combine for high mass Higgs search analysis.
+It uses argparse to handle command-line options and settings.
+"""
 import os
 import logging
 from inputReader import *
@@ -19,6 +23,15 @@ CombineStrings = common_strings_pars.CombineStrings(date_string)
 
 
 def run_parallel_instance(instance, current_mass):
+    """Run the instance in parallel
+
+    Args:
+        instance (instance): instance
+        current_mass (int): scalar mass value
+
+    Returns:
+        instance: instance
+    """
     return instance.run_parallel(current_mass)
 
 # Context manager for temporary directory change
@@ -285,11 +298,11 @@ class DirectoryCreator:
                 Stat = " "
                 Stat += " --setRobustFitStrategy 2 "
                 Stat +=  " --cminFallbackAlgo Minuit,1:10 " # Added this line as fits were failing
-                Stat += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
+                Stat += " --cminDefaultMinimizerTolerance 0.1  --setRobustFitTolerance 0.1 " # Added this line as fits were failing for some cases
 
                 # (BR,BTAG_merged,CMS_Vtagging,CMS_Vtagging_In,CMS_channel,CMS_eff_e,CMS_eff_e_In,CMS_eff_m,CMS_eff_m_In,CMS_scale_J_Abs,CMS_scale_J_Abs_2018,CMS_scale_J_Abs_2018_In,CMS_scale_J_Abs_In,CMS_scale_J_BBEC1,CMS_scale_J_BBEC1_2018,CMS_scale_J_BBEC1_2018_In,CMS_scale_J_BBEC1_In,CMS_scale_J_EC2,CMS_scale_J_EC2_2018,CMS_scale_J_EC2_2018_In,CMS_scale_J_EC2_In,CMS_scale_J_FlavQCD,CMS_scale_J_FlavQCD_In,CMS_scale_J_HF,CMS_scale_J_HF_2018,CMS_scale_J_HF_2018_In,CMS_scale_J_HF_In,CMS_scale_J_RelBal,CMS_scale_J_RelBal_In,CMS_scale_J_RelSample_2018,CMS_scale_J_RelSample_2018_In,CMS_zz2l2q_bkgMELA_merged,CMS_zz2l2q_bkgMELA_merged_In,CMS_zz2l2q_mean_e_sig,CMS_zz2l2q_mean_e_sig_In,CMS_zz2l2q_mean_m_sig,CMS_zz2l2q_mean_m_sig_In,CMS_zz2l2q_sigMELA_merged,CMS_zz2l2q_sigMELA_merged_In,CMS_zz2l2q_sigma_e_sig,CMS_zz2l2q_sigma_e_sig_In,CMS_zz2l2q_sigma_m_sig,CMS_zz2l2q_sigma_m_sig_In,CMS_zz2lJ_mean_J_sig,CMS_zz2lJ_mean_J_sig_In,CMS_zz2lJ_sigma_J_sig,CMS_zz2lJ_sigma_J_sig_In,Dspin0,LUMI_13_2018,MH,QCDscale_vz,QCDscale_vz_In,a1_VBF_eeqq_Merged_2018,a1_VBF_mumuqq_Merged_2018,a1_ggH_eeqq_Merged_2018,a1_ggH_mumuqq_Merged_2018,a2_VBF_eeqq_Merged_2018,a2_VBF_mumuqq_Merged_2018,a2_ggH_eeqq_Merged_2018,a2_ggH_mumuqq_Merged_2018,bias_VBF_eeqq_Merged,bias_VBF_mumuqq_Merged,bias_ggH_eeqq_Merged,bias_ggH_mumuqq_Merged,frac_VBF,lumi_13TeV_2018,lumi_13TeV_2018_In,lumi_13TeV_correlated_16_17_18,       lumi_13TeV_correlated_16_17_18_In,lumi_13TeV_correlated_17_18,lumi_13TeV_correlated_17_18_In,mean_J_err,mean_e_err,mean_m_err,n1_VBF_eeqq_Merged_2018,n1_VBF_mumuqq_Merged_2018,n1_ggH_eeqq_Merged_2018,n1_ggH_mumuqq_Merged_2018,n2_VBF_eeqq_Merged_2018,n2_VBF_mumuqq_Merged_2018,n2_ggH_eeqq_Merged_2018,n2_ggH_mumuqq_Merged_2018,pdf_hzz2l2q_accept,pdf_hzz2l2q_accept_In,pdf_qqbar,pdf_qqbar_In,r,sigma_J_err,sigma_VBF_eeqq_Merged,sigma_VBF_mumuqq_Merged,sigma_e_err,sigma_ggH_eeqq_Merged,sigma_ggH_mumuqq_Merged,sigma_m_err,zjetsAlpha_merged_btagged,zjetsAlpha_merged_btagged_In,zjetsAlpha_merged_untagged,zjetsAlpha_merged_untagged_In,zjetsAlpha_merged_vbftagged,zjetsAlpha_merged_vbftagged_In,zz2lJ_mass)
 
-                # Stat += " --setParameterRanges r=-1,2 "
+                Stat += " --setParameterRanges r=-3,3 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1 "
@@ -640,82 +653,128 @@ class DirectoryCreator:
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
-            actions["ws"](current_mass, current_mass_directory, cwd)
+            # actions["ws"](current_mass, current_mass_directory, cwd)
             actions["rc"](current_mass, current_mass_directory, cwd)
-            #actions["ri"](current_mass, current_mass_directory, cwd)
+            # actions["ri"](current_mass, current_mass_directory, cwd)
             #actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
         else:
             action = actions.get(self.step.lower())
             if action is not None: # FIXME: Need to add condition that when the year is `run2` then for combining cards we need to use `run2` function instead of `cc`
                 action(current_mass, current_mass_directory, cwd)
 
+    def run_step_dc(self):
+        # get git diff patch and move it to each mass directory
+        logger.debug("get git diff patch")
+        RunCommand("git diff > git_diff.patch", self.dry_run)
+
+        logger.debug("Declar datacardClass")
+        datacard_class = datacardClass(str(self.year), self.verbose)
+
+        logger.debug("load root module")
+        datacard_class.loadIncludes()
+
+        # Run the create_workspaces function as parallel for each mass point
+        if self.ifParallel:
+            # FIXME: This is not working
+            logger.error("Parallel is not working for datacard creation step")
+            exit(1)
+            # create_workspaces takes two arguments, mass and datacard_class
+            pool = mp.Pool()
+            try:
+                pool.map(partial(self.create_workspaces, datacard_class=datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+            except Exception as e:
+                logger.error(e)
+                pool.close()
+                pool.join()
+                exit(1)
+        else:
+            for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
+                self.create_workspaces(current_mass, datacard_class)
+                RunCommand("mv git_diff.patch {}/".format(self.dir_name + '/HCG/' + str(current_mass)), self.dry_run)
+
+        # exit the program after creating datacards and workspaces
+        logger.debug("Exiting the program after creating datacards and workspaces")
+        exit(0)
+
+    def run_step_plot(self):
+        logger.debug("Datacard: {}".format(self.datacards))
+
+        for datacard in self.datacards:
+            SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
+            logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
+
+            # Collect summary of limits in the json file
+            command = 'combineTool.py -M CollectLimits {pathh}/HCG/*/higgsCombine.{name}.AsymptoticLimits.mH*.root --use-dirs -o {oPath}/limits_{name2}.json'.format(pathh = self.dir_name, name = SearchString4Datacard.replace("REPLACEMASS","*"), name2 = SearchString4Datacard.replace("mHREPLACEMASS","Summary"), oPath =  os.path.join(self.dir_name, 'figs'))
+            RunCommand(command, self.dry_run)
+
+            # Plot the limits
+            command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, datacard, SearchString4Datacard, self.dir_name, self.frac_vbf)
+            RunCommand(command, self.dry_run)
+
     def Run(self):
         logger.debug("Current working directory: %s", os.getcwd())
 
         # STEP - 1: For Datacard and workspace creation step load datacard class
         if (self.step).lower() in ('dc'): # or (self.step).lower() == 'all': # Fixme: all year is not working for 'dc'
-            # get git diff patch and move it to each mass directory
-            logger.debug("get git diff patch")
-            RunCommand("git diff > git_diff.patch", self.dry_run)
-
-            logger.debug("Declar datacardClass")
-            datacard_class = datacardClass(str(self.year), self.verbose)
-
-            logger.debug("load root module")
-            datacard_class.loadIncludes()
-
-            # Run the create_workspaces function as parallel for each mass point
-            if self.ifParallel:
-                # FIXME: This is not working
-                logger.error("Parallel is not working for datacard creation step")
-                exit(1)
-                # create_workspaces takes two arguments, mass and datacard_class
+            self.run_step_dc()
+        elif (self.step).lower() == 'plot':
+            self.run_step_plot()
+        else:
+            if not self.ifParallel:
+                logger.debug("Running in serial mode")
+                for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
+                    self.run_parallel(current_mass)
+            else:
                 pool = mp.Pool()
                 try:
-                    pool.map(partial(self.create_workspaces, datacard_class=datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
-                except Exception as e:
-                    logger.error(e)
+                    pool.map(partial(run_parallel_instance, self), range(self.start_mass, self.end_val, self.step_sizes))
+                finally:
                     pool.close()
                     pool.join()
-                    exit(1)
-            else:
-                for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                    self.create_workspaces(current_mass, datacard_class)
-                    RunCommand("mv git_diff.patch {}/".format(self.dir_name + '/HCG/' + str(current_mass)), self.dry_run)
 
-            # exit the program after creating datacards and workspaces
-            logger.debug("Exiting the program after creating datacards and workspaces")
-            exit(0)
+def validate_args(args):
+    """Validate command-line arguments.
 
-        if (self.step).lower() != 'plot' and (not self.ifParallel):
-            for current_mass in range(self.start_mass, self.end_val, self.step_sizes):
-                self.run_parallel(current_mass)
+    Args:
+        args (namespace): Namespace containing command-line arguments.
 
-        if (self.step).lower() != 'plot' and self.ifParallel:
-            pool = mp.Pool()
-            try:
-                pool.map(partial(run_parallel_instance, self), range(self.start_mass, self.end_val, self.step_sizes))
-            finally:
-                pool.close()
-                pool.join()
+    Raises:
+        argparse.ArgumentError: Raise argument error if valiaation fails.
+    """
+    if args.step == 'ri' and args.substep == 11:
+        raise argparse.ArgumentError(None, "--substep/-ss is mandatory for step ri")
 
-        if (self.step).lower() == 'plot':
+def configure_logging(args):
+    """Configure logging based on command-line arguments.
 
-            logger.debug("Datacard: {}".format(self.datacards))
-            for datacard in self.datacards:
-                SearchString4Datacard = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = "REPLACEMASS", blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
-                logger.debug("SearchString4Datacard: {}".format(SearchString4Datacard))
+    Args:
+        args (namespace): Namespace containing command-line arguments.
+    """
+    logging.basicConfig(level=args.log_level)
+    ROOT.RooMsgService.instance().setGlobalKillBelow(args.log_level_roofit)
 
-                # Collect summary of limits in the json file
-                command = 'combineTool.py -M CollectLimits {pathh}/HCG/*/higgsCombine.{name}.AsymptoticLimits.mH*.root --use-dirs -o {oPath}/limits_{name2}.json'.format(pathh = self.dir_name, name = SearchString4Datacard.replace("REPLACEMASS","*"), name2 = SearchString4Datacard.replace("mHREPLACEMASS","Summary"), oPath =  os.path.join(self.dir_name, 'figs'))
-                # RunCommand(command, self.dry_run)
+def set_years_new(args_year):
+    """This code need the array of years to run the code for all years or for a specific year. This function will return the array of years.
 
-                # Plot the limits
-                command = 'python plotLimitExpObs_2D.py {}  {}  {}  {} {} {} {} {} {}'.format(self.start_mass, self.end_val, self.step_sizes, self.year, self.blind, datacard, SearchString4Datacard, self.dir_name, self.frac_vbf)
-                RunCommand(command, self.dry_run)
+    Args:
+        args_year (str): defined year string
 
+    Returns:
+        array: array having years
+    """
+    year_mapping = {
+        '2016': [2016],
+        '2017': [2017],
+        '2018': [2018],
+        'all': [2016, 2017, 2018],
+        'allc': [2016, 2017, 2018,'run2'],
+        'run2': ['run2']
+    }
+    return year_mapping.get(args_year.lower(), [])
 
-if __name__ == "__main__":
+def main():
+    """Main function to handle command-line arguments, validate them, and run the appropriate steps.
+    """
     parser = argparse.ArgumentParser(description="Run combine for high mass Higgs search analysis")
 
     general_settings = parser.add_argument_group("General Settings")
@@ -739,7 +798,7 @@ if __name__ == "__main__":
     mass_settings.add_argument('-ms', '--MassStepVal', dest='MassStepVal', type=int, default=50, help='MassStepVal (default:1)')
 
     # Year and Condor Settings
-    year_condor_settings.add_argument("-y", "--year", dest="year", type=str, default='2016', help="year to run or run for all three year. Options: 2016, 2016APV, 2017,2018,all")
+    year_condor_settings.add_argument("-y", "--year", dest="year", type=str, default='2016', help="year to run or run for all three year. Options: 2016, 2017, 2018,all (=16, 17 and 18), allc (=all + run2), run2")
     year_condor_settings.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
 
     # Fit Settings
@@ -749,6 +808,9 @@ if __name__ == "__main__":
     fit_settings.add_argument("-fitType", "--fitType", dest="fitType", type=str, default="BkgOnlyHypothesis", help="fitType for the fit")
     fit_settings.add_argument("-SBHypothesis", "--SBHypothesis", action="store_true", dest="SBHypothesis", default=False, help="If this option given then it will set --expectSignal 1, which means this is signal + background  fit. By default it will always perform B only limit/fit")
     fit_settings.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
+    fit_settings.add_argument("-stat", "--stat", action="store_true", dest="stat", default=False, help="If this option given then it will set --freezeParameters allConstrainedNuisances, which means this is stat only fit. By default it will always perform syst + stat fit")
+    fit_settings.add_argument("-freeze", "--freeze", action="store_true", dest="freeze", default=False, help="If this option given then it will set --freezeParameters allConstrainedNuisances, which means this is stat only fit. By default it will always perform syst + stat fit")
+
 
     # Logging Settings
     logging_settings.add_argument("--log-level", default=logging.WARNING, type=lambda x: getattr(logging, x.upper()), help="Configure the logging level.")
@@ -756,38 +818,37 @@ if __name__ == "__main__":
     logging_settings.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
 
     # Advanced Settings
-    advanced_settings.add_argument("-date", "--date", dest="date", type=str, default='', help="date string")
-    advanced_settings.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="tag string")
-    advanced_settings.add_argument("-SanityCheckPlotUsingWorkspaces", "--SanityCheckPlotUsingWorkspaces", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option given then it will plot the sanity check plots using workspaces")
+    advanced_settings.add_argument("-date", "--date", dest="date", type=str, default='', help="If this option is given, then it will append date string to the output file name. This is helpful if I want to use the combine output from different date")
+    advanced_settings.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="This option add additional string in the combine output root file as well as condor/combine log file")
+    advanced_settings.add_argument("-sanityCheck", "--sanity-check", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option is given, then it will plot the sanity check plots using workspaces")
+
 
     # Step Control
-    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "fs", "rll", "corr", "plot"])
+    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "fs", "rll", "corr", "plot", "all"])
     step_control.add_argument('-ss', '--substep', dest='substep', type=int, default=11, help='sub-step help')
 
     args = parser.parse_args()
 
-    if args.step == 'ri' and args.substep == 11:
-        parser.error("--substep/-ss is mandatory for step ri")
+    # Validate arguments for the step. This function is added as some of steps (like ri) need substep to be defined as there are multiple substeps for that step
+    # Just to ensure that we give appropriate sub-step for the step, this function is added
+    try:
+        validate_args(args)
+    except argparse.ArgumentError as e:
+        parser.error(str(e))
+
+    # Logging setup for both logging and RooFit logging
+    configure_logging(args)
 
     # Get the full command line used to run the current Python script
     command_line = ' '.join(sys.argv)
     SaveInfoToTextFile("#"*75+'\n\n')
     SaveInfoToTextFile('python '+command_line+'\n\n')
 
-    # Set the logging level based on the command line argument
-    logger.setLevel(args.log_level)
-
-    # # Set the global message level to WARNING
-    ROOT.RooMsgService.instance().setGlobalKillBelow(args.log_level_roofit)
-
     DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step,  args.substep, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.SBHypothesis, args.dry_run, args.parallel, args.SanityCheckPlotUsingWorkspaces)
-    # DirectoryCreatorObj.validate()
-    if args.year == '2016': years = [2016]
-    if args.year == '2017': years = [2017]
-    if args.year == '2018': years = [2018]
-    # if (args.year).lower() == 'all': years = [ 2016, 2017, 2018]
-    if (args.year).lower() == 'all': years = [ 2016, 2017, 2018, "run2"]
-    if (args.year).lower() == 'run2': years = ["run2"]
+
+    # Get the list of years to run
+    years = set_years_new(args.year)
+
     if (args.year).lower() == 'run2':
         RunCommand("ulimit -s unlimited", args.dry_run)
 
@@ -808,3 +869,7 @@ if __name__ == "__main__":
         DirectoryCreatorObj.SetYearRelatedStrings(year)
         DirectoryCreatorObj.SetDirName()
         DirectoryCreatorObj.Run()
+
+if __name__ == "__main__":
+    main()
+
