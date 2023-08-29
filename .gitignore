@@ -22,3 +22,6 @@ commands*.log
 *.o
 *.cxx
 *.pcm
+
+# ignore for github pages docs
+docs/_build/
