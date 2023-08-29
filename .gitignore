@@ -25,3 +25,5 @@ commands*.log
 
 # ignore for github pages docs
 docs/_build/
+*.rst
+build/

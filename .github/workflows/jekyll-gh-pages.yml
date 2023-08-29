@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Sphinx and Theme
-        run: pip install sphinx sphinx_rtd_theme
+      - name: Install Sphinx Theme and recommonmark
+        run: pip install sphinx sphinx_rtd_theme recommonmark
 
       - name: Generate Sphinx Documentation
         run: |
@@ -42,6 +42,13 @@ jobs:
         with:
           source: ./
           destination: ./_site
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
 
       - name: Copy Sphinx Documentation to Jekyll Site
         run: cp -r docs/_build/html/* _site/sphinx-docs/
