@@ -133,6 +133,20 @@ class DirectoryCreator:
                 theInputs = input_reader.getInputs()
                 datacard_class.makeCardsWorkspaces(current_mass, self.is_2d, self.dir_name, theInputs, cat,  self.frac_vbf, self.SanityCheckPlotUsingWorkspaces)
 
+    def run_text2workspace(self, current_mass, current_mass_directory, datacard):
+        logger.info("Inside run_text2workspace member function")
+        logger.debug("Current directory: {}".format(os.getcwd()))
+        with cd(current_mass_directory):
+            logger.debug("Current directory: {}".format(os.getcwd()))
+            if os.path.exists(datacard.replace(".txt", ".root")):
+                logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
+                os.remove(datacard.replace(".txt", ".root"))
+
+            # Create the workspace
+            command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
+            RunCommand(command, self.dry_run)
+        logger.debug("Current directory: {}".format(os.getcwd()))
+
     def get_text2workspace(self, current_mass, current_mass_directory, cwd):
         """For each datacard, create a workspace using text2workspace.py
 
@@ -147,22 +161,8 @@ class DirectoryCreator:
 
         logger.debug("Current directory: {}".format(os.getcwd()))
 
-        # Change the respective directory where all cards are placed
-        with cd(current_mass_directory):
-            logger.debug("Current directory: {}".format(os.getcwd()))
-            # Get the datacards
-
-            logger.debug("Datacards: {}".format(self.datacards))
-
-            for datacard in self.datacards:
-                # if datacard.root file exists, then delete it
-                if os.path.exists(datacard.replace(".txt", ".root")):
-                    logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
-                    os.remove(datacard.replace(".txt", ".root"))
-
-                # Create the workspace
-                command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
-                RunCommand(command, self.dry_run)
+        for datacard in self.datacards:
+            self.run_text2workspace(current_mass, current_mass_directory, datacard)
 
         logger.debug("Current directory: {}".format(os.getcwd()))
 
@@ -302,7 +302,7 @@ class DirectoryCreator:
 
                 # (BR,BTAG_merged,CMS_Vtagging,CMS_Vtagging_In,CMS_channel,CMS_eff_e,CMS_eff_e_In,CMS_eff_m,CMS_eff_m_In,CMS_scale_J_Abs,CMS_scale_J_Abs_2018,CMS_scale_J_Abs_2018_In,CMS_scale_J_Abs_In,CMS_scale_J_BBEC1,CMS_scale_J_BBEC1_2018,CMS_scale_J_BBEC1_2018_In,CMS_scale_J_BBEC1_In,CMS_scale_J_EC2,CMS_scale_J_EC2_2018,CMS_scale_J_EC2_2018_In,CMS_scale_J_EC2_In,CMS_scale_J_FlavQCD,CMS_scale_J_FlavQCD_In,CMS_scale_J_HF,CMS_scale_J_HF_2018,CMS_scale_J_HF_2018_In,CMS_scale_J_HF_In,CMS_scale_J_RelBal,CMS_scale_J_RelBal_In,CMS_scale_J_RelSample_2018,CMS_scale_J_RelSample_2018_In,CMS_zz2l2q_bkgMELA_merged,CMS_zz2l2q_bkgMELA_merged_In,CMS_zz2l2q_mean_e_sig,CMS_zz2l2q_mean_e_sig_In,CMS_zz2l2q_mean_m_sig,CMS_zz2l2q_mean_m_sig_In,CMS_zz2l2q_sigMELA_merged,CMS_zz2l2q_sigMELA_merged_In,CMS_zz2l2q_sigma_e_sig,CMS_zz2l2q_sigma_e_sig_In,CMS_zz2l2q_sigma_m_sig,CMS_zz2l2q_sigma_m_sig_In,CMS_zz2lJ_mean_J_sig,CMS_zz2lJ_mean_J_sig_In,CMS_zz2lJ_sigma_J_sig,CMS_zz2lJ_sigma_J_sig_In,Dspin0,LUMI_13_2018,MH,QCDscale_vz,QCDscale_vz_In,a1_VBF_eeqq_Merged_2018,a1_VBF_mumuqq_Merged_2018,a1_ggH_eeqq_Merged_2018,a1_ggH_mumuqq_Merged_2018,a2_VBF_eeqq_Merged_2018,a2_VBF_mumuqq_Merged_2018,a2_ggH_eeqq_Merged_2018,a2_ggH_mumuqq_Merged_2018,bias_VBF_eeqq_Merged,bias_VBF_mumuqq_Merged,bias_ggH_eeqq_Merged,bias_ggH_mumuqq_Merged,frac_VBF,lumi_13TeV_2018,lumi_13TeV_2018_In,lumi_13TeV_correlated_16_17_18,       lumi_13TeV_correlated_16_17_18_In,lumi_13TeV_correlated_17_18,lumi_13TeV_correlated_17_18_In,mean_J_err,mean_e_err,mean_m_err,n1_VBF_eeqq_Merged_2018,n1_VBF_mumuqq_Merged_2018,n1_ggH_eeqq_Merged_2018,n1_ggH_mumuqq_Merged_2018,n2_VBF_eeqq_Merged_2018,n2_VBF_mumuqq_Merged_2018,n2_ggH_eeqq_Merged_2018,n2_ggH_mumuqq_Merged_2018,pdf_hzz2l2q_accept,pdf_hzz2l2q_accept_In,pdf_qqbar,pdf_qqbar_In,r,sigma_J_err,sigma_VBF_eeqq_Merged,sigma_VBF_mumuqq_Merged,sigma_e_err,sigma_ggH_eeqq_Merged,sigma_ggH_mumuqq_Merged,sigma_m_err,zjetsAlpha_merged_btagged,zjetsAlpha_merged_btagged_In,zjetsAlpha_merged_untagged,zjetsAlpha_merged_untagged_In,zjetsAlpha_merged_vbftagged,zjetsAlpha_merged_vbftagged_In,zz2lJ_mass)
 
-                Stat += " --setParameterRanges r=-3,3 "
+                Stat += " --setParameterRanges r=-1,3 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1 "
@@ -321,7 +321,7 @@ class DirectoryCreator:
                 # freeze += " --freezeParameters allConstrainedNuisances "
                 freeze = " "
 
-                if args.substep == 1:
+                if self.substep == 1:
                     # STEP - 1
                     command = "combineTool.py -M Impacts -d {datacard}  -m {mH} -n .{name}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)   # Main command
                     #command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --doInitialFit -v 3 ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
@@ -342,7 +342,7 @@ class DirectoryCreator:
 
                     RunCommand(command, self.dry_run)
 
-                if args.substep == 2:
+                if self.substep == 2:
                     # STEP - 2
                     command = "combineTool.py -M Impacts -d {datacard}  -m {mH}  -n .{name} --robustFit 1 --doFits ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
                     #if self.blind: command += " -t -1 --expectSignal 1 "
@@ -363,7 +363,7 @@ class DirectoryCreator:
 
                     RunCommand(command, self.dry_run)
 
-                if args.substep == 3:
+                if self.substep == 3:
                     # STEP - 3
                     command = "combineTool.py -M Impacts -d {datacard} -m {mH}  -n .{name}   --robustFit 1   --output impacts_{name}.json".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)
                     command += Stat
@@ -406,7 +406,7 @@ class DirectoryCreator:
 
                 CondorCommandPatch = " -v -1  --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_LHS".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType))
 
-                if args.substep == 1:
+                if self.substep == 1:
                     # STEP - 1
                     command = " -M MultiDimFit --algo grid --points {pointsToScan} --rMin -3 --rMax 3 -d {datacard} -m {mH} -n .{name} --saveWorkspace {blindString}  ".format(pointsToScan = pointsToScan, datacard = datacard.replace(".txt",".root"), mH = current_mass, blindString = self.blindString, name = name)
                     # while running on condor, switch the verbosity level to -1 (very quite)
@@ -416,7 +416,7 @@ class DirectoryCreator:
                         command = "combine " + command
                     RunCommand(command + " | tee LHS_Float.log", self.dry_run)
 
-                if args.substep == 2:
+                if self.substep == 2:
                     # STEP - 2
                     command = " -M MultiDimFit --algo none --rMin -3 --rMax 3 -d {datacard} -m {mH} -n .{name} --saveWorkspace {blindString} ".format(datacard = datacard.replace(".txt",".root"), mH = current_mass, blindString = self.blindString, name = name2) # FIXME: name
                     # while running on condor, switch the verbosity level to -1 (very quite)
@@ -434,7 +434,7 @@ class DirectoryCreator:
                         command = "combine " + command
                     RunCommand(command + " | tee LHS_plot.log", self.dry_run)
 
-                if args.substep == 3:
+                if self.substep == 3:
                     # STEP - 4
                     command = "plot1DScan.py higgsCombine.{name}.MultiDimFit.mH{mH}.root --main-label \"With systematics\" --main-color 1 --others higgsCombine.{name3}.MultiDimFit.mH{mH}.root:\"Stat-only\":2 -o {outPDFName} --breakdown syst,stat".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, pointsToScan = pointsToScan, name = name, name3 = name3, outPDFName = '../../figs/'+outPDFName)
                     RunCommand(command + " | tee LHS_plot.log", self.dry_run)
@@ -442,7 +442,7 @@ class DirectoryCreator:
                 ############################################
                 #       Version 2 of LHS: https://twiki.cern.ch/twiki/bin/view/Sandbox/TestTopic11111180#Likelihood_scan
                 ############################################
-                if args.substep == 21:
+                if self.substep == 21:
                     # # STEP - 1: Inclusive likelihood scan with syst and stats:
                     # combineTool.py -M MultiDimFit --algo grid --points 100 --rMin 0 --rMax 3 ttHmultilep_WS.root --alignEdges 1 --floatOtherPOIs=1 -P r_ttH -n .likelihoodscan --saveWorkspace
                     command = "combineTool.py -M MultiDimFit --algo grid --points {pointsToScan} --rMin 0 --rMax 3 {datacard} --alignEdges 1 --floatOtherPOIs=1  -n .likelihoodscan --saveWorkspace  -m {mH} ".format(pointsToScan = pointsToScan, datacard = datacard.replace(".txt",".root"), mH = current_mass)
@@ -452,13 +452,13 @@ class DirectoryCreator:
                         command = "combine " + command
                     RunCommand(command + " ", self.dry_run)
 
-                if args.substep == 22:
+                if self.substep == 22:
                     # # STEP - 2: Plot inclusive likelihood scan:
                     # plot1DScan.py all.root  --y-cut 50 --y-max 50
                     command = "plot1DScan.py higgsCombine.likelihoodscan.MultiDimFit.mH125.root  --y-cut 50 --y-max 50"
                     RunCommand(command + " ", self.dry_run)
 
-                if args.substep == 23:
+                if self.substep == 23:
                     # # STEP - 3: Get statistical only component:
                     # combine -M MultiDimFit higgsCombine.likelihoodscan.MultiDimFit.mH125.root -n .likelihoodscan.freezeAll -m 125 --rMin 0 --rMax 3  --algo grid --points 30 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit --alignEdges 1 --floatOtherPOIs=1 -P r_ttH
                     command = "combine -M MultiDimFit higgsCombine.likelihoodscan.MultiDimFit.mH{mH}.root -n .likelihoodscan.freezeAll -m {mH} --rMin 0 --rMax 3  --algo grid --points {pointsToScan} --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit --alignEdges 1 ".format(pointsToScan = pointsToScan, mH = current_mass)
@@ -468,14 +468,14 @@ class DirectoryCreator:
                         command = "combine " + command
                     RunCommand(command + " ", self.dry_run)
 
-                if args.substep == 24:
+                if self.substep == 24:
                     # # STEP - 4: Plot breakdown stat and syst:
                     # plot1DScan.py higgsCombine.likelihoodscan.MultiDimFit.mH125.root --POI r_ttH --y-cut 50 --y-max 50 --breakdown syst,stat --others "higgsCombine.likelihoodscan.freezeAll.MultiDimFit.mH125.root:Stat only:2"
                     command = "plot1DScan.py higgsCombine.likelihoodscan.MultiDimFit.mH125.root --y-cut 50 --y-max 50 --breakdown syst,stat --others \"higgsCombine.likelihoodscan.freezeAll.MultiDimFit.mH{mH}.root:Stat only:2\"".format(mH = current_mass)
                     RunCommand(command + " ", self.dry_run)
 
                 # # From Chenguang:
-                # if args.substep == 31:
+                # if self.substep == 31:
                 #     # syst + stat
                 #     # combine -P MH --floatOtherPOIs=1 --robustFit=0 --saveInactivePOI 1 --algo=grid --setParameters MH=125.38,r=1.0 --saveWorkspace -M MultiDimFit -m 125.38 -d inputworkspace.root --points 40 --firstPoint 0 --lastPoint 9 -n outputworkspace
                 #     command = "combineTool.py -P MH --floatOtherPOIs=1 --robustFit=0 --saveInactivePOI 1 --algo=grid --setParameters MH={mH},r=1.0 --saveWorkspace -M MultiDimFit -m {mH} -d {datacard} --points {pointsToScan} --firstPoint 0 --lastPoint 9 -n {name}".format(mH = current_mass, datacard = datacard.replace(".txt",".root"), pointsToScan = pointsToScan, name = name)
@@ -872,4 +872,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
