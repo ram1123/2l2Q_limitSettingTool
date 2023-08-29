@@ -62,9 +62,14 @@ jobs:
 
       - name: Create sphinx-docs directory
         run: sudo mkdir -p _site/sphinx-docs
-        
+
+      - name: Debug permissions and ownership
+        run: |
+          ls -l _site
+          ls -lha
+
       - name: Copy Sphinx Documentation to Jekyll Site
-        run: cp -r docs/build/html/* _site/sphinx-docs/
+        run: sudo cp -r docs/build/html/* _site/sphinx-docs/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
