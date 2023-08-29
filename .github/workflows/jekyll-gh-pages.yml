@@ -60,6 +60,9 @@ jobs:
           ls -l docs/build/
           ls -l docs/build/html/
 
+      - name: Create sphinx-docs directory
+        run: mkdir -p _site/sphinx-docs
+        
       - name: Copy Sphinx Documentation to Jekyll Site
         run: cp -r docs/build/html/* _site/sphinx-docs/
 
