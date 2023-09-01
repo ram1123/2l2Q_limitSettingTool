@@ -58,15 +58,15 @@ class cd:
 class DirectoryCreator:
     DATA_CARD_FILENAME = "hzz2l2q_13TeV_xs.txt"
 
-    def __init__(self, input_dir="", is_2d=1, MassStartVal = 500, MassEndVal = 3001, MassStepVal = 50, append_name="", frac_vbf=0.005, year="2016", step="dc", substep = 1, ifCondor=False, blind=True, verbose=True, allDatacard = False, SBHypothesis = False, dry_run=False, ifParallel = False, SanityCheckPlotUsingWorkspaces = True):
-        self.input_dir = input_dir
-        self.is_2d = is_2d
-        self.append_name = append_name
-        self.frac_vbf = frac_vbf
-        self.year = year
-        self.start_mass = MassStartVal
-        self.step_sizes = MassStepVal
-        self.end_val = MassEndVal
+    def __init__(self, args):
+        self.input_dir = args.input_dir
+        self.is_2d = args.is_2d
+        self.append_name = args.append_name
+        self.frac_vbf = args.frac_vbf
+        self.year = args.year
+        self.start_mass = args.MassStartVal
+        self.step_sizes = args.MassStepVal
+        self.end_val = args.MassEndVal
         self.subdir = ['HCG','figs']
         self.dir_name = 'datacards_HIG_23_001'
         self.channels = {'eeqq_Resolved', 'mumuqq_Resolved', 'eeqq_Merged', 'mumuqq_Merged'}
@@ -74,26 +74,33 @@ class DirectoryCreator:
         self.ifNuisance = True
         self.Template = ["2D"]
         self.t_values = ['Resolved', 'Merged']
-        self.step = step
-        self.substep = substep
-        self.ifCondor = ifCondor
-        self.blind = blind
-        self.allDatacard = allDatacard
-        self.SBHypothesis = SBHypothesis
-        self.verbose = verbose
-        self.dry_run = dry_run
-        self.ifParallel = ifParallel
-        self.SanityCheckPlotUsingWorkspaces = SanityCheckPlotUsingWorkspaces
+        self.step = args.step
+        self.substep = args.substep
+        self.ifCondor = args.ifCondor
+        self.blind = args.blind
+        self.allDatacard = args.allDatacard
+        self.signalStrength = args.signalStrength
+        self.freezeParameters = args.freezeParameters
+        self.setParameterRanges = args.setParameterRanges
+        self.verbose = args.verbose
+        self.dry_run = args.dry_run
+        self.ifParallel = args.parallel
+        self.SanityCheckPlotUsingWorkspaces = args.SanityCheckPlotUsingWorkspaces
 
         self.blindString = ""
         self.FitType = ""
-        if self.SBHypothesis:
-            self.blindString = " -t -1 --expectSignal 1 "   # b-only fit diagnostics
-            self.FitType = "SBHypothesis"
-        if (not self.SBHypothesis) :
-            # self.blindString = "  -t -1   "   # s+b fit diagnostics
-            self.blindString = "  -t -1  --expectSignal 0 "   # s+b fit diagnostics
+        if self.signalStrength == 0.0:
             self.FitType = "BkgOnlyHypothesis"
+        elif self.signalStrength == 1.0:
+            self.FitType = "SBHypothesis"
+        else:
+            self.FitType = "SBHypo_SStrength{}".format(self.signalStrength)
+
+        if self.blind:
+            # self.blindString = " --run blind "
+            self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+        else:
+            self.blindString = " "
 
         self.datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
@@ -298,7 +305,7 @@ class DirectoryCreator:
                 Stat = " "
                 Stat += " --setRobustFitStrategy 2 "
                 Stat +=  " --cminFallbackAlgo Minuit,1:10 " # Added this line as fits were failing
-                Stat += " --cminDefaultMinimizerTolerance 0.1  --setRobustFitTolerance 0.1 " # Added this line as fits were failing for some cases
+                Stat += " --cminDefaultMinimizerTolerance 0.01  --setRobustFitTolerance 0.01 " # Added this line as fits were failing for some cases
 
                 # (BR,BTAG_merged,CMS_Vtagging,CMS_Vtagging_In,CMS_channel,CMS_eff_e,CMS_eff_e_In,CMS_eff_m,CMS_eff_m_In,CMS_scale_J_Abs,CMS_scale_J_Abs_2018,CMS_scale_J_Abs_2018_In,CMS_scale_J_Abs_In,CMS_scale_J_BBEC1,CMS_scale_J_BBEC1_2018,CMS_scale_J_BBEC1_2018_In,CMS_scale_J_BBEC1_In,CMS_scale_J_EC2,CMS_scale_J_EC2_2018,CMS_scale_J_EC2_2018_In,CMS_scale_J_EC2_In,CMS_scale_J_FlavQCD,CMS_scale_J_FlavQCD_In,CMS_scale_J_HF,CMS_scale_J_HF_2018,CMS_scale_J_HF_2018_In,CMS_scale_J_HF_In,CMS_scale_J_RelBal,CMS_scale_J_RelBal_In,CMS_scale_J_RelSample_2018,CMS_scale_J_RelSample_2018_In,CMS_zz2l2q_bkgMELA_merged,CMS_zz2l2q_bkgMELA_merged_In,CMS_zz2l2q_mean_e_sig,CMS_zz2l2q_mean_e_sig_In,CMS_zz2l2q_mean_m_sig,CMS_zz2l2q_mean_m_sig_In,CMS_zz2l2q_sigMELA_merged,CMS_zz2l2q_sigMELA_merged_In,CMS_zz2l2q_sigma_e_sig,CMS_zz2l2q_sigma_e_sig_In,CMS_zz2l2q_sigma_m_sig,CMS_zz2l2q_sigma_m_sig_In,CMS_zz2lJ_mean_J_sig,CMS_zz2lJ_mean_J_sig_In,CMS_zz2lJ_sigma_J_sig,CMS_zz2lJ_sigma_J_sig_In,Dspin0,LUMI_13_2018,MH,QCDscale_vz,QCDscale_vz_In,a1_VBF_eeqq_Merged_2018,a1_VBF_mumuqq_Merged_2018,a1_ggH_eeqq_Merged_2018,a1_ggH_mumuqq_Merged_2018,a2_VBF_eeqq_Merged_2018,a2_VBF_mumuqq_Merged_2018,a2_ggH_eeqq_Merged_2018,a2_ggH_mumuqq_Merged_2018,bias_VBF_eeqq_Merged,bias_VBF_mumuqq_Merged,bias_ggH_eeqq_Merged,bias_ggH_mumuqq_Merged,frac_VBF,lumi_13TeV_2018,lumi_13TeV_2018_In,lumi_13TeV_correlated_16_17_18,       lumi_13TeV_correlated_16_17_18_In,lumi_13TeV_correlated_17_18,lumi_13TeV_correlated_17_18_In,mean_J_err,mean_e_err,mean_m_err,n1_VBF_eeqq_Merged_2018,n1_VBF_mumuqq_Merged_2018,n1_ggH_eeqq_Merged_2018,n1_ggH_mumuqq_Merged_2018,n2_VBF_eeqq_Merged_2018,n2_VBF_mumuqq_Merged_2018,n2_ggH_eeqq_Merged_2018,n2_ggH_mumuqq_Merged_2018,pdf_hzz2l2q_accept,pdf_hzz2l2q_accept_In,pdf_qqbar,pdf_qqbar_In,r,sigma_J_err,sigma_VBF_eeqq_Merged,sigma_VBF_mumuqq_Merged,sigma_e_err,sigma_ggH_eeqq_Merged,sigma_ggH_mumuqq_Merged,sigma_m_err,zjetsAlpha_merged_btagged,zjetsAlpha_merged_btagged_In,zjetsAlpha_merged_untagged,zjetsAlpha_merged_untagged_In,zjetsAlpha_merged_vbftagged,zjetsAlpha_merged_vbftagged_In,zz2lJ_mass)
 
@@ -311,15 +318,19 @@ class DirectoryCreator:
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1:CMS_zz2l2q_sigma_m_sig=0,1 "
 
-                # Stat = " "
+                Stat = " "
+                if self.setParameterRanges != "":
+                    Stat += " --setParameterRanges {}".format(self.setParameterRanges)
 
                 # freeze the nuisance JES and JER
                 freeze = " "
+                if self.freezeParameters != "":
+                    freeze += " --freezeParameters {}".format(self.freezeParameters)
                 # freeze +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
                 # freeze += " --freezeParameters BTAG_resolved "
-                freeze += " --freezeParameters frac_VBF "
+                # freeze += " --freezeParameters frac_VBF "
                 # freeze += " --freezeParameters allConstrainedNuisances "
-                freeze = " "
+                # freeze = " "
 
                 if self.substep == 1:
                     # STEP - 1
@@ -750,7 +761,8 @@ def configure_logging(args):
     Args:
         args (namespace): Namespace containing command-line arguments.
     """
-    logging.basicConfig(level=args.log_level)
+    logger.debug("Setting log level to {}".format(args.log_level))
+    logger.setLevel(args.log_level)
     ROOT.RooMsgService.instance().setGlobalKillBelow(args.log_level_roofit)
 
 def set_years_new(args_year):
@@ -802,18 +814,18 @@ def main():
     year_condor_settings.add_argument("-c", "--ifCondor", action="store_true", dest="ifCondor", default=False, help="if you want to run combine command for all mass points parallel using condor make it 1")
 
     # Fit Settings
+    fit_settings.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
     fit_settings.add_argument('-f', '--fracVBF', dest='frac_vbf', type=float, default=-1, help='fracVBF, -1 means float this frac. (default:-1)')
     fit_settings.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
-    fit_settings.add_argument("-signalStrength", "--signalStrength", dest="signalStrength", type=float, default=0, help="signal strength for the fit")
-    fit_settings.add_argument("-fitType", "--fitType", dest="fitType", type=str, default="BkgOnlyHypothesis", help="fitType for the fit")
-    fit_settings.add_argument("-SBHypothesis", "--SBHypothesis", action="store_true", dest="SBHypothesis", default=False, help="If this option given then it will set --expectSignal 1, which means this is signal + background  fit. By default it will always perform B only limit/fit")
-    fit_settings.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
-    fit_settings.add_argument("-stat", "--stat", action="store_true", dest="stat", default=False, help="If this option given then it will set --freezeParameters allConstrainedNuisances, which means this is stat only fit. By default it will always perform syst + stat fit")
-    fit_settings.add_argument("-freeze", "--freeze", action="store_true", dest="freeze", default=False, help="If this option given then it will set --freezeParameters allConstrainedNuisances, which means this is stat only fit. By default it will always perform syst + stat fit")
+    fit_settings.add_argument("-signalStrength", "--signalStrength", dest="signalStrength", type=float, default=0.0, help="signal strength for the fit")
+    # freeze parameters for the fit
+    fit_settings.add_argument("-freezeParameters", "--freezeParameters", dest="freezeParameters", type=str, default="", help="freeze parameters for the fit. If want to freeze all then give argumen `allConstrainedNuisances`")
+    # set parameters range for the fit
+    fit_settings.add_argument("-setParameterRanges", "--setParameterRanges", dest="setParameterRanges", type=str, default="", help="set parameters range for the fit. Its format should be `r=-1,3:BTAG_resolved=-5,5:BTAG_merged=-5,5`")
 
 
     # Logging Settings
-    logging_settings.add_argument("--log-level", default=logging.WARNING, type=lambda x: getattr(logging, x.upper()), help="Configure the logging level.")
+    logging_settings.add_argument("--log-level", default=logging.INFO, type=lambda x: getattr(logging, x.upper()), help="Configure the logging level.")
     logging_settings.add_argument("--log-level-roofit", default=ROOT.RooFit.WARNING, type=lambda x: getattr(ROOT.RooFit, x.upper()), help="Configure the logging level for RooFit.")
     logging_settings.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
 
@@ -838,13 +850,14 @@ def main():
 
     # Logging setup for both logging and RooFit logging
     configure_logging(args)
+    logger.info("Setting log level to {}".format(args.log_level))
 
     # Get the full command line used to run the current Python script
     command_line = ' '.join(sys.argv)
     SaveInfoToTextFile("#"*75+'\n\n')
     SaveInfoToTextFile('python '+command_line+'\n\n')
 
-    DirectoryCreatorObj = DirectoryCreator(args.input_dir, args.is_2d, args.MassStartVal, args.MassEndVal, args.MassStepVal , args.append_name, args.frac_vbf, args.year, args.step,  args.substep, args.ifCondor, args.blind, args.verbose, args.allDatacard, args.SBHypothesis, args.dry_run, args.parallel, args.SanityCheckPlotUsingWorkspaces)
+    DirectoryCreatorObj = DirectoryCreator(args)
 
     # Get the list of years to run
     years = set_years_new(args.year)
