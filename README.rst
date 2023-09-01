@@ -43,64 +43,171 @@ Usage
 =====
 
 The tool is run from the command line with various options. Here is a
-list of available options:
+list of command line available options:
 
--  ``-i``, ``--input``: Specify the input directory (default: ““)
--  ``-d``, ``--is2D``: Specify if the input is 2D template or 1D
-   (default: 1)
--  ``-mi``, ``--MassStartVal``: Specify the starting mass value
-   (default: 500)
--  ``-mf``, ``--MassEndVal``: Specify the ending mass value (default:
-   3001)
--  ``-ms``, ``--MassStepVal``: Specify the step value (default: 50)
--  ``-a``, ``--append``: Append a name for the cards directory (default:
-   ““)
--  ``-f``, ``--fracVBF``: Specify the fraction of VBF (default: 0.5%)
--  ``-y``, ``--year``: Specify the year to run or run for all three
-   years. Options: 2016, 2017, 2018, all (to run all 3 year), run2 (for
-   combination of all 3 years).
--  ``-s``, ``--step``: Specify which step to run. Options: dc
-   (DataCardCreation), cc - (CombineCards), rc (RunCombine), ri (run
-   Impact), rll (run loglikelihood with and - without syst), fast
-   (FastScan) or all (default: dc)
--  ``-c``, ``--ifCondor``: Set to 1 to run combine command for all mass
-   points in parallel using - condor (default: False)
--  ``-b``, ``--blind``: Set to False to run unblinded (default: True)
--  ``-allDatacard``, ``--allDatacard``: Set to True if limit values or
-   impact plots are needed for - each datacard written in file
-   `ListOfDatacards.py <ListOfDatacards.py>`__ (default: False)
--  ``-bOnly``, ``--bOnly``: Set to True to perform background only fit
-   (default: False)
--  ``-v``, ``--verbose``: Set to True to print status messages to stdout
-   (default: False)
--  ``--log-level:`` Set the logging level. Options: DEBUG, INFO,
-   WARNING, ERROR (default: - ``WARNING``)
--  ``--dry-run:`` Set to True to print the command without actually
-   running it (default: False)
--  ``-p``, ``--parallel``: Set to True to run jobs in parallel (default:
-   False)
--  ``-date``, ``--date``: Specify a date string (default: ““)
--  ``-tag``, ``--tag``: Specify a tag string (default: ““)
+General Settings
+^^^^^^^^^^^^^^^^
 
-Here is few example command:
+- **-i, --input**
+    - Type: ``str``
+    - Default: ``""``
+    - Description: Specifies the input directory.
+
+- **-d, --is2D**
+    - Type: ``int``
+    - Default: ``1``
+    - Description: Determines whether it is a 2D analysis.
+
+- **-a, --append**
+    - Type: ``str``
+    - Default: ``""``
+    - Description: Append name for cards directory.
+
+- **--dry-run**
+    - Action: ``store_true``
+    - Description: Don't actually run the command, just print it.
+
+- **-p, --parallel**
+    - Action: ``store_true``
+    - Description: Run jobs in parallel.
+
+Mass Settings
+^^^^^^^^^^^^^
+
+- **-mi, --MassStartVal**
+    - Type: ``int``
+    - Default: ``500``
+    - Description: Starting value for mass range.
+
+- **-mf, --MassEndVal**
+    - Type: ``int``
+    - Default: ``3001``
+    - Description: Ending value for mass range.
+
+- **-ms, --MassStepVal**
+    - Type: ``int``
+    - Default: ``50``
+    - Description: Step value for mass range.
+
+Year and Condor Settings
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- **-y, --year**
+    - Type: ``str``
+    - Default: ``2016``
+    - Description: Specifies the year to run the analysis. Options are: 2016, 2017, 2018, all, allc, run2.
+
+- **-c, --ifCondor**
+    - Action: ``store_true``
+    - Default: ``False``
+    - Description: Use Condor to run the combine command for all mass points in parallel.
+
+Fit Settings
+^^^^^^^^^^^^
+
+- **-allDatacard, --allDatacard**
+    - Action: ``store_true``
+    - Default: ``False``
+    - Description: If enabled, provides limit values or impact plots for each data card stored in ``ListOfDatacards.py``.
+
+- **-f, --fracVBF**
+    - Type: ``float``
+    - Default: ``-1``
+    - Description: Fraction of VBF (Vector Boson Fusion). A value of -1 means this fraction will float.
+
+- **-b, --blind**
+    - Action: ``store_false``
+    - Default: ``True``
+    - Description: Enable or disable blind analysis.
+
+- **-signalStrength, --signalStrength**
+    - Type: ``float``
+    - Default: ``0.0``
+    - Description: Signal strength for the fit.
+
+- **-freezeParameters, --freezeParameters**
+    - Type: ``str``
+    - Default: ``""``
+    - Description: Freeze parameters for the fit. The format should be like ``r=-1,3:BTAG_resolved=-5,5:BTAG_merged=-5,5``.
+
+Logging Settings
+^^^^^^^^^^^^^^^^
+
+- **--log-level**
+    - Type: ``logging level``
+    - Default: ``logging.INFO``
+    - Description: Configure the logging level.
+
+- **--log-level-roofit**
+    - Type: ``RooFit level``
+    - Default: ``ROOT.RooFit.WARNING``
+    - Description: Configure the logging level for RooFit.
+
+- **-v, --verbose**
+    - Action: ``store_true``
+    - Default: ``False``
+    - Description: Enable verbose logging.
+
+Advanced Settings
+^^^^^^^^^^^^^^^^^
+
+- **-date, --date**
+    - Type: ``str``
+    - Default: ``""``
+    - Description: Append date string to the output file name.
+
+- **-tag, --tag**
+    - Type: ``str``
+    - Default: ``""``
+    - Description: Add additional string in combine output and log files.
+
+- **-sanityCheck, --sanity-check**
+    - Action: ``store_true``
+    - Default: ``False``
+    - Description: Enable sanity check plots using workspaces.
+
+Step Control
+^^^^^^^^^^^^
+
+- **-s, --step**
+    - Type: ``str``
+    - Default: ``dc``
+    - Description: Specify which step to run. Choices are: ``dc``, ``cc``, ``ws``, ``rc``, ``fd``, ``ri``, ``fs``, ``rll``, ``corr``, ``plot``, ``all``.
+
+- **-ss, --substep**
+    - Type: ``int``
+    - Default: ``11``
+    - Description: Specify a sub-step.
+
+
+### Usage Example
 
 .. code:: bash
 
-   # Run datacard step for year 2018. For now all 3 years datacard can't be created. There is some issue that need to be addressed
-   python makeDCsandWSs.py -y 2018 step -s dc
+   # Datacard creation step for year 2018
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s dc
 
-   # Run 2018 datacard/workspace creation step
-   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s dc
-   # Run 2018 combine card step
-   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s cc
-   # Run 2018 asymptotic combine command step to get the limit
-   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -a 2018 step -s rc
+   # Combine card step for year 2018
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s cc
 
-   # To run all steps (except datacard creation one) and for all years, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
-   time(python makeDCsandWSs.py -y all -p -c step -s all)
+   # Asymptotic combine command step to get the limit for year 2018
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s rc
 
-   # To run all steps (except datacard creation one) and for all years and on all datacards specified in file `ListOfDatacards.py`, using condor (`-c`) and use parallel processing (`-p`) to submit the jobs
-   time(python makeDCsandWSs.py  -y all -p -c --allDatacard step -s all)
+   # Asymptotic combine command step to get the limit for year 2018 and for all mass points in parallel using condor
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s rc -c -p
+
+   # Impact plot step for year 2018. Impact plot has 3 steps: InitialFit, doFits, and plotImpacts.
+   # Below commands will run each step for all mass points for 2018 using condor.
+   # `-p` is used so that it will submit jobs in parallel for all mass points
+   # `-ss` is used to specify which sub-step to run.
+   # Don't submit next step until the previous step is finished. Otherwise, it won't find the input files and give you errors.
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s ri -ss 1 -c -p
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s ri -ss 2 -c -p
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s ri -ss 3 -c -p
+
+   # To run the impact plot or any other step for once mass point use the option `-mi` and `-mf` to specify the mass point
+   python makeDCsandWSs.py -i HM_inputs_2018UL  -y 2018 -s ri -ss 1 -mi 500 -mf 501
+   # The above command will run only the mass point 500 GeV
 
 Input Information Required
 ==========================
