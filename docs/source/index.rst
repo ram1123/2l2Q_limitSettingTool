@@ -13,21 +13,7 @@ Welcome to Limit extraction tool for high mass search's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   systematicsClass.rst
-   plotLimitExpObs_2D.rst
-   datacardClass.rst
-   DrawDCB.rst
-   GetLimitValues.rst
-   GetLimitValues_v2.rst
-   inputReader.rst
-   readEff.rst
-   tdrStyle.rst
-   utils.rst
-   ListOfDatacards.rst
-   common_strings_pars.rst
-   makeDCsandWSs.rst
-   plotDataFromWorkspace.rst
-   plotLimitExpObs_2D.rst
+   modules.rst
 
 Indices and tables
 ==================

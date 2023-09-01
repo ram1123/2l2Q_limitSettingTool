@@ -30,7 +30,7 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme recommonmark
 
       - name: Generate API Documentation
-        run: sphinx-apidoc -o docs/source .
+        run: sphinx-apidoc -f -o docs/source .
 
       - name: Generate Sphinx Documentation
         run: |
