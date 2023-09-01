@@ -51,7 +51,7 @@ extensions = [
     'recommonmark',
 ]
 
-autodoc_mock_imports = ["ROOT","gROOT", "prettytable"]
+autodoc_mock_imports = ["ROOT","gROOT", "prettytable", "readEff"]
 
 MOCK_MODULES = ["ROOT"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
