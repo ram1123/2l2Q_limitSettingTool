@@ -89,6 +89,8 @@ class DirectoryCreator:
         self.ifParallel = args.parallel
         self.SanityCheckPlotUsingWorkspaces = args.SanityCheckPlotUsingWorkspaces
 
+        self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
+
         self.blindString = ""
         self.FitType = ""
         if self.signalStrength == 0.0:
@@ -104,6 +106,8 @@ class DirectoryCreator:
                 self.blindString += " --expectSignal {} ".format(self.signalStrength)
             if args.step == 'ri':
                 self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+            if args.step == 'fs':
+                self.blindString = " -t -1  "
         else:
             self.blindString = " "
 
@@ -261,6 +265,22 @@ class DirectoryCreator:
                 # CombineCommonArguments += " --run expected "
                 # CombineCommonArguments += " --run blind -t -1 "
                 # CombineCommonArguments += " --run blind -t -1 --expectSignal 1 "
+
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+            CombineCommonArguments += Stat
+            CombineCommonArgumentsHybrid += Stat
+
+            # freeze the nuisance JES and JER
+            freeze = " "
+            if self.freezeParameters != "":
+                freeze += " --freezeParameters {}".format(self.freezeParameters)
+            CombineCommonArguments += freeze
+            CombineCommonArgumentsHybrid += freeze
+
             if self.ifCondor:
                 LocalDir = os.getcwd()
                 os.chdir(current_mass_directory)
@@ -269,10 +289,10 @@ class DirectoryCreator:
 
                 Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                 if self.year == 'run2':
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                 else:
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString, Condor_queue = Condor_queue)
-                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
+                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+                commandHybrid += self.CombineCondor.format(name = AppendNameString+"_Hybrid", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
                 # espresso = 20min
                 # microcentury = 1 hr
                 # longlunch = 2 hr
@@ -348,9 +368,9 @@ class DirectoryCreator:
                     if self.ifCondor:
                         Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                         if self.year == 'run2':
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = AppendOutName)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                         else:
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = AppendOutName, Condor_queue = Condor_queue)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
                     else:
                         command +=  " | tee {name}.log".format(name = AppendOutName)
 
@@ -367,9 +387,9 @@ class DirectoryCreator:
                     if self.ifCondor:
                         Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                         if self.year == 'run2':
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = AppendOutName)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS2", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                         else:
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = AppendOutName, Condor_queue = Condor_queue)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS2", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
                     else:
                         # use multi core processing to run impact plot
                         command += " --parallel 8 "
@@ -418,7 +438,9 @@ class DirectoryCreator:
                 name3 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
                 outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
 
-                CondorCommandPatch = " -v -1  --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_LHS".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType))
+                CustomString = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
+
+                CondorCommandPatch = " -v -1 " + self.CombineCondor.format(name = CustomString+"_LHS", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
 
                 if self.substep == 1:
                     # STEP - 1
@@ -577,7 +599,7 @@ class DirectoryCreator:
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
             RunCommand(command, self.dry_run)
 
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
@@ -587,7 +609,7 @@ class DirectoryCreator:
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -617,7 +639,7 @@ class DirectoryCreator:
                 RunCommand(command, self.dry_run)
 
             if self.blind:
-                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=0,10 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=-5,5 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
                 command += self.blindString
                 RunCommand(command, self.dry_run)
 
@@ -627,21 +649,35 @@ class DirectoryCreator:
 
             command += " --parallel 8 "
 
-            additionalArguments = "   "
+            if self.blind: command += "  --setParameters r=1 "
+
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+
+            command += Stat
+
+            # freeze the nuisance JES and JER
+            freeze = " "
+            if self.freezeParameters != "":
+                freeze += " --freezeParameters {}".format(self.freezeParameters)
+            command += freeze
+
+            if self.ifCondor:
+                command += self.CombineCondor.format(name = OutNameAppend+"_FastScan", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
+            # additionalArguments = "   "
             # additionalArguments = " --robustHesse 1"
             # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
 
-            additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
+            # additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
 
             # fitting options
-            additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
+            # additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
 
             # additionalArguments += " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
 
-
-
-
-            command += additionalArguments
             RunCommand(command, self.dry_run)
 
         os.chdir(cwd)
