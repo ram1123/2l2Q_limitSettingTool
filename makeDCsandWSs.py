@@ -12,6 +12,7 @@ from ListOfDatacards import datacardList, datacardList_condor
 import multiprocessing as mp
 from functools import partial
 import datetime
+import fnmatch
 
 import ROOT
 
@@ -74,10 +75,13 @@ class DirectoryCreator:
         self.ifNuisance = True
         self.Template = ["2D"]
         self.t_values = ['Resolved', 'Merged']
+        self.date = args.date
+        self.tag = args.tag
         self.step = args.step
         self.substep = args.substep
         self.ifCondor = args.ifCondor
         self.blind = args.blind
+        self.howToBlind = args.howToBlind
         self.allDatacard = args.allDatacard
         self.signalStrength = args.signalStrength
         self.freezeParameters = args.freezeParameters
@@ -88,6 +92,7 @@ class DirectoryCreator:
         self.dry_run = args.dry_run
         self.ifParallel = args.parallel
         self.SanityCheckPlotUsingWorkspaces = args.SanityCheckPlotUsingWorkspaces
+
 
         self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
 
@@ -104,7 +109,7 @@ class DirectoryCreator:
             self.blindString = " " + args.howToBlind + " "
             if args.howToBlind == "-t -1":
                 self.blindString += " --expectSignal {} ".format(self.signalStrength)
-            if args.step == 'ri':
+            if args.step == 'ri' or args.step == 'riess':
                 self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
             if args.step == 'fs':
                 self.blindString = " -t -1  "
@@ -113,6 +118,35 @@ class DirectoryCreator:
 
         self.datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
+    def ResetBlindString(self):
+        if self.blind:
+            self.blindString = " " + self.howToBlind + " "
+            if self.howToBlind == "-t -1":
+                self.blindString += " --expectSignal {} ".format(self.signalStrength)
+            if self.step == 'ri' or self.step == 'riess':
+                self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+            if self.step == 'fs':
+                self.blindString = " -t -1  "
+        else:
+            self.blindString = " "
+
+        # if self.signalStrength == 0.0:
+        #     self.FitType = "BkgOnlyHypothesis"
+        # elif self.signalStrength == 1.0:
+        #     self.FitType = "SBHypothesis"
+        # else:
+        #     self.FitType = "SBHypo_SStrength{}".format(self.signalStrength)
+
+    def ResetTag(self):
+        if (self.date).lower() != '' or (self.tag).lower() != '':
+            CombineStrings.printAll()
+            if (self.date).lower() != '':
+                logger.debug("Setting date string to {}".format(self.date))
+                CombineStrings.set_date(self.date)
+            if (self.tag).lower() != '':
+                logger.debug("Setting tag string to {}".format(self.tag))
+                CombineStrings.set_tag_impact( self.tag)
+            CombineStrings.printAll()
 
     def GetCategory(self, datacard):
         return ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
@@ -155,7 +189,7 @@ class DirectoryCreator:
         with cd(current_mass_directory):
             logger.debug("Current directory: {}".format(os.getcwd()))
             if os.path.exists(datacard.replace(".txt", ".root")):
-                logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
+                logger.warning("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
                 os.remove(datacard.replace(".txt", ".root"))
 
             # Create the workspace
@@ -310,6 +344,62 @@ class DirectoryCreator:
 
                 RunCommand(command, self.dry_run)
                 os.chdir(cwd)
+
+    def run_impact_expSS(self, current_mass, current_mass_directory, cwd):
+        """This member function will first grab the expected upper limit from the combine output.
+         Then set the signalStrength value to the expected limit then run the impact plot
+
+        Args:
+            current_mass (str): Mass of scalar over which its going to run
+            current_mass_directory (str): path where it will find input datacards and place output information
+            cwd (str): current working directory
+        """
+        # Get the expected upper limit from the combine output
+
+        logger.debug("Datacard: {}".format(self.datacards))
+        expUL = 0.0
+        TempSignalStrength = self.signalStrength
+        with cd(current_mass_directory):
+            logger.debug("Current directory: {}".format(os.getcwd()))
+            for datacard in self.datacards:
+                AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
+                # Get the expected upper limit from the combine output (its format is "mH500_run2_03sep_blind_BkgOnlyHypothesis__AsympLimit_BkgOnlyHypothesis.6008612.0.out")
+                # self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
+                #
+                logger.debug("Opening file: {}".format("{name}*.out".format(name = AppendNameString+"_AsympLimit")))
+
+                # List all files with the name {name}*.out in current directory. Pick the one with the latest creation time
+                matching_files = []
+                for filename in os.listdir("."):
+                    if fnmatch.fnmatch(filename, "{name}*.out".format(name = AppendNameString+"_AsympLimit")):
+                        filepath = os.path.join(".", filename)
+                        creation_time = os.path.getctime(filepath)
+                        matching_files.append((filename, creation_time))
+
+                # Sort the files by creation time in descending order
+                sorted_files = sorted(matching_files, key=lambda x: x[1], reverse=True)
+
+                # Pick the latest file if there is at least one
+                if sorted_files:
+                    latest_file = sorted_files[0][0]
+                    logger.debug("The most recently created file is {}".format(latest_file))
+                else:
+                    logger.error("No matching files found.")
+                    sys.exit(1)
+
+                with open(latest_file, 'r') as f:
+                    for line in f:
+                        if "Expected 50.0%: r <" in line:
+                            expUL = float(line.split("Expected 50.0%: r <")[1].split(" ")[1])
+                            logger.info("Expected upper limit: {}".format(expUL))
+                            break
+        # Update the signal strength value
+        self.signalStrength = expUL
+        self.ResetBlindString()
+        self.tag = "expUL"
+        self.ResetTag()
+        # Run the impact plot
+        self.run_impact(current_mass, current_mass_directory, cwd)
 
     def run_impact(self, current_mass, current_mass_directory, cwd):
         logger.debug('datacards: {}'.format(self.datacards))
@@ -690,6 +780,7 @@ class DirectoryCreator:
             "rc": self.run_combine,
             "fd": self.FitDiagnostics,
             "ri": self.run_impact,
+            "riess": self.run_impact_expSS,
             "fs": self.fastScan,
             "rll": self.run_LHS,
             "corr": self.run_correlation,
@@ -703,7 +794,7 @@ class DirectoryCreator:
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
-            # actions["ws"](current_mass, current_mass_directory, cwd)
+            actions["ws"](current_mass, current_mass_directory, cwd)
             actions["rc"](current_mass, current_mass_directory, cwd)
             # actions["ri"](current_mass, current_mass_directory, cwd)
             #actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
@@ -875,7 +966,7 @@ def main():
 
 
     # Step Control
-    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "fs", "rll", "corr", "plot", "all"])
+    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "riess", "fs", "rll", "corr", "plot", "all"])
     step_control.add_argument('-ss', '--substep', dest='substep', type=int, default=11, help='sub-step help')
 
     args = parser.parse_args()
