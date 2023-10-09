@@ -74,7 +74,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: site
+          name: github-pages
           path: _site/
 
   deploy:
@@ -87,7 +87,7 @@ jobs:
       - name: Download artifact  # <-- Add this step
         uses: actions/download-artifact@v2
         with:
-          name: site
+          name: github-pages
   
       - name: Deploy to GitHub Pages
         id: deployment
