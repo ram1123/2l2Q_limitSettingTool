@@ -2,7 +2,7 @@ name: Deploy Jekyll with GitHub Pages dependencies preinstalled
 
 on:
   push:
-    branches: ["main"]
+    branches: ["deploy_check"]
   workflow_dispatch:
 
 permissions:
@@ -75,7 +75,7 @@ jobs:
         run: du -sh _site/
       
       - name: Check for symlinks or hard links
-        run: find _site/ \( -type l -o -type h \) -ls
+        run: find _site/ -type f -links +1 -ls
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
