@@ -110,7 +110,9 @@ class DirectoryCreator:
             if args.howToBlind == "-t -1":
                 self.blindString += " --expectSignal {} ".format(self.signalStrength)
             if args.step == 'ri' or args.step == 'riess':
-                self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+                self.blindString = " -t -1 "
+                if self.signalStrength != -1.0:
+                    self.blindString += " --expectSignal {} ".format(self.signalStrength)
             if args.step == 'fs':
                 self.blindString = " -t -1  "
         else:
@@ -436,6 +438,7 @@ class DirectoryCreator:
                 if self.AdditionalFitOptions != "":
                     Stat += " {}".format(self.AdditionalFitOptions)
 
+                # Stat += " --setParameters r=0"
                 # freeze the nuisance JES and JER
                 freeze = " "
                 if self.freezeParameters != "":
@@ -794,7 +797,7 @@ class DirectoryCreator:
 
         if self.step.lower() == "all":
             actions["cc"](current_mass, current_mass_directory, cwd)
-            actions["ws"](current_mass, current_mass_directory, cwd)
+            # actions["ws"](current_mass, current_mass_directory, cwd)
             actions["rc"](current_mass, current_mass_directory, cwd)
             # actions["ri"](current_mass, current_mass_directory, cwd)
             #actions["fitdiagnostics"](current_mass, current_mass_directory, cwd)
@@ -822,7 +825,10 @@ class DirectoryCreator:
             # create_workspaces takes two arguments, mass and datacard_class
             pool = mp.Pool()
             try:
-                pool.map(partial(self.create_workspaces, datacard_class=datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+                #  create_workspace memeber function takes two arguments mass and datacard_class
+                # pool.map(partial(self.create_workspaces, datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+                arguments = [(current_mass, datacard_class) for current_mass in range(self.start_mass, self.end_val, self.step_sizes)]
+                pool.starmap(self.create_workspaces, arguments)
             except Exception as e:
                 logger.error(e)
                 pool.close()
