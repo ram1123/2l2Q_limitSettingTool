@@ -90,15 +90,19 @@ def make_directory( sub_dir_name):
         logger.debug('Directory '+sub_dir_name+' already exists. Exiting...')
 
 def border_msg(msg):
-    """Print message inside the border
+    """
+    Print message inside the border.
+
+    Example:
     >>> border_msg('hello')
-        +-----+
-        |hello|
-        +-----+
+    +-----+
+    |hello|
+    +-----+
+
     Args:
         msg (str): message to print inside border
     """
     row = len(msg)+12
     h = ''.join(['+'] + ['-' *row] + ['+'])
-    result= h + '\n'"|      "+msg+"      |"'\n' + h
+    result = h + '\n'"|      "+msg+"      |"'\n' + h
     print(result)

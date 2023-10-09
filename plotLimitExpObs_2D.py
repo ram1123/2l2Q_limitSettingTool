@@ -7,6 +7,7 @@ setTDRStyle()
 import sys
 import os
 from array import array
+from ListOfDatacards import datacardList_limitRange
 
 def is_file_recovered(root_file):
     return root_file.TestBit(ROOT.TFile.kRecovered)
@@ -118,12 +119,16 @@ dummy.GetYaxis().SetTitleSize(0.05)
 dummy.SetLineColor(0)
 dummy.SetLineWidth(0)
 dummy.SetFillColor(0)
-if "Resolved" in SearchString4Datacard:
-     dummy.SetMinimum(0.001)
-     dummy.SetMaximum(500.0)
-else:
-     dummy.SetMinimum(0.0001)
-     dummy.SetMaximum(1)
+
+
+# Import and set the range from datacardList_limitRange
+if datacard in datacardList_limitRange:
+    logger.debug("Setting range for datacard: {}".format(datacard))
+    logger.debug("Range: {}".format(datacardList_limitRange[datacard]))
+    dummy.SetMinimum(datacardList_limitRange[datacard][0])
+    dummy.SetMaximum(datacardList_limitRange[datacard][1])
+
+
 dummy.GetXaxis().SetMoreLogLabels(kTRUE)
 dummy.GetXaxis().SetNoExponent(kTRUE)
 dummy.GetXaxis().SetTitleSize(0.05)
@@ -186,6 +191,12 @@ legend.Draw("same")
 gPad.RedrawAxis()
 
 outputDir = os.path.join(outputDir, 'figs')
+# Create a directory named "limits" in the outputDir to keep limit plots
+if not os.path.exists(os.path.join(outputDir, 'limits')):
+    os.makedirs(os.path.join(outputDir, 'limits'))
+
+outputDir = os.path.join(outputDir, 'limits')
+
 OutputFileName = 'highMassLimit_spin0_2D_13TeV_{year}_{name}'.format(year = year, name = SearchString4Datacard.replace("mHREPLACEMASS",""))
 
 c.SaveAs(outputDir + '/' + OutputFileName+".pdf")

@@ -13,3 +13,17 @@ run_script*.sh
 *.C
 *.root
 commands*.log
+*.so
+*.d
+*.out
+*.in
+*_mainC
+*_linkdef.h
+*.o
+*.cxx
+*.pcm
+
+# ignore for github pages docs
+docs/_build/
+docs/source/*.rst
+build/

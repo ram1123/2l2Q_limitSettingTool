@@ -11,7 +11,6 @@ from ROOT import *
 
 from systematicsClass import *
 from inputReader import *
-from utils import *
 
 
 gROOT.ProcessLine(
@@ -28,7 +27,6 @@ from ROOT import zz2lJ_massStruct
 class datacardClass:
 
     def __init__(self,year, DEBUG):
-
         self.ID_2muResolved = 'mumuqq_Resolved'
         self.ID_2eResolved  = 'eeqq_Resolved'
         self.ID_2muMerged = 'mumuqq_Merged'
@@ -37,97 +35,103 @@ class datacardClass:
         self.DEBUG = DEBUG
 
     def loadIncludes(self):
-
         ROOT.gSystem.AddIncludePath("-I$ROOFITSYS/include/")
         ROOT.gSystem.AddIncludePath("-Iinclude/")
         ROOT.gROOT.ProcessLine(".L include/tdrstyle.cc")
         ROOT.gSystem.Load("libRooFit")
         ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit.so")
 
+    def set_settings_and_declarations(self, mH, is2D, output_dir, inputs, cat, frac_vbf, sanity_check_plot):
+        self.mH = mH
+        self.lumi = inputs['lumi']
+        self.sqrts = inputs['sqrts']
+        self.channel = inputs['decayChannel']
+        self.is2D = is2D
+        self.output_dir = output_dir
+        self.sig_morph = True  # inputs['useCMS_zz2l2q_sigMELA']
+        self.bkg_morph = True  # inputs['useCMS_zz2l2q_bkgMELA']
+        self.cat = cat
+        self.frac_vbf = frac_vbf
+        self.sanity_check_plot = sanity_check_plot
+
+    def set_append_name(self):
+        self.fs = "2e"
+        if self.channel == self.ID_2muResolved:
+            self.fs = "2mu"
+        if self.channel == self.ID_2muMerged:
+            self.fs = "2mu"
+        postfix = self.channel + '_' + self.cat
+        self.appendName = postfix
+        if self.DEBUG:
+            print('appendName is channel + cat', postfix)
+
+    def set_category_tree(self):
+        self.cat_tree = "untagged"
+        if self.cat == "b_tagged":
+            self.cat_tree = "btagged"
+        if self.cat == "vbf_tagged":
+            self.cat_tree = "vbftagged"
+
+    def set_channels(self, inputs):
+        self.all_chan = inputs['all']
+        self.ggH_chan = inputs['ggH']
+        self.qqH_chan = inputs['qqH']
+        self.vz_chan = inputs['vz']
+        self.zjets_chan = inputs['zjets']
+        self.ttbar_chan = inputs['ttbar']
+
+    def set_roo_real_vars(self):
+        self.LUMI = ROOT.RooRealVar("LUMI_{0:.0f}".format(self.lumi), "LUMI", self.lumi)
+        self.LUMI.setConstant(True)
+        self.MH = ROOT.RooRealVar("MH", "MH", self.mH)
+        self.MH.setConstant(True)
+
+    def set_jet_type(self):
+        self.jet_type = "resolved"
+        if 'merged' in (self.channel).lower():
+            self.jet_type = "merged"
+
+    def set_mass_and_bins(self):
+        self.low_M = 300
+        self.high_M = 4000
+        self.bins = int((self.high_M-self.low_M)/10)
+        # self.min = 0
+        # self.max = 1000
+
+    def set_signal_shape_variables(self):
+       mzz_name = "zz2l2q_mass"
+       self.zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
+       self.zz2l2q_mass.setBins(self.bins)
+       if(self.jetType=="merged") :
+            self.zz2l2q_mass.SetName("zz2lJ_mass")
+            self.zz2l2q_mass.SetTitle("zz2lJ_mass")
+       self.zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
+       self.zz2l2q_mass.setRange("fullsignalrange",self.low_M,self.high_M)
+
     # main datacard and workspace function
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot = True):
 
         ## --------------- SETTINGS AND DECLARATIONS --------------- ##
-        self.mH = theMH
-        self.lumi = theInputs['lumi']
-        self.sqrts = theInputs['sqrts']
-        self.channel = theInputs['decayChannel']
-        self.is2D = theis2D
-        self.outputDir = theOutputDir
-        self.sigMorph = True #theInputs['useCMS_zz2l2q_sigMELA']
-        self.bkgMorph = True #theInputs['useCMS_zz2l2q_bkgMELA']
-        self.cat = theCat
-        self.FracVBF = theFracVBF
-        self.SanityCheckPlot = SanityCheckPlot
-        logger.debug("self.channel: {}".format(self.channel))
-        logger.debug("is2D = {}".format(self.is2D))
+        self.set_settings_and_declarations(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
+        self.set_append_name()
+        self.set_category_tree()
+        self.set_channels(theInputs)
+        self.set_roo_real_vars()
+        self.set_jet_type()
 
-        fs="2e"
-        if (self.channel == self.ID_2muResolved) :
-          fs="2mu"
-        if (self.channel == self.ID_2muMerged) :
-          fs="2mu"
-        postfix=self.channel
-        postfix=postfix+'_'
-        postfix=postfix+self.cat
-        self.appendName = postfix
-        logger.debug("Appending name is channel + cat:  {}".format(postfix))
-
-        self.cat_tree = "untagged"
-        if(self.cat=="b_tagged") :
-          self.cat_tree = "btagged"
-        if(self.cat=="vbf_tagged") :
-          self.cat_tree = "vbftagged"
-
-        self.all_chan = theInputs['all']
-        self.ggH_chan = theInputs['ggH']
-        self.qqH_chan = theInputs['qqH']
-        self.vz_chan = theInputs['vz']
-        self.zjets_chan = theInputs['zjets']
-        self.ttbar_chan = theInputs['ttbar']
-
-        self.LUMI = ROOT.RooRealVar("LUMI_{0:.0f}_{1}".format(self.sqrts, self.year),"LUMI_{0:.0f}_{1}".format(self.sqrts, self.year),self.lumi)
-        self.LUMI.setConstant(True)
-
-        self.MH = ROOT.RooRealVar("MH","MH",self.mH)
-        self.MH.setConstant(True)
-
-
-        self.jetType = "resolved"
-        if('Merged' in self.channel or 'merged' in self.channel) :
-          self.jetType = "merged"
-
-        ## ---------------- SET PLOTTING STYLE ---------------- ##
+        # Set plotting style
         ROOT.setTDRStyle(True)
         ROOT.gStyle.SetPalette(1)
         ROOT.gStyle.SetPadLeftMargin(0.16)
 
-        ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
+        # Systematics classes
+        # systematic uncertainty for Xsec X BR, no uncertainies on signal PDF/QCD scale
+        systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # FIXME: True / False?
 
-        ## systematic uncertainty for Xsec X BR, no uncertainies on signal PDF/QCD scale
-        systematics = systematicsClass( self.mH, True, theInputs, self.year, self.DEBUG) # FIXME: True / False?
+        self.set_mass_and_bins()
+        # Signal shape variable definitions
+        self.set_signal_shape_variables()
 
-        # low and high M is 25 % of the mass self.mH
-        # self.low_M = self.mH - 0.25*self.mH
-        self.low_M = 0
-        #if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") : # if merge selected, start from 600GeV
-        #if(self.jetType=="merged") :
-        #  self.low_M = 700
-        # self.high_M = self.mH + 0.25*self.mH
-        self.high_M = 4000
-        bins = int((self.high_M-self.low_M)/10)
-
-        mzz_name = "zz2l2q_mass"
-        zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
-        zz2l2q_mass.setBins(bins)
-
-        if(self.jetType=="merged") :
-          zz2l2q_mass.SetName("zz2lJ_mass")
-          zz2l2q_mass.SetTitle("zz2lJ_mass")
-
-        # FIXME: Check the ranges?
-        zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
-        zz2l2q_mass.setRange("fullsignalrange",300,4000)
 
         ## -------------------------- SIGNAL SHAPE ----------------------------------- ##
 
@@ -179,24 +183,23 @@ class datacardClass:
         ## resolution uncertainty
         name = "sigma_m_err"
         sigma_m_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_m_err']))
-        logger.debug("{}: {}".format(name, sigma_m_err.getVal()))
+        if self.DEBUG: print(name,' ',sigma_m_err.getVal())
         name = "sigma_e_err"
         sigma_e_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_e_err']))
-        logger.debug("{}: {}".format(name, sigma_e_err.getVal()))
+        if self.DEBUG: print(name,' ',sigma_e_err.getVal())
         name = "sigma_j_err"
         sigma_j_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2l2q_sigma_j_err']))
-        logger.debug("{}: {}".format(name, sigma_j_err.getVal()))
+        if self.DEBUG: print(name,' ',sigma_j_err.getVal())
         name = "sigma_J_err"
         sigma_J_err = ROOT.RooRealVar(name,name,float(theInputs['CMS_zz2lJ_sigma_J_err']))
-        logger.debug("{}: {}".format(name, sigma_J_err.getVal()))
+        if self.DEBUG: print(name,' ',sigma_J_err.getVal())
 
-        logger.info("Read signal parameters from file: {}".format("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root"))
+        if self.DEBUG: print('read signal parameters')
         ggHshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
         VBFshape = TFile("Resolution/2l2q_resolution_"+self.jetType+"_"+self.year+".root")
 
 
         # mean (bias) of DCB
-        # MOREINFO: Did not understand why we get the bias from the mean of the gaussian then again obtain the mean of the DCB by adding the bias to the mean of the gaussian?
         name = "bias_ggH_"+(self.channel)
         bias_ggH = ROOT.RooRealVar(name,name, ggHshape.Get("mean").GetListOfFunctions().First().Eval(self.mH)-self.mH)
         name = "mean_ggH_"+(self.channel)
@@ -217,14 +220,13 @@ class datacardClass:
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_m_sig,mean_j_sig,mean_m_err,mean_j_err))
         elif (self.channel == self.ID_2muMerged) :
              mean_err = ROOT.RooFormulaVar(name,"(@0*@1*@3 + @0*@2*@4)/2", ROOT.RooArgList(self.MH, mean_m_sig,mean_J_sig,mean_m_err,mean_J_err))
-        logger.debug("{}: {}".format(name, mean_err.getVal()))
+        if self.DEBUG: print('mean error ', mean_err.getVal())
 
         name = "rfv_mean_ggH_"+(self.channel)
         rfv_mean_ggH = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_ggH,mean_err))
         name = "rfv_mean_VBF_"+(self.channel)
         rfv_mean_VBF = ROOT.RooFormulaVar(name,"@0+@1",ROOT.RooArgList(mean_VBF,mean_err))
-        logger.debug("{}: {}".format("Mean ggH", rfv_mean_ggH.getVal()))
-        logger.debug("{}: {}".format("Mean VBF", rfv_mean_VBF.getVal()))
+        if self.DEBUG: print('mean ggH ', rfv_mean_ggH.getVal(),'; mean VBF ',rfv_mean_VBF.getVal())
 
         # sigma of DCB
         name = "sigma_ggH_"+(self.channel)
@@ -234,7 +236,7 @@ class datacardClass:
 
         rfv_sigma_SF = ROOT.RooFormulaVar()
         name = "sigma_SF_"+(self.channel)
-        if (self.channel == self.ID_2muResolved) : # FIXME: How we get the number 0.05?
+        if (self.channel == self.ID_2muResolved) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_m_sig, sigma_j_sig, sigma_m_err,sigma_j_err))
         if (self.channel == self.ID_2eResolved) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_e_sig, sigma_j_sig, sigma_e_err,sigma_j_err))
@@ -243,7 +245,7 @@ class datacardClass:
         if (self.channel == self.ID_2eMerged) :
             rfv_sigma_SF = ROOT.RooFormulaVar(name,"TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))", ROOT.RooArgList(sigma_e_sig, sigma_J_sig, sigma_e_err,sigma_J_err))
 
-        logger.debug("{}: {}".format(name, rfv_sigma_SF.getVal()))
+        if self.DEBUG: print(name,' ',rfv_sigma_SF.getVal())
 
         ##################
 
@@ -253,62 +255,56 @@ class datacardClass:
         rfv_sigma_VBF = ROOT.RooFormulaVar(name,"@0*@1",ROOT.RooArgList(sigma_VBF,rfv_sigma_SF) )
 
         ## tail parameters
-        name = "a1_ggH_"+(self.channel)+"_"+str(self.year)
+        name = "a1_ggH_"+(self.channel)+"_"+(self.year)
         a1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_ggH_"+(self.channel)+"_"+str(self.year)
+        name = "a2_ggH_"+(self.channel)+"_"+(self.year)
         a2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_ggH_"+(self.channel)+"_"+str(self.year)
+        name = "n1_ggH_"+(self.channel)+"_"+(self.year)
         n1_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_ggH_"+(self.channel)+"_"+str(self.year)
+        name = "n2_ggH_"+(self.channel)+"_"+(self.year)
         n2_ggH = ROOT.RooRealVar(name,name, (ggHshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
         ###
-        name = "a1_VBF_"+(self.channel)+"_"+str(self.year)
+        name = "a1_VBF_"+(self.channel)+"_"+(self.year)
         a1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "a2_VBF_"+(self.channel)+"_"+str(self.year)
+        name = "a2_VBF_"+(self.channel)+"_"+(self.year)
         a2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("a2")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n1_VBF_"+(self.channel)+"_"+str(self.year)
+        name = "n1_VBF_"+(self.channel)+"_"+(self.year)
         n1_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n1")).GetListOfFunctions().First().Eval(self.mH))
-        name = "n2_VBF_"+(self.channel)+"_"+str(self.year)
+        name = "n2_VBF_"+(self.channel)+"_"+(self.year)
         n2_VBF = ROOT.RooRealVar(name,name, (VBFshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH))
 
         ## --------------------- SHAPE FUNCTIONS ---------------------- ##
 
         name = "signalCB_ggH_"+(self.channel)
-        logger.debug("signalCB_ggH parameter: rfv_mean_ggH = {} rfv_sigma_ggH = {} a1_ggH = {} n1_ggH = {} a2_ggH = {} n2_ggH = {}".format(rfv_mean_ggH.getVal(),rfv_sigma_ggH.getVal(),a1_ggH.getVal(),n1_ggH.getVal(),a2_ggH.getVal(),n2_ggH.getVal()))
         signalCB_ggH = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_ggH,rfv_sigma_ggH,a1_ggH,n1_ggH,a2_ggH,n2_ggH)
         name = "signalCB_VBF_"+(self.channel)
         signalCB_VBF = ROOT.RooDoubleCB(name,name,zz2l2q_mass,rfv_mean_VBF,rfv_sigma_VBF,a1_VBF,n1_VBF,a2_VBF,n2_VBF)
-        logger.debug("signalCB_ggH name: {}".format(name))
+
         fullRangeSigRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange") ).getVal()
         fullRangRate = signalCB_ggH.createIntegral( ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullrange") ).getVal()
         sigFraction = fullRangRate/fullRangeSigRate
         sigFraction = 1.0   # FIXME: #2 Why its hardcoded to 1.0?
 
-        logger.debug("fullRangRate: {}".format(fullRangRate))
-        logger.debug("fullRangeSigRate: {}".format(fullRangeSigRate))
-        logger.debug("fraction of signal in the mass range is: {}".format(sigFraction))
+        if self.DEBUG: print('fullRangRate ',fullRangRate)
+        if self.DEBUG: print('fullRangeSigRate ',fullRangeSigRate)
+        if self.DEBUG: print('fraction of signal in the mass range is ',sigFraction)
 
         ## --------------------- BKG mZZ Templates ---------------------##
 
         vzTemplateMVV_Name = "hmass_"
         ttbarpluswwTemplateMVV_Name = "hmass_"
-        zjetTemplateMVV_Name = "hmass_" #add for zjet rate
         if(self.jetType=='resolved' and self.cat=='vbf_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
         elif(self.jetType=='resolved' and self.cat=='b_tagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
         elif(self.jetType=='resolved' and self.cat=='untagged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
         elif(self.jetType=='merged') :
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"mergedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
         '''
         # FIXME: # Why for merged category, we are not using the vbf-tagged, b-tagged and untagged templates?
         elif(self.jetType=='merged' and self.cat=='vbf_tagged') :
@@ -321,64 +317,40 @@ class datacardClass:
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
         '''
-        #vz yields from a given fs
-        logger.debug("Name of Input ROOT file: templates1D/Template1D_spin0_"+fs+"_"+self.year+".root")
-        TempFile_fs = TFile("templates1D/Template1D_spin0_"+fs+"_"+self.year+".root","READ")
+        #vz yields from a given self.fs
+        TempFile_fs = TFile("templates1D/Template1D_spin0_"+self.fs+"_"+self.year+".root","READ")
         #vz yields for all cats in a given channel
-        logger.debug("Histogram name to fetch: {}".format("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV"))
         vzTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_VZ_perInvFb_Bin50GeV")
-        logger.debug("vzTemplateMVV_fs_untagged.Integral() = {}".format(vzTemplateMVV_fs_untagged.Integral()))
-        logger.debug("vzTemplateMVV_fs_btagged.Integral() = {}".format(vzTemplateMVV_fs_btagged.Integral()))
-        logger.debug("vzTemplateMVV_fs_vbftagged.Integral() = {}".format(vzTemplateMVV_fs_vbftagged.Integral()))
 
         ttbarTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_TTplusWW_perInvFb_Bin50GeV")
-        logger.debug("ttbarTemplateMVV_fs_untagged.Integral() = {}".format(ttbarTemplateMVV_fs_untagged.Integral()))
-        logger.debug("ttbarTemplateMVV_fs_btagged.Integral() = {}".format(ttbarTemplateMVV_fs_btagged.Integral()))
-        logger.debug("ttbarTemplateMVV_fs_vbftagged.Integral() = {}".format(ttbarTemplateMVV_fs_vbftagged.Integral()))
+        if self.DEBUG: print("ttbarTemplateMVV_fs_vbftagged = ",ttbarTemplateMVV_fs_vbftagged.Integral())
 
-        #zjet yields for all cats in a given channel
-        logger.debug("self.jetType: {}".format(self.jetType))
-        zjetTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_Zjet_perInvFb_Bin50GeV")
-        zjetTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_Zjet_perInvFb_Bin50GeV")
-        zjetTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_Zjet_perInvFb_Bin50GeV")
-        logger.debug("zjetTemplateMVV_fs_untagged.Integral() = {}".format(zjetTemplateMVV_fs_untagged.Integral()))
-        logger.debug("zjetTemplateMVV_fs_btagged.Integral() = {}".format(zjetTemplateMVV_fs_btagged.Integral()))
-        logger.debug("zjetTemplateMVV_fs_vbftagged.Integral() = {}".format(zjetTemplateMVV_fs_vbftagged.Integral()))
+        if self.DEBUG: print("hmass_",self.jetType,"SRvbf_VZ_Bin50GeV_perInvFb")
 
-        #smooth the templates
-        vz_smooth_fs_untagged = TH1F("vz_"+fs+"_untagged","vz_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        vz_smooth_fs_btagged = TH1F("vz_"+fs+"_btagged","vz_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        vz_smooth_fs_vbftagged = TH1F("vz_"+fs+"_vbftagged","vz_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        vz_smooth_fs_untagged = TH1F("vz_"+self.fs+"_untagged","vz_"+self.fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        vz_smooth_fs_btagged = TH1F("vz_"+self.fs+"_btagged","vz_"+self.fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        vz_smooth_fs_vbftagged = TH1F("vz_"+self.fs+"_vbftagged","vz_"+self.fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
 
-        ttbar_smooth_fs_untagged = TH1F("ttbar_"+fs+"_untagged","ttbar_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        ttbar_smooth_fs_btagged = TH1F("ttbar_"+fs+"_btagged","ttbar_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+fs+"_vbftagged","ttbar_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-
-        zjet_smooth_fs_untagged = TH1F("zjet_"+fs+"_untagged","zjet_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        zjet_smooth_fs_btagged = TH1F("zjet_"+fs+"_btagged","zjet_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        zjet_smooth_fs_vbftagged = TH1F("zjet_"+fs+"_vbftagged","zjet_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        ttbar_smooth_fs_untagged = TH1F("ttbar_"+self.fs+"_untagged","ttbar_"+self.fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        ttbar_smooth_fs_btagged = TH1F("ttbar_"+self.fs+"_btagged","ttbar_"+self.fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+self.fs+"_vbftagged","ttbar_"+self.fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
 
         # shape from 2e+2mu
         TempFile = TFile("templates1D/Template1D_spin0_2l_{}.root".format(self.year),"READ")
-        logger.debug("VZ template name: {}".format(vzTemplateMVV_Name))
-        logger.debug("ttbar template name: {}".format(ttbarpluswwTemplateMVV_Name))
+        if self.DEBUG: print('vzTemplateMVV_Name ',vzTemplateMVV_Name)
+        if self.DEBUG: print('ttbarpluswwTemplateMVV_Name ',ttbarpluswwTemplateMVV_Name)
         vzTemplateMVV = TempFile.Get(vzTemplateMVV_Name)
         ttbarTemplateMVV = TempFile.Get(ttbarpluswwTemplateMVV_Name)
-        zjetTemplateMVV = TempFile.Get(zjetTemplateMVV_Name) #add zjet template
 
         vzTemplateName="vz_"+self.appendName+"_"+str(self.year)
         vz_smooth = TH1F(vzTemplateName,vzTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
         ttbarTemplateName="ttbar_"+self.appendName+"_"+str(self.year)
         ttbar_smooth = TH1F(ttbarTemplateName,ttbarTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
 
-        zjetTemplateName="zjet_"+self.appendName+"_"+str(self.year) #add zjet template
-        zjet_smooth = TH1F(zjetTemplateName,zjetTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M) #add zjet template
-
-        #smooth the templates
         for i in range(0,int(self.high_M-self.low_M)/10) :
 
           mVV_tmp = vz_smooth.GetBinCenter(i+1)
@@ -431,35 +403,8 @@ class datacardClass:
 
              break
 
-        ######## Zjet
-        for i in range(0,int(self.high_M-self.low_M)/10) :
-
-         mVV_tmp = zjet_smooth.GetBinCenter(i+1)
-
-         for j in range(0,zjetTemplateMVV.GetXaxis().GetNbins()) :
-
-           mVV_tmp_low = zjetTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
-           mVV_tmp_up  = zjetTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
-
-           if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-             zjet_smooth.SetBinContent(i+1,zjetTemplateMVV.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth.SetBinError(i+1,zjetTemplateMVV.GetBinError(j+1)*10.0/50.0)
-
-             zjet_smooth_fs_untagged.SetBinContent(i+1,zjetTemplateMVV_fs_untagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_untagged.SetBinError(i+1,zjetTemplateMVV_fs_untagged.GetBinError(j+1)*10.0/50.0)
-
-             zjet_smooth_fs_btagged.SetBinContent(i+1,zjetTemplateMVV_fs_btagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_btagged.SetBinError(i+1,zjetTemplateMVV_fs_btagged.GetBinError(j+1)*10.0/50.0)
-
-             zjet_smooth_fs_vbftagged.SetBinContent(i+1,zjetTemplateMVV_fs_vbftagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_vbftagged.SetBinError(i+1,zjetTemplateMVV_fs_vbftagged.GetBinError(j+1)*10.0/50.0)
-
-             break
-        #if option contains "R" smoothing is applied only to the bins defined in the X axis range (default is to smooth all bins) Bin contents are replaced by their smooth values. Errors (if any) are not modified. the smoothing procedure is repeated ntimes (default=1)
-        #https://root.cern.ch/doc/v622/classTH1.html#a0d08651c37b622f4bcc0e1a0affefb33 information about smooth function
         vz_smooth.Smooth(300,'r')
         ttbar_smooth.Smooth(4000,'r')
-        zjet_smooth.Smooth(4000,'r')
 
         ## vz shape and ttbar+ww shape
         vzTempDataHistMVV = ROOT.RooDataHist(vzTemplateName,vzTemplateName,RooArgList(zz2l2q_mass),vz_smooth)
@@ -468,49 +413,9 @@ class datacardClass:
         bkg_vz = ROOT.RooHistPdf(vzTemplateName+"Pdf",vzTemplateName+"Pdf",RooArgSet(zz2l2q_mass),vzTempDataHistMVV)
         bkg_ttbar = ROOT.RooHistPdf(ttbarTemplateName+"Pdf",ttbarTemplateName+"Pdf",RooArgSet(zz2l2q_mass),ttbarTempDataHistMVV)
 
-        ## zjet shape
-        zjetTempDataHistMVV = ROOT.RooDataHist(zjetTemplateName,zjetTemplateName,RooArgList(zz2l2q_mass),zjet_smooth)
-        bkg_zjet = ROOT.RooHistPdf(zjetTemplateName+"Pdf",zjetTemplateName+"Pdf",RooArgSet(zz2l2q_mass),zjetTempDataHistMVV)
-
         #JES TAG nuisances #FIXME: check if this is correct
-        # JES = ROOT.RooRealVar("JES","JES",0,-3,3)
-        # INFO: Update the inclusive JES with the split JES
-        # Generate the nuisances based on the sources
-        all_nuisances = []
-        # nuisances for SplitSource
-        for source in systematics.SplitSource:
-           jetString = ''
-           if self.jetType == "resolved":
-                jetString = 'j'
-           elif self.jetType == "merged":
-                jetString = 'J'
-           all_nuisances.append(ROOT.RooRealVar("CMS_scale_{}_{}".format(jetString, source), "CMS_scale_j_{}".format(source), 0, -2, 2))
-
-        # nuisances for SplitSourceYears
-        for source in systematics.SplitSourceYears:
-           all_nuisances.append(ROOT.RooRealVar("CMS_scale_{}_{}_{}".format(jetString, source, self.year), "CMS_scale_j_{}_{}".format(source, self.year), 0, -2, 2))
-
-        # Create a RooArgList from all_nuisances
-        arglist_all_JES = ROOT.RooArgList()
-        for nuisance in all_nuisances:
-            logger.debug(nuisance)
-            arglist_all_JES.add(nuisance)
-
-        num_jes_sources = len(arglist_all_JES)
-        #  the cumulative effect of all JES sources
-        cumulative_jes_effect = "+".join("@{}".format(i) for i in range(num_jes_sources))
-
-        #BTAG TAG nuisance
-        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -2,2)
-        logger.debug("BTAG roorealvar: {}".format(BTAG))
-        # for lines where both JES and BTAG are used, the cumulative JES effect will start from @1 since @0 is reserved for BTAG. so add BTAG to the arglist first
-        arglist_all_JES_BTAG = ROOT.RooArgList()
-        arglist_all_JES_BTAG.add(BTAG)
-        for nuisance in all_nuisances:
-          logger.debug(nuisance.GetName())
-          arglist_all_JES_BTAG.add(nuisance)
-
-        cumulative_jes_effect_with_btag = "+".join("@{}".format(i+1) for i in range(num_jes_sources))
+        JES = ROOT.RooRealVar("JES","JES",0,-3,3)
+        BTAG = ROOT.RooRealVar("BTAG_"+self.jetType,"BTAG_"+self.jetType,0, -3,3)
 
         ## rates for vz
         #bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()*self.lumi
@@ -525,48 +430,23 @@ class datacardClass:
 
         rfvSigRate_vz = ROOT.RooFormulaVar()
         if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.1*({}))".format(cumulative_jes_effect), arglist_all_JES)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.05*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="resolved" and self.cat=='untagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.05*@0*{})*(1-0.1*({})*{})".format(btagRatio, cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.05*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
         elif(self.jetType=="merged" and self.cat=='vbf_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*({}))".format(cumulative_jes_effect), arglist_all_JES)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*@0)",ROOT.RooArgList(JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="merged" and self.cat=='untagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.2*@0*{})*(1-0.1*({})*{})".format(btagRatio, cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.2*@0*"+str(btagRatio)+")*(1-0.1*@1*"+str(vbfRatio)+")",ROOT.RooArgList(BTAG,JES))
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
-
-        ## rates for zjet
-        #bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()*self.lumi
-        #bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()*self.lumi
-        #bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.Integral()*self.lumi
-        bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()
-        bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()
-        bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.Integral()
-
-        if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_vbftagged
-        elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_btagged
-        elif(self.jetType=="resolved" and self.cat=='untagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_untagged
-        elif(self.jetType=="merged" and self.cat=='vbf_tagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_vbftagged
-        elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_btagged
-        elif(self.jetType=="merged" and self.cat=='untagged') :
-          bkgRate_zjet_Shape = bkgRate_zjet_Shape_untagged
-
-        if self.DEBUG: print('bkgRate_zjet_Shape = ',bkgRate_zjet_Shape)
-
-
 
         ## rates for ttbar+ww
         #bkgRate_ttbar_Shape_untagged = ttbar_smooth_fs_untagged.Integral()*self.lumi
@@ -608,7 +488,7 @@ class datacardClass:
         ## Reducible backgrounds : Z+jets ################
         ###################################################################
 
-        bkg_zjets = ROOT.RooGenericPdf()
+        bkg_zjets = ROOT.RooGenericPdf();
         if self.DEBUG: print("zjets mass shape")
 
         ### cov matrix to account for shape+norm uncertainty
@@ -810,8 +690,6 @@ class datacardClass:
 
         ##### the final number for zjets rate into datacard
         bkgRate_zjets_Shape = BrZll_zjets_Shape
-        bkgRate_zjets_Shape = bkgRate_zjet_Shape
-        if self.DEBUG: print('Debug bkgRate_zjets_Shape ',bkgRate_zjets_Shape)
 
         ## --------------------------- MELA 2D PDFS ------------------------- ##
 
@@ -874,7 +752,7 @@ class datacardClass:
 
         # FIXME: Check if sig/bkg MELA should be correlated or uncorrelated
         morphSigVarName = "CMS_zz2l2q_sigMELA_"+self.jetType
-        alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-2,2)
+        alphaMorphSig = ROOT.RooRealVar(morphSigVarName,morphSigVarName,0,-20,20)
         if(self.sigMorph): alphaMorphSig.setConstant(False)
         else: alphaMorphSig.setConstant(True)
 
@@ -989,7 +867,7 @@ class datacardClass:
         funcList_ttbar = ROOT.RooArgList()
         funcList_vz = ROOT.RooArgList()
         morphBkgVarName = "CMS_zz2l2q_bkgMELA_"+self.jetType
-        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-2,2)
+        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName,morphBkgVarName,0,-20,20)
         morphVarListBkg = ROOT.RooArgList()
 
         if(self.bkgMorph):
@@ -1017,8 +895,7 @@ class datacardClass:
 
         #### bkg 2D : mzz + Djet;
         name = "bkg2d_zjets"+"_"+str(self.year)
-        #bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjets),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) )
-        bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjet),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) ) #change to bkg_zjet
+        bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjets),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) )
         name = "bkg2d_ttbar"+"_"+str(self.year)
         bkg2d_ttbar = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_ttbar),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_ttbar),ROOT.RooArgSet(D) ) )
         name = "bkg2d_vz"+"_"+str(self.year)
@@ -1030,15 +907,13 @@ class datacardClass:
           czz = ROOT.TCanvas(canv_name, canv_name, 750, 700)
           czz.cd()
           zzframe_s = zz2l2q_mass.frame(220)
-          #zzframe_s = zz2l2q_mass.frame(ROOT.RooFit.Range(300, 1500))
 
           if self.DEBUG:  print('plot signal')
           signalCB_ggH.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(1), ROOT.RooFit.Name("signalCB_ggH"))
           signalCB_VBF.plotOn(zzframe_s, ROOT.RooFit.LineStyle(2), ROOT.RooFit.LineColor(1), ROOT.RooFit.Name("signalCB_VBF"))
 
           if self.DEBUG:  print('plot zjets')
-          #bkg_zjets.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(2), ROOT.RooFit.Name("bkg_zjets"))
-          bkg_zjet.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(2), ROOT.RooFit.Name("bkg_zjets")) #change to bkg_zjet
+          bkg_zjets.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(2), ROOT.RooFit.Name("bkg_zjets"))
 
           if self.DEBUG:  print('plot zv')
           bkg_vz.plotOn(zzframe_s, ROOT.RooFit.LineStyle(1), ROOT.RooFit.LineColor(3), ROOT.RooFit.Name("bkg_vz"))
@@ -1063,9 +938,8 @@ class datacardClass:
           zzframe_s.Draw()
           legend.Draw("same")  # Draw the legend on the same canvas
 
-          figName = "{0}/figs/mzz_mH{1}_{2}_{3}".format(self.outputDir, self.mH, self.year, self.appendName)
-          czz.SaveAs(figName+".png")
-          czz.SaveAs(figName+".pdf")
+          figName = "{0}/figs/mzz_{1}_{2}.png".format(self.outputDir, self.mH, self.appendName)
+          czz.SaveAs(figName)
           del czz
 
 
@@ -1097,12 +971,10 @@ class datacardClass:
 
         ####
         # the numbers written to the datacards
-        logger.debug("self.appendName: {}".format(self.appendName))
+        print("self.appendName: ", self.appendName)
         sigRate_ggH_Shape = ggH_accxeff.Get("spin0_ggH_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
         sigRate_VBF_Shape = VBF_accxeff.Get("spin0_VBF_"+(self.appendName).replace("b_tagged","b-tagged").replace("vbf_tagged","vbf-tagged")).GetListOfFunctions().First().Eval(self.mH)
 
-        logger.debug("sigRate_ggH_Shape: {}".format(sigRate_ggH_Shape))
-        logger.debug("sigFraction: {}".format(sigFraction))
         sigRate_ggH_Shape = sigRate_ggH_Shape*sigFraction
         sigRate_VBF_Shape = sigRate_VBF_Shape*sigFraction
 
@@ -1117,15 +989,8 @@ class datacardClass:
         # VBF branching ratio
         if self.DEBUG: print('VBF/ggH ratio')
         # Define fraction of events coming from VBF process
-        #if the self.FracVBF is -1, then set frac_VBF to float, otherwise set frac_VBF to self.FracVBF
-        if self.FracVBF == -1:
-            logger.info("self.FracVBF is -1, so set frac_VBF to float")
-            frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", vbfRatioVBF, 0.0, 1.0)
-        else:
-            logger.info("self.FracVBF is not -1, so set frac_VBF to self.FracVBF  = {}".format(self.FracVBF))
-            frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", self.FracVBF, 0.0, 1.0)
-            frac_VBF.setVal(self.FracVBF)
-            frac_VBF.setConstant(True)
+        frac_VBF = ROOT.RooRealVar("frac_VBF", "frac_VBF", theFracVBF, 0.0, 1.0) #FIXME
+        #frac_VBF.setConstant(True)
 
         # Define fraction of events coming from ggH process
         frac_ggH = ROOT.RooFormulaVar("frac_ggH", "(1-@0)",ROOT.RooArgList(frac_VBF))
@@ -1142,77 +1007,21 @@ class datacardClass:
 
         rfvSigRate_ggH = ROOT.RooFormulaVar()
         rfvSigRate_VBF = ROOT.RooFormulaVar()
-
-        arglist_ggH = ROOT.RooArgList(arglist_all_JES)
-        arglist_ggH.add(self.LUMI)
-        arglist_ggH.add(frac_ggH)
-        arglist_ggH.add(BR)
-
-        arglist_VBF = ROOT.RooArgList(arglist_all_JES)
-        arglist_VBF.add(self.LUMI)
-        arglist_VBF.add(frac_VBF)
-        arglist_VBF.add(BR)
-
-        arglist_ggH_with_BTAG = ROOT.RooArgList(arglist_all_JES_BTAG)
-        arglist_ggH_with_BTAG.add(self.LUMI)
-        arglist_ggH_with_BTAG.add(frac_ggH)
-        arglist_ggH_with_BTAG.add(BR)
-
-        arglist_VBF_with_BTAG = ROOT.RooArgList(arglist_all_JES_BTAG)
-        arglist_VBF_with_BTAG.add(self.LUMI)
-        arglist_VBF_with_BTAG.add(frac_VBF)
-        arglist_VBF_with_BTAG.add(BR)
-
         if(self.cat=='vbf_tagged') :
-          formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(cumulative_jes_effect, num_jes_sources, num_jes_sources + 1, num_jes_sources + 2)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH)
-
-          formula_VBF = "(1+0.12*({}))*@{}*@{}*@{}".format(cumulative_jes_effect, num_jes_sources, num_jes_sources + 1, num_jes_sources + 2)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF)
-
-          # Print the RooFormulaVar using logger
-          logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
-          logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.1*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*@1*@2*@3",ROOT.RooArgList(JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
-
-          formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
-
-          # Print the RooFormulaVar using logger
-          logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
-          logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.05*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.05*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="resolved" and self.cat=='untagged') :
-          formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
-
-          formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
-
-          # Print the RooFormulaVar using logger
-          logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
-          logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.05*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.05*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
-
-          formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
-
-          # Print the RooFormulaVar using logger
-          logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
-          logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1+0.2*@0)*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1+0.2*@0)*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
         elif(self.jetType=="merged" and self.cat=='untagged') :
-          formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
-
-          formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
-
-          # Print the RooFormulaVar using logger
-          logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
-          logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm","(1-0.2*@0*"+str(btagRatioGGH)+")*(1-0.1*@1*"+str(vbfRatioGGH)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_ggH,BR))
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm","(1-0.2*@0*"+str(btagRatioVBF)+")*(1-0.05*@1*"+str(vbfRatioVBF)+")*@2*@3*@4",ROOT.RooArgList(BTAG,JES,self.LUMI,frac_VBF,BR))
 
         if self.DEBUG: print('Rates ggH ',rfvSigRate_ggH.getVal(),' VBF ',rfvSigRate_VBF.getVal())
 
@@ -1225,7 +1034,7 @@ class datacardClass:
         dataFileDir = "CMSdata"
         dataFileName = "{0}/Data_SR.root".format(dataFileDir)
 
-        logger.debug("dataFileName: {}".format(dataFileName))
+        if self.DEBUG: print("dataFileName: ",dataFileName)
         data_obs_file = ROOT.TFile(dataFileName)
 
         treeName=""
@@ -1255,7 +1064,10 @@ class datacardClass:
         if(self.channel=="mumuqq_Merged" and self.cat=="untagged") :
           treeName="TreeSR11"
 
-        logger.debug("data_obs_file.Get(treeName): {}".format(data_obs_file.Get(treeName)))
+        if (self.DEBUG):
+           print(data_obs_file.Get(treeName))
+           print("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
+
         if not (data_obs_file.Get(treeName)):
             if (self.DEBUG): print("File, \"",dataFileName,"\", or tree, \"",treeName,"\", not found")
             if (self.DEBUG): print("Exiting...")
@@ -1265,14 +1077,14 @@ class datacardClass:
         tmpFile = TFile("tmpFile.root","RECREATE")
         data_obs_tree = (data_obs_file.Get(treeName)).CloneTree(0)
         data_obs_tree.Branch('zz2lJ_mass', zz2lJ_mass_struct, 'zz2lJ_mass/D')
-        logger.info("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
-        logger.debug("zz2l2q_mass: {}".format(zz2l2q_mass))
+        print("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
+        if self.DEBUG: print("zz2l2q_mass: {}".format(zz2l2q_mass))
         for i in range(0,data_obs_file.Get(treeName).GetEntries()) :
           data_obs_file.Get(treeName).GetEntry(i)
           zz2lJ_mass_struct.zz2lJ_mass = data_obs_file.Get(treeName).zz2l2q_mass
           data_obs_tree.Fill()
 
-        logger.info("data_obs_tree entries for {channel}_{category}: {entries}".format(channel=self.channel,category=self.cat,entries=data_obs_tree.GetEntries()))
+        print("L1049# data_obs_tree entries: {}".format(data_obs_tree.GetEntries()))
 
         data_obs = ROOT.RooDataSet()
         datasetName = "data_obs"
@@ -1282,7 +1094,6 @@ class datacardClass:
         if (self.is2D == 1):
             data_obs = ROOT.RooDataSet(datasetName,datasetName,data_obs_tree,ROOT.RooArgSet(zz2l2q_mass,D) )
 
-        logger.debug("data_obs: {}".format(data_obs))
         '''
         print 'generate pseudo dataset'
         data_obs = /OOT.RooDataSet()
@@ -1293,11 +1104,11 @@ class datacardClass:
         '''
 
         ## --------------------------- WORKSPACE -------------------------- ##
-        logger.debug("prepare workspace")
+        if (self.DEBUG): print('prepare workspace')
         endsInP5 = False
         tmpMH = self.mH
         if ( math.fabs(math.floor(tmpMH)-self.mH) > 0.001): endsInP5 = True
-        logger.debug("ENDS IN P5: {}".format(endsInP5))
+        if (self.DEBUG): print("ENDS IN P5  ",endsInP5)
 
         name_Shape = ""
         name_ShapeWS = ""
@@ -1334,12 +1145,10 @@ class datacardClass:
         if (self.is2D == 0):
                     bkg_vz.SetNameTitle("bkg_vz","bkg_vz")
                     bkg_ttbar.SetNameTitle("bkg_ttbar","bkg_ttbar")
-                    #bkg_zjets.SetNameTitle("bkg_zjets","bkg_zjets")
-                    bkg_zjet.SetNameTitle("bkg_zjets","bkg_zjets") #changed to zjet
+                    bkg_zjets.SetNameTitle("bkg_zjets","bkg_zjets")
                     getattr(w,'import')(bkg_vz, ROOT.RooFit.RecycleConflictNodes())
                     getattr(w,'import')(bkg_ttbar, ROOT.RooFit.RecycleConflictNodes())
-                    #getattr(w,'import')(bkg_zjets, ROOT.RooFit.RecycleConflictNodes())
-                    getattr(w,'import')(bkg_zjet, ROOT.RooFit.RecycleConflictNodes()) #changed to zjet
+                    getattr(w,'import')(bkg_zjets, ROOT.RooFit.RecycleConflictNodes())
 
         if (self.is2D == 1):
                     bkg2d_vz.SetNameTitle("bkg_vz","bkg_vz")
@@ -1351,7 +1160,7 @@ class datacardClass:
 
         getattr(w,'import')(rfvSigRate_ggH, ROOT.RooFit.RecycleConflictNodes())
         getattr(w,'import')(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
-        #getattr(w,'import')(rfvSigRate_zjets, ROOT.RooFit.RecycleConflictNodes()) #changed to zjet
+        getattr(w,'import')(rfvSigRate_zjets, ROOT.RooFit.RecycleConflictNodes())
         getattr(w,'import')(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
 
         zz2l2q_mass.setRange(self.low_M,self.high_M)

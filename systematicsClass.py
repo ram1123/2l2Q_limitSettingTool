@@ -408,21 +408,21 @@ class systematicsClass:
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("BTAG_{channel} param  0  1  [-3,3]\n".format(channel=channel))
+        theFile.write("BTAG_{channel} param  0  1  [-2,2]\n".format(channel=channel))
 
     def Write_CMS_zz2l2q_bkgMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_bkgMELA_{0} param 0  1  [-3,3]\n".format(channel))
+        theFile.write("CMS_zz2l2q_bkgMELA_{0} param 0  1  [-2,2]\n".format(channel))
 
     def Write_CMS_zz2l2q_sigMELA(self,theFile,theInputs):
         channel="resolved"
         if(self.decayChan=="eeqq_Merged" or self.decayChan=="mumuqq_Merged"):
           channel="merged"
 
-        theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-3,3]\n".format(channel))
+        theFile.write("CMS_zz2l2q_sigMELA_{0} param 0  1  [-2,2]\n".format(channel))
 
     def Write_Ak4_Split_JEC(self,theFile,theinputs):
         ##add these split JEC uncertainty for ak4
