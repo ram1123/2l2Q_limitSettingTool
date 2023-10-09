@@ -3,7 +3,7 @@ name: Simple GitHub Pages Deploy
 on:
   push:
     branches:
-      - main  # or your test branch
+      - deploy_check  # or your test branch
 
 jobs:
   deploy:
