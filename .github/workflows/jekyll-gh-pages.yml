@@ -71,6 +71,12 @@ jobs:
       - name: Copy Sphinx Documentation to Jekyll Site
         run: sudo cp -r docs/build/html/* _site/sphinx-docs/
 
+      - name: Check artifact size
+        run: du -sh _site/
+      
+      - name: Check for symlinks or hard links
+        run: find _site/ \( -type l -o -type h \) -ls
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
