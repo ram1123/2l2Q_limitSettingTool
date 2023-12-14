@@ -102,6 +102,8 @@ systematic splitjec vz RelSample_year 1.0610057708161582/0.909315746084089
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
+systematic deepjetsf False
+systematic deepjetsfcorrelated False
 systematic CMS_scale_j_split False
 systematic CMS_scale_J_split True
 systematic luminosity True

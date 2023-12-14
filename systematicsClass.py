@@ -472,6 +472,27 @@ class systematicsClass:
 
             self.Write_Systematics_Line(systLine,theFile,theinputs)
 
+    def Write_Ak4_deepjet_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        theFile.write('CMS_scale_deepjet lnN ')
+        systLine={'ggH':"{} ".format(theinputs['deepjetsf']['ggH'])}
+        systLine['qqH'] = "{} ".format(theinputs['deepjetsf']['qqH'])
+        systLine['zjets'] = "- "
+        systLine['ttbar'] = "{} ".format(theinputs['deepjetsf']['ttbar'])
+        systLine['vz'] = "{} ".format(theinputs['deepjetsf']['vz'])
+        
+        self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+        theFile.write('CMS_scale_deepjetcorrelated lnN ')
+        systLine={'ggH':"{} ".format(theinputs['deepjetsfcorrelated']['ggH'])}
+        systLine['qqH'] = "{} ".format(theinputs['deepjetsfcorrelated']['qqH'])
+        systLine['zjets'] = "- "
+        systLine['ttbar'] = "{} ".format(theinputs['deepjetsfcorrelated']['ttbar'])
+        systLine['vz'] = "{} ".format(theinputs['deepjetsfcorrelated']['vz'])
+
+        self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
         if theInputs['useLumiUnc']:
@@ -506,7 +527,8 @@ class systematicsClass:
             self.Write_Ak4_Split_JEC(theFile,theInputs)
         if theInputs['useAk8SplitJEC']:
             self.Write_Ak8_Split_JEC(theFile,theInputs)
-
+        if theInputs['usedeepjetsf']:
+            self.Write_Ak4_deepjet_Split_JEC(theFile,theInputs)
 
     ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :

@@ -102,6 +102,8 @@ class inputReader:
         self.useQCDscale_vz = False
         self.useAk4SplitJEC = False
         self.useAk8SplitJEC = False
+        self.usedeepjetsf = False
+        self.usedeepjetsfcorrelated = False
         # --- VBFtag/Btag systematics
 
         self.gghJESLow = -999.9
@@ -144,6 +146,14 @@ class inputReader:
             self.HF_year[process] = -999.99
             self.RelBal[process] = -999.99
             self.RelSample_year[process] = -999.99
+
+        ####deepjet systematics for ak4
+        self.deepjetsf = {}
+        self.deepjetsfcorrelated = {}
+        self.splitproccess = ['ggH','qqH','ttbar','vz']
+        for process in self.splitproccess:
+            self.deepjetsf[process] = -999.9
+            self.deepjetsfcorrelated[process] = -999.9
 
     def goodEntry(self,variable):
         if variable == -999.9:
@@ -271,6 +281,15 @@ class inputReader:
                                 self.RelBal[process] = f[4]
                             if f[3]=='RelSample_year':
                                 self.RelSample_year[process] = f[4]
+                ###deepjet sf
+                if f[1].lower().startswith('deepjetsf'):
+                    for process in self.splitproccess:
+                        if f[2] == process:
+                            self.deepjetsf[process] = f[3]
+                if f[1].lower().startswith('deepjetsfcorrelated'):
+                    for process in self.splitproccess:
+                        if f[2] == process:
+                            self.deepjetsfcorrelated[process] = f[3]
 
                 if f[1].lower().startswith("luminosity"):
                     self.useLumiUnc = self.parseBoolString(f[2])
@@ -305,6 +324,12 @@ class inputReader:
                     self.useAk4SplitJEC = self.parseBoolString(f[2])
                 if f[1].startswith("CMS_scale_J_split"):
                     self.useAk8SplitJEC = self.parseBoolString(f[2])
+                ##deepjet sf
+                if f[1].startswith("deepjetsf"):
+                    self.usedeepjetsf = self.parseBoolString(f[2])
+                if f[1].startswith("deepjetsfcorrelated"):
+                    self.usedeepjetsfcorrelated = self.parseBoolString(f[2])
+
 
             if f[0].lower().startswith("lumi"):
                 self.lumi = float(f[1])
@@ -409,6 +434,9 @@ class inputReader:
         ##JEC split
         dict['useAk4SplitJEC'] = self.useAk4SplitJEC
         dict['useAk8SplitJEC'] = self.useAk8SplitJEC
+        ##deepjet sf
+        dict['usedeepjetsf'] = self.usedeepjetsf
+        dict['usedeepjetsfcorrelated'] = self.usedeepjetsfcorrelated
 
         dict['CMS_zz2l2q_mean_m_err'] = float(self.CMS_zz2l2q_mean_m_err)
         dict['CMS_zz2l2q_sigma_m_err'] = float(self.CMS_zz2l2q_sigma_m_err)
@@ -419,7 +447,9 @@ class inputReader:
         dict['CMS_zz2lJ_mean_J_err'] = float(self.CMS_zz2lJ_mean_J_err)
         dict['CMS_zz2lJ_sigma_J_err'] = float(self.CMS_zz2lJ_sigma_J_err)
 
-        ##JEC split valus
+        ##JEC split and deepjet valus
+        dict['deepjetsf'] = {}
+        dict['deepjetsfcorrelated'] = {}
         for source in self.SplitSource:
             dict[source] = {}
         for process in self.splitproccess:
@@ -434,6 +464,10 @@ class inputReader:
             dict['HF_year'][process] =        (self.HF_year[process])
             dict['RelBal'][process] =         (self.RelBal[process])
             dict['RelSample_year'][process] = (self.RelSample_year[process])
+        
+            ##deepjet sf value
+            dict['deepjetsf'][process] = (self.deepjetsf[process])
+            dict['deepjetsfcorrelated'][process] = (self.deepjetsfcorrelated[process])
 
 
         return dict
