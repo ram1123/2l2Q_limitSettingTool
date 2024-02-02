@@ -23,6 +23,9 @@ class CombineStrings:
         self.COMBINE_FITDIAGNOSTIC = "mH{mH}_{year}"+self.date_string+(self.Additional).upper()+"_{blind}_{bOnlyOrSB}_{Category}"
         self.COMBINE_LHS = "mH{mH}_{year}"+self.date_string+(self.Additional).upper()+"_{blind}_{bOnlyOrSB}_{Category}"
 
+    def set_tag_impact(self, Additional ):
+        self.COMBINE_IMPACT = "mH{mH}_{year}"+self.date_string+(Additional).upper()+"_{blind}_{bOnlyOrSB}_{Category}"
+
     def printAll(self):
         logger.debug("{:21}: {}".format("COMBINE_ASYMP_LIMIT",self.COMBINE_ASYMP_LIMIT))
         logger.debug("{:21}: {}".format("COMBINE_IMPACT",self.COMBINE_IMPACT))

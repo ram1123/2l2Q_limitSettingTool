@@ -12,6 +12,7 @@ from ListOfDatacards import datacardList, datacardList_condor
 import multiprocessing as mp
 from functools import partial
 import datetime
+import fnmatch
 
 import ROOT
 
@@ -74,18 +75,26 @@ class DirectoryCreator:
         self.ifNuisance = True
         self.Template = ["2D"]
         self.t_values = ['Resolved', 'Merged']
+        self.date = args.date
+        self.tag = args.tag
         self.step = args.step
         self.substep = args.substep
         self.ifCondor = args.ifCondor
         self.blind = args.blind
+        self.howToBlind = args.howToBlind
         self.allDatacard = args.allDatacard
         self.signalStrength = args.signalStrength
         self.freezeParameters = args.freezeParameters
         self.setParameterRanges = args.setParameterRanges
+        self.AdditionalFitOptions = args.AdditionalFitOptions
         self.verbose = args.verbose
+        self.combineVerbose = args.combineVerbose
         self.dry_run = args.dry_run
         self.ifParallel = args.parallel
         self.SanityCheckPlotUsingWorkspaces = args.SanityCheckPlotUsingWorkspaces
+
+
+        self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
 
         self.blindString = ""
         self.FitType = ""
@@ -97,13 +106,49 @@ class DirectoryCreator:
             self.FitType = "SBHypo_SStrength{}".format(self.signalStrength)
 
         if self.blind:
-            # self.blindString = " --run blind "
-            self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+            self.blindString = " " + args.howToBlind + " "
+            if args.howToBlind == "-t -1":
+                self.blindString += " --expectSignal {} ".format(self.signalStrength)
+            if args.step == 'ri' or args.step == 'riess':
+                self.blindString = " -t -1 "
+                if self.signalStrength != -1.0:
+                    self.blindString += " --expectSignal {} ".format(self.signalStrength)
+            if args.step == 'fs':
+                self.blindString = " -t -1  "
         else:
             self.blindString = " "
 
         self.datacards = [self.DATA_CARD_FILENAME] if not self.allDatacard else datacardList
 
+    def ResetBlindString(self):
+        if self.blind:
+            self.blindString = " " + self.howToBlind + " "
+            if self.howToBlind == "-t -1":
+                self.blindString += " --expectSignal {} ".format(self.signalStrength)
+            if self.step == 'ri' or self.step == 'riess':
+                self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
+            if self.step == 'fs':
+                self.blindString = " -t -1  "
+        else:
+            self.blindString = " "
+
+        # if self.signalStrength == 0.0:
+        #     self.FitType = "BkgOnlyHypothesis"
+        # elif self.signalStrength == 1.0:
+        #     self.FitType = "SBHypothesis"
+        # else:
+        #     self.FitType = "SBHypo_SStrength{}".format(self.signalStrength)
+
+    def ResetTag(self):
+        if (self.date).lower() != '' or (self.tag).lower() != '':
+            CombineStrings.printAll()
+            if (self.date).lower() != '':
+                logger.debug("Setting date string to {}".format(self.date))
+                CombineStrings.set_date(self.date)
+            if (self.tag).lower() != '':
+                logger.debug("Setting tag string to {}".format(self.tag))
+                CombineStrings.set_tag_impact( self.tag)
+            CombineStrings.printAll()
 
     def GetCategory(self, datacard):
         return ((((datacard.replace("hzz2l2q_","")).replace("_13TeV","")).replace(".txt","")).replace("_xs","")).replace("13TeV","")
@@ -146,7 +191,7 @@ class DirectoryCreator:
         with cd(current_mass_directory):
             logger.debug("Current directory: {}".format(os.getcwd()))
             if os.path.exists(datacard.replace(".txt", ".root")):
-                logger.debug("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
+                logger.warning("Removing existing workspace: {}".format(datacard.replace(".txt", ".root")))
                 os.remove(datacard.replace(".txt", ".root"))
 
             # Create the workspace
@@ -242,18 +287,36 @@ class DirectoryCreator:
             AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
 
             # -M HybridNew --LHCmode LHC-limits
-            CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
-            CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH} --rMin -1 --rMax 2 --rAbsAcc 0  -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
-            # FIXME: Only for debug:
-            #CombineCommonArguments += " --freezeParameters MH,allConstrainedNuisances "
-            if self.blind:
-                CombineCommonArguments += " --run blind " + self.blindString
-                CombineCommonArgumentsHybrid += "    " + self.blindString
+            CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH}   -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH}   -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            # CombineCommonArguments += ' --rMin -1 --rMax 2 --rAbsAcc 0 --rRelAcc 0.0005 '
+
+            # Add the blind option
+            CombineCommonArguments += self.blindString
+            CombineCommonArgumentsHybrid += self.blindString
+            if self.combineVerbose != 0:
+                CombineCommonArguments += " -v {}".format(self.combineVerbose)
+                CombineCommonArgumentsHybrid += " -v {}".format(self.combineVerbose)
+            #     CombineCommonArgumentsHybrid += "    " + self.blindString
                 # CombineCommonArguments += " --run expected "
                 # CombineCommonArguments += " --run blind -t -1 "
                 # CombineCommonArguments += " --run blind -t -1 --expectSignal 1 "
-                # CombineCommonArguments += " --run blind -t -1 --expectSignal 0 "
-            # CombineCommonArguments += " --dry-run "
+
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+            CombineCommonArguments += Stat
+            CombineCommonArgumentsHybrid += Stat
+
+            # freeze the nuisance JES and JER
+            freeze = " "
+            if self.freezeParameters != "":
+                freeze += " --freezeParameters {}".format(self.freezeParameters)
+            CombineCommonArguments += freeze
+            CombineCommonArgumentsHybrid += freeze
+
             if self.ifCondor:
                 LocalDir = os.getcwd()
                 os.chdir(current_mass_directory)
@@ -262,10 +325,10 @@ class DirectoryCreator:
 
                 Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                 if self.year == 'run2':
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString)
+                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                 else:
-                    command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_AsympLimit".format(mH=current_mass, name = AppendNameString, Condor_queue = Condor_queue)
-                commandHybrid += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_Hybrid".format(mH=current_mass, name = AppendNameString)
+                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+                commandHybrid += self.CombineCondor.format(name = AppendNameString+"_Hybrid", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
                 # espresso = 20min
                 # microcentury = 1 hr
                 # longlunch = 2 hr
@@ -283,6 +346,62 @@ class DirectoryCreator:
 
                 RunCommand(command, self.dry_run)
                 os.chdir(cwd)
+
+    def run_impact_expSS(self, current_mass, current_mass_directory, cwd):
+        """This member function will first grab the expected upper limit from the combine output.
+         Then set the signalStrength value to the expected limit then run the impact plot
+
+        Args:
+            current_mass (str): Mass of scalar over which its going to run
+            current_mass_directory (str): path where it will find input datacards and place output information
+            cwd (str): current working directory
+        """
+        # Get the expected upper limit from the combine output
+
+        logger.debug("Datacard: {}".format(self.datacards))
+        expUL = 0.0
+        TempSignalStrength = self.signalStrength
+        with cd(current_mass_directory):
+            logger.debug("Current directory: {}".format(os.getcwd()))
+            for datacard in self.datacards:
+                AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
+                # Get the expected upper limit from the combine output (its format is "mH500_run2_03sep_blind_BkgOnlyHypothesis__AsympLimit_BkgOnlyHypothesis.6008612.0.out")
+                # self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
+                #
+                logger.debug("Opening file: {}".format("{name}*.out".format(name = AppendNameString+"_AsympLimit")))
+
+                # List all files with the name {name}*.out in current directory. Pick the one with the latest creation time
+                matching_files = []
+                for filename in os.listdir("."):
+                    if fnmatch.fnmatch(filename, "{name}*.out".format(name = AppendNameString+"_AsympLimit")):
+                        filepath = os.path.join(".", filename)
+                        creation_time = os.path.getctime(filepath)
+                        matching_files.append((filename, creation_time))
+
+                # Sort the files by creation time in descending order
+                sorted_files = sorted(matching_files, key=lambda x: x[1], reverse=True)
+
+                # Pick the latest file if there is at least one
+                if sorted_files:
+                    latest_file = sorted_files[0][0]
+                    logger.debug("The most recently created file is {}".format(latest_file))
+                else:
+                    logger.error("No matching files found.")
+                    sys.exit(1)
+
+                with open(latest_file, 'r') as f:
+                    for line in f:
+                        if "Expected 50.0%: r <" in line:
+                            expUL = float(line.split("Expected 50.0%: r <")[1].split(" ")[1])
+                            logger.info("Expected upper limit: {}".format(expUL))
+                            break
+        # Update the signal strength value
+        self.signalStrength = expUL
+        self.ResetBlindString()
+        self.tag = "expUL"
+        self.ResetTag()
+        # Run the impact plot
+        self.run_impact(current_mass, current_mass_directory, cwd)
 
     def run_impact(self, current_mass, current_mass_directory, cwd):
         logger.debug('datacards: {}'.format(self.datacards))
@@ -310,24 +429,21 @@ class DirectoryCreator:
                 # (BR,BTAG_merged,CMS_Vtagging,CMS_Vtagging_In,CMS_channel,CMS_eff_e,CMS_eff_e_In,CMS_eff_m,CMS_eff_m_In,CMS_scale_J_Abs,CMS_scale_J_Abs_2018,CMS_scale_J_Abs_2018_In,CMS_scale_J_Abs_In,CMS_scale_J_BBEC1,CMS_scale_J_BBEC1_2018,CMS_scale_J_BBEC1_2018_In,CMS_scale_J_BBEC1_In,CMS_scale_J_EC2,CMS_scale_J_EC2_2018,CMS_scale_J_EC2_2018_In,CMS_scale_J_EC2_In,CMS_scale_J_FlavQCD,CMS_scale_J_FlavQCD_In,CMS_scale_J_HF,CMS_scale_J_HF_2018,CMS_scale_J_HF_2018_In,CMS_scale_J_HF_In,CMS_scale_J_RelBal,CMS_scale_J_RelBal_In,CMS_scale_J_RelSample_2018,CMS_scale_J_RelSample_2018_In,CMS_zz2l2q_bkgMELA_merged,CMS_zz2l2q_bkgMELA_merged_In,CMS_zz2l2q_mean_e_sig,CMS_zz2l2q_mean_e_sig_In,CMS_zz2l2q_mean_m_sig,CMS_zz2l2q_mean_m_sig_In,CMS_zz2l2q_sigMELA_merged,CMS_zz2l2q_sigMELA_merged_In,CMS_zz2l2q_sigma_e_sig,CMS_zz2l2q_sigma_e_sig_In,CMS_zz2l2q_sigma_m_sig,CMS_zz2l2q_sigma_m_sig_In,CMS_zz2lJ_mean_J_sig,CMS_zz2lJ_mean_J_sig_In,CMS_zz2lJ_sigma_J_sig,CMS_zz2lJ_sigma_J_sig_In,Dspin0,LUMI_13_2018,MH,QCDscale_vz,QCDscale_vz_In,a1_VBF_eeqq_Merged_2018,a1_VBF_mumuqq_Merged_2018,a1_ggH_eeqq_Merged_2018,a1_ggH_mumuqq_Merged_2018,a2_VBF_eeqq_Merged_2018,a2_VBF_mumuqq_Merged_2018,a2_ggH_eeqq_Merged_2018,a2_ggH_mumuqq_Merged_2018,bias_VBF_eeqq_Merged,bias_VBF_mumuqq_Merged,bias_ggH_eeqq_Merged,bias_ggH_mumuqq_Merged,frac_VBF,lumi_13TeV_2018,lumi_13TeV_2018_In,lumi_13TeV_correlated_16_17_18,       lumi_13TeV_correlated_16_17_18_In,lumi_13TeV_correlated_17_18,lumi_13TeV_correlated_17_18_In,mean_J_err,mean_e_err,mean_m_err,n1_VBF_eeqq_Merged_2018,n1_VBF_mumuqq_Merged_2018,n1_ggH_eeqq_Merged_2018,n1_ggH_mumuqq_Merged_2018,n2_VBF_eeqq_Merged_2018,n2_VBF_mumuqq_Merged_2018,n2_ggH_eeqq_Merged_2018,n2_ggH_mumuqq_Merged_2018,pdf_hzz2l2q_accept,pdf_hzz2l2q_accept_In,pdf_qqbar,pdf_qqbar_In,r,sigma_J_err,sigma_VBF_eeqq_Merged,sigma_VBF_mumuqq_Merged,sigma_e_err,sigma_ggH_eeqq_Merged,sigma_ggH_mumuqq_Merged,sigma_m_err,zjetsAlpha_merged_btagged,zjetsAlpha_merged_btagged_In,zjetsAlpha_merged_untagged,zjetsAlpha_merged_untagged_In,zjetsAlpha_merged_vbftagged,zjetsAlpha_merged_vbftagged_In,zz2lJ_mass)
 
                 Stat += " --setParameterRanges r=-1,3 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1 "
-                # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1 "
                 # Stat += " --setParameterRanges r=-1,2:frac_VBF=0,1:CMS_zz2l2q_bkgMELA_merged=0,1:CMS_zz2l2q_sigMELA_merged=0,1:CMS_zz2l2q_mean_e_sig=0,1:CMS_zz2l2q_mean_m_sig=0,1:CMS_zz2l2q_sigma_e_sig=0,1:CMS_zz2l2q_sigma_m_sig=0,1 "
 
                 Stat = " "
                 if self.setParameterRanges != "":
                     Stat += " --setParameterRanges {}".format(self.setParameterRanges)
 
+                if self.AdditionalFitOptions != "":
+                    Stat += " {}".format(self.AdditionalFitOptions)
+
+                # Stat += " --setParameters r=0"
                 # freeze the nuisance JES and JER
                 freeze = " "
                 if self.freezeParameters != "":
                     freeze += " --freezeParameters {}".format(self.freezeParameters)
                 # freeze +=  " --freezeNuisanceGroups check "  # To freese the nuisance group named check
-                # freeze += " --freezeParameters BTAG_resolved "
                 # freeze += " --freezeParameters frac_VBF "
                 # freeze += " --freezeParameters allConstrainedNuisances "
                 # freeze = " "
@@ -336,18 +452,18 @@ class DirectoryCreator:
                     # STEP - 1
                     command = "combineTool.py -M Impacts -d {datacard}  -m {mH} -n .{name}  --robustFit 1 --doInitialFit ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass, name = AppendOutName)   # Main command
                     #command = "combineTool.py -M Impacts -d {datacard}  -m {mH} --rMin -10  --doInitialFit -v 3 ".format(datacard = datacard.replace(".txt", ".root"), mH = current_mass)   # Main command
-                    #if self.blind: command += " -t -1 --expectSignal 1 "
                     command += self.blindString
-                    # command += " -v 1 "
+                    if self.combineVerbose != 0:
+                        command += " -v {}".format(self.combineVerbose)
                     command += Stat
                     command += freeze
 
                     if self.ifCondor:
                         Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                         if self.year == 'run2':
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS1".format(name = AppendOutName)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                         else:
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS1".format(name = AppendOutName, Condor_queue = Condor_queue)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
                     else:
                         command +=  " | tee {name}.log".format(name = AppendOutName)
 
@@ -364,9 +480,9 @@ class DirectoryCreator:
                     if self.ifCondor:
                         Condor_queue = datacardList_condor[datacard] # Get the condor queue from the dictionary datacardList_condor defined in the file ListOfDatacards.py
                         if self.year == 'run2':
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"workday\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_ImpactS2".format(name = AppendOutName)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS2", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                         else:
-                            command += " --job-mode condor --sub-opts='+JobFlavour=\"{Condor_queue}\"' --task-name {name}_ImpactS2".format(name = AppendOutName, Condor_queue = Condor_queue)
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS2", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
                     else:
                         # use multi core processing to run impact plot
                         command += " --parallel 8 "
@@ -415,7 +531,9 @@ class DirectoryCreator:
                 name3 = "scan.with_syst.statonly_correct_" + "points"+str(pointsToScan) # String append to the name of AllConstrainedNuisances
                 outPDFName = OutNameAppend + "_points"+str(pointsToScan) # Output PDF File
 
-                CondorCommandPatch = " -v -1  --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"\\nRequestCpus=4\\nrequest_memory = 10000' --task-name {name}_LHS".format(name = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType))
+                CustomString = CombineStrings.COMBINE_IMPACT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
+
+                CondorCommandPatch = " -v -1 " + self.CombineCondor.format(name = CustomString+"_LHS", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
 
                 if self.substep == 1:
                     # STEP - 1
@@ -574,7 +692,7 @@ class DirectoryCreator:
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
             RunCommand(command, self.dry_run)
 
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
@@ -584,7 +702,7 @@ class DirectoryCreator:
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += " --job-mode condor --sub-opts='+JobFlavour=\"tomorrow\"' --task-name {name}_FitDiagnostics_{FitType}".format(name = OutNameAppend, FitType = FitType)
+            command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
             RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
@@ -614,7 +732,7 @@ class DirectoryCreator:
                 RunCommand(command, self.dry_run)
 
             if self.blind:
-                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=0,10 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=-5,5 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
                 command += self.blindString
                 RunCommand(command, self.dry_run)
 
@@ -624,21 +742,35 @@ class DirectoryCreator:
 
             command += " --parallel 8 "
 
-            additionalArguments = "   "
+            if self.blind: command += "  --setParameters r=1 "
+
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+
+            command += Stat
+
+            # freeze the nuisance JES and JER
+            freeze = " "
+            if self.freezeParameters != "":
+                freeze += " --freezeParameters {}".format(self.freezeParameters)
+            command += freeze
+
+            if self.ifCondor:
+                command += self.CombineCondor.format(name = OutNameAppend+"_FastScan", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
+            # additionalArguments = "   "
             # additionalArguments = " --robustHesse 1"
             # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
 
-            additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
+            # additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
 
             # fitting options
-            additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
+            # additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
 
             # additionalArguments += " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
 
-
-
-
-            command += additionalArguments
             RunCommand(command, self.dry_run)
 
         os.chdir(cwd)
@@ -651,6 +783,7 @@ class DirectoryCreator:
             "rc": self.run_combine,
             "fd": self.FitDiagnostics,
             "ri": self.run_impact,
+            "riess": self.run_impact_expSS,
             "fs": self.fastScan,
             "rll": self.run_LHS,
             "corr": self.run_correlation,
@@ -692,7 +825,10 @@ class DirectoryCreator:
             # create_workspaces takes two arguments, mass and datacard_class
             pool = mp.Pool()
             try:
-                pool.map(partial(self.create_workspaces, datacard_class=datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+                #  create_workspace memeber function takes two arguments mass and datacard_class
+                # pool.map(partial(self.create_workspaces, datacard_class), range(self.start_mass, self.end_val, self.step_sizes))
+                arguments = [(current_mass, datacard_class) for current_mass in range(self.start_mass, self.end_val, self.step_sizes)]
+                pool.starmap(self.create_workspaces, arguments)
             except Exception as e:
                 logger.error(e)
                 pool.close()
@@ -817,17 +953,17 @@ def main():
     fit_settings.add_argument("-allDatacard", "--allDatacard", action="store_true", dest="allDatacard", default=False, help="If we need limit values or impact plot for each datacards, stored in file ListOfDatacards.py")
     fit_settings.add_argument('-f', '--fracVBF', dest='frac_vbf', type=float, default=-1, help='fracVBF, -1 means float this frac. (default:-1)')
     fit_settings.add_argument("-b", "--blind", action="store_false", dest="blind", default=True, help="Running blind?")
+    fit_settings.add_argument("-howToBlind", "--howToBlind", dest="howToBlind", type=str, default='--run blind', help="howToBlind: --run blind, -t -1 --expectSignal 0, -t -1 --expectSignal 1")
     fit_settings.add_argument("-signalStrength", "--signalStrength", dest="signalStrength", type=float, default=0.0, help="signal strength for the fit")
-    # freeze parameters for the fit
     fit_settings.add_argument("-freezeParameters", "--freezeParameters", dest="freezeParameters", type=str, default="", help="freeze parameters for the fit. If want to freeze all then give argumen `allConstrainedNuisances`")
-    # set parameters range for the fit
     fit_settings.add_argument("-setParameterRanges", "--setParameterRanges", dest="setParameterRanges", type=str, default="", help="set parameters range for the fit. Its format should be `r=-1,3:BTAG_resolved=-5,5:BTAG_merged=-5,5`")
-
+    fit_settings.add_argument("-AdditionalFitOptions", "--AdditionalFitOptions", dest="AdditionalFitOptions", type=str, default="", help="AdditionalFitOptions for the fit. Its format should be `--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01`")
 
     # Logging Settings
     logging_settings.add_argument("--log-level", default=logging.INFO, type=lambda x: getattr(logging, x.upper()), help="Configure the logging level.")
     logging_settings.add_argument("--log-level-roofit", default=ROOT.RooFit.WARNING, type=lambda x: getattr(ROOT.RooFit, x.upper()), help="Configure the logging level for RooFit.")
     logging_settings.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="don't print status messages to stdout")
+    logging_settings.add_argument("-combineVerbose", "--combineVerbose", dest="combineVerbose", type=int, default=0, help="combineVerbose for the fit. Its format should be `--verbose 0`")
 
     # Advanced Settings
     advanced_settings.add_argument("-date", "--date", dest="date", type=str, default='', help="If this option is given, then it will append date string to the output file name. This is helpful if I want to use the combine output from different date")
@@ -836,7 +972,7 @@ def main():
 
 
     # Step Control
-    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "fs", "rll", "corr", "plot", "all"])
+    step_control.add_argument('-s', '--step', dest='step', type=str, default='dc', help='Which step to run: dc (DataCardCreation), cc (CombineCards), ws (Get workspaces) rc (RunCombine), fd (Fit Diagnostics) ri (run Impact), fs (fastScan), rll (run loglikelihood with and without syst) , corr (Correlation), plot or all', choices=["dc", "cc", "ws", "rc", "fd", "ri", "riess", "fs", "rll", "corr", "plot", "all"])
     step_control.add_argument('-ss', '--substep', dest='substep', type=int, default=11, help='sub-step help')
 
     args = parser.parse_args()

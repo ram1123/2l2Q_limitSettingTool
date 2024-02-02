@@ -1,10 +1,7 @@
 Introduction
 ============
 
-This is a command line tool designed to perform a high mass Higgs search
-analysis using the combine software. It includes options for creating
-datacards, combining them, and running combine on the resulting cards to
-produce various results including limit values and impact plots.
+This is a command line tool designed to perform a high mass Higgs search analysis using the combine software. It includes options for creating datacards, combining them, and running combine on the resulting cards to produce various results including limit values and impact plots.
 
 Installation
 ============
@@ -12,8 +9,7 @@ Installation
 Setup Higgs combine tool
 ------------------------
 
-**Step-1:** Combine setup inheritted from
-https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
+**Step-1:** Combine setup inheritted from [https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/)
 
 .. code:: bash
 
@@ -31,8 +27,8 @@ https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
    bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
    scramv1 b -j 8
 
-**Step-2:** Get the custom tool for datacard creation and limit
-computation
+
+**Step-2:** Get the custom tool for datacard creation and limit computation
 
 .. code:: bash
 
@@ -42,11 +38,10 @@ computation
 Usage
 =====
 
-The tool is run from the command line with various options. Here is a
-list of command line available options:
+The tool is run from the command line with various options. Here is a list of command line available options:
 
 General Settings
-^^^^^^^^^^^^^^^^
+----------------
 
 - **-i, --input**
     - Type: ``str``
@@ -72,7 +67,7 @@ General Settings
     - Description: Run jobs in parallel.
 
 Mass Settings
-^^^^^^^^^^^^^
+-------------
 
 - **-mi, --MassStartVal**
     - Type: ``int``
@@ -90,7 +85,7 @@ Mass Settings
     - Description: Step value for mass range.
 
 Year and Condor Settings
-^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 - **-y, --year**
     - Type: ``str``
@@ -103,7 +98,7 @@ Year and Condor Settings
     - Description: Use Condor to run the combine command for all mass points in parallel.
 
 Fit Settings
-^^^^^^^^^^^^
+------------
 
 - **-allDatacard, --allDatacard**
     - Action: ``store_true``
@@ -131,7 +126,7 @@ Fit Settings
     - Description: Freeze parameters for the fit. The format should be like ``r=-1,3:BTAG_resolved=-5,5:BTAG_merged=-5,5``.
 
 Logging Settings
-^^^^^^^^^^^^^^^^
+----------------
 
 - **--log-level**
     - Type: ``logging level``
@@ -149,7 +144,7 @@ Logging Settings
     - Description: Enable verbose logging.
 
 Advanced Settings
-^^^^^^^^^^^^^^^^^
+-----------------
 
 - **-date, --date**
     - Type: ``str``
@@ -167,7 +162,7 @@ Advanced Settings
     - Description: Enable sanity check plots using workspaces.
 
 Step Control
-^^^^^^^^^^^^
+------------
 
 - **-s, --step**
     - Type: ``str``
@@ -180,7 +175,8 @@ Step Control
     - Description: Specify a sub-step.
 
 
-### Usage Example
+***Usage Example***
+
 
 .. code:: bash
 
