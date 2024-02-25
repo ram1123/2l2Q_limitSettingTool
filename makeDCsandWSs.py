@@ -289,7 +289,8 @@ class DirectoryCreator:
             # -M HybridNew --LHCmode LHC-limits
             CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH}   -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
             CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH}   -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
-            # CombineCommonArguments += ' --rMin -1 --rMax 2 --rAbsAcc 0 --rRelAcc 0.0005 '
+            #CombineCommonArguments += ' --rMin -1 --rMax 2 --rAbsAcc 0 --rRelAcc 0.0005 '
+            CombineCommonArguments += ' --rMin 0 --rMax 2 --rAbsAcc 0 --rRelAcc 0.0005 '
 
             # Add the blind option
             CombineCommonArguments += self.blindString
