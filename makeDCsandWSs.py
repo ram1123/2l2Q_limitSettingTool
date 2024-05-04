@@ -1177,9 +1177,6 @@ class DirectoryCreator:
         logger.debug("Declar datacardClass")
         datacard_class = datacardClass(str(self.year), self.verbose)
 
-        logger.debug("load root module")
-        datacard_class.loadIncludes()
-
         # Run the create_workspaces function as parallel for each mass point
         if self.ifParallel:
             # FIXME: This is not working

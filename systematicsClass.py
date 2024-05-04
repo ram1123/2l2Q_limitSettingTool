@@ -21,7 +21,7 @@ class systematicsClass:
         self.decayChan = theInputs["decayChannel"]
         self.cat = theInputs["cat"]
         self.mH = theMass
-        self.isForXSxBR = theForXSxBR
+        self.isForXSxBR = theForXSxBR # FIXME: Add details about this
         self.model = theInputs["model"]
 
         self.muSelError = 0.0
