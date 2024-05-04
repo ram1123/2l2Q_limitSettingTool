@@ -46,7 +46,11 @@ systematic param CMS_zz2l2q_mean_j_err   0.01
 systematic param CMS_zz2l2q_sigma_j_err  0.10
 
 ## Muon systematics ##
-systematic muon_full 0.04
+systematic muon_full vz 1.005057106/0.994955656
+systematic muon_full qqH 1.005143077/0.994870118
+systematic muon_full ggH 1.005104606/0.994908372
+systematic muon_full ttbar 1.004933508/0.995078678
+systematic muon_full zv 1.005057106/0.994955656
 systematic muon_trig 0.0075
 
 ##Split JEC systematic ##

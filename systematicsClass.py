@@ -70,8 +70,8 @@ class systematicsClass:
         self.rateBkg_ttbar = rates['ttbar']
         self.rateBkg_zjets = rates['zjets']
 
-        self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
-        self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
+        #self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
+        #self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
     def Write_Systematics_Line(self,systLine,theFile,theInputs):
         if self.DEBUG: print("~~~~~~~~~~~~~~~~~")
@@ -283,22 +283,22 @@ class systematicsClass:
         #systLine={'ggH':"{0:.3f} ".format(self.eSelError)}
         #systLine['qqH']   = "{0:.3f} ".format(self.eSelError)
         #systLine['vz']  = "{0:.3f} ".format(self.eSelError)
-        systLine={'ggH':"0.990549/1.00949 "}
-        systLine['qqH']   = "0.990549/1.00949 "
-        systLine['vz']  = "0.990549/1.00949 "
+        systLine={'ggH':"{} ".format(theInputs['elecFullUnc']['ggH'])}
+        systLine['qqH']   = "{} ".format(theInputs['elecFullUnc']['qqH'])
+        systLine['vz']  = "{} ".format(theInputs['elecFullUnc']['vz'])
         systLine['zjets']= "- "
-        systLine['ttbar']= "- "
+        systLine['ttbar']= "{} ".format(theInputs['elecFullUnc']['ttbar'])
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_m(self,theFile,theInputs):
 
         theFile.write("CMS_eff_m lnN ")
-        systLine={'ggH':"{0:.3f} ".format(self.muSelError)}
-        systLine['qqH']  = "{0:.3f} ".format(self.muSelError)
+        systLine={'ggH':"{} ".format(theInputs['muonFullUnc']['ggH'])}
+        systLine['qqH']  = "{} ".format(theInputs['muonFullUnc']['qqH'])
         systLine['zjets']= "- "
-        systLine['ttbar']= "- "
-        systLine['vz']  = "{0:.3f} ".format(self.muSelError)
+        systLine['ttbar']= "{} ".format(theInputs['muonFullUnc']['ttbar'])
+        systLine['vz']  = "{} ".format(theInputs['muonFullUnc']['vz'])
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 

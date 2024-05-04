@@ -47,7 +47,11 @@ systematic param CMS_zz2lJ_mean_J_err   0.01
 systematic param CMS_zz2lJ_sigma_J_err  0.1
 
 ## Electron systematics ##
-systematic elec_full 0.08
+systematic elec_full vz 1.031511948/0.968985759
+systematic elec_full qqH 1.034919317/0.965714429
+systematic elec_full ggH 1.034274132/0.966333585
+systematic elec_full ttbar 1.027859912/0.972509362
+systematic elec_full zv 1.031511948/0.968985759
 systematic elec_trig 0.0075
 
 ##Split JEC systematic ##

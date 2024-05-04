@@ -66,9 +66,11 @@ class inputReader:
 
         # systematics
         self.lumiUnc = -999.9
-        self.muonFullUnc = -999.9
+        #self.muonFullUnc = -999.9
+        self.muonFullUnc = {}
         self.muonTrigUnc = -999.9
-        self.elecFullUnc = -999.9
+        #self.elecFullUnc = -999.9
+        self.elecFullUnc = {}
         self.elecTrigUnc = -999.9
 
         self.CMS_zz2l2q_mean_m_err = -999.9
@@ -230,12 +232,20 @@ class inputReader:
                     self.zjetsAlphaHigh = f[2]
                 if f[1].lower().startswith("lumiunc"):
                     self.lumiUnc = f[2]
+                #if f[1].lower().startswith("muon_full") or f[1].lower().startswith("muonfull"):
+                #    self.muonFullUnc = f[2]
                 if f[1].lower().startswith("muon_full") or f[1].lower().startswith("muonfull"):
-                    self.muonFullUnc = f[2]
+                    for process in ['ggH','qqH','ttbar','vz']:
+                        if f[2] == process:
+                            self.muonFullUnc[process] = f[3]
                 if f[1].lower().startswith("muon_trig") or f[1].lower().startswith("muontrig"):
                     self.muonTrigUnc = f[2]
+                #if f[1].lower().startswith("elec_full") or f[1].lower().startswith("elecfull"):
+                #    self.elecFullUnc = f[2]
                 if f[1].lower().startswith("elec_full") or f[1].lower().startswith("elecfull"):
-                    self.elecFullUnc = f[2]
+                    for process in ['ggH','qqH','ttbar','vz']:
+                        if f[2] == process:
+                            self.elecFullUnc[process] = f[3]
                 if f[1].lower().startswith("elec_trig") or f[1].lower().startswith("electrig"):
                     self.elecTrigUnc = f[2]
                 if f[1].lower().startswith("param"):
@@ -408,8 +418,19 @@ class inputReader:
         dict['vzBTAGHigh'] = float(self.vzBTAGHigh)
 
         dict['lumiUnc'] = self.lumiUnc
-        dict['muonFullUnc'] = float(self.muonFullUnc)
-        dict['elecFullUnc'] = float(self.elecFullUnc)
+        #dict['muonFullUnc'] = float(self.muonFullUnc)
+        #dict['elecFullUnc'] = float(self.elecFullUnc)
+
+        dict['muonFullUnc'] = {}
+        dict['elecFullUnc'] = {}
+        #print('check elecFullUnc: {}'.format(self.elecFullUnc))
+        #print('check muonFullUnc: {}'.format(self.muonFullUnc))
+        
+        for key in self.muonFullUnc:        
+            dict['muonFullUnc'][key] = self.muonFullUnc[key]
+        for key in self.elecFullUnc:
+            dict['elecFullUnc'][key] = self.elecFullUnc[key]
+
         dict['muonTrigUnc'] = float(self.muonTrigUnc)
         dict['elecTrigUnc'] = float(self.elecTrigUnc)
 
