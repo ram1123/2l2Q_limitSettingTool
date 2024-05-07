@@ -474,23 +474,24 @@ class systematicsClass:
 
     def Write_Ak4_deepjet_Split_JEC(self,theFile,theinputs):
         ##add these split JEC uncertainty for ak4
-        theFile.write('CMS_scale_deepjet lnN ')
-        systLine={'ggH':"{} ".format(theinputs['deepjetsf']['ggH'])}
-        systLine['qqH'] = "{} ".format(theinputs['deepjetsf']['qqH'])
-        systLine['zjets'] = "- "
-        systLine['ttbar'] = "{} ".format(theinputs['deepjetsf']['ttbar'])
-        systLine['vz'] = "{} ".format(theinputs['deepjetsf']['vz'])
-        
-        self.Write_Systematics_Line(systLine,theFile,theinputs)
+        for flav in ['bc','light']:
+            theFile.write('CMS_scale_deepjet{}_{} lnN '.format(flav,self.year))
+            systLine={'ggH':"{} ".format(theinputs['deepjetsf{}'.format(flav)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['vz'])
 
-        theFile.write('CMS_scale_deepjetcorrelated lnN ')
-        systLine={'ggH':"{} ".format(theinputs['deepjetsfcorrelated']['ggH'])}
-        systLine['qqH'] = "{} ".format(theinputs['deepjetsfcorrelated']['qqH'])
-        systLine['zjets'] = "- "
-        systLine['ttbar'] = "{} ".format(theinputs['deepjetsfcorrelated']['ttbar'])
-        systLine['vz'] = "{} ".format(theinputs['deepjetsfcorrelated']['vz'])
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
 
-        self.Write_Systematics_Line(systLine,theFile,theinputs)
+            theFile.write('CMS_scale_deepjetcorrelated{} lnN '.format(flav))
+            systLine={'ggH':"{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
 
 
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):

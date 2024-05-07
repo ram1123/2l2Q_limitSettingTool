@@ -102,11 +102,32 @@ systematic splitjec vz HF_year 1.0/1.0
 systematic splitjec vz RelBal 1.0033814760832118/0.9968941301179276
 systematic splitjec vz RelSample_year 1.0065562475155692/0.9936504571352855
 
+##deepjet SFs systematic ##
+systematic deepjetsf ggH 1.0132225089558464/0.9867774910441536
+systematic deepjetsf qqH 1.019972108004405/0.9800278919955949
+systematic deepjetsf ttbar 1.0114006790649979/0.988599320935002
+systematic deepjetsf vz 1.0114946978035197/0.9885053021964803
+
+systematic deepjetsflight ggH 1.0133399047847074/0.9866600952152926
+systematic deepjetsflight qqH 1.019314555115327/0.9806854448846729
+systematic deepjetsflight ttbar 1.0144567964688065/0.9855432035311935
+systematic deepjetsflight vz 1.0114163012091526/0.9885836987908473
+
+systematic deepjetsfcorrelatedbc ggH 1.0090912445173073/0.9909087554826927
+systematic deepjetsfcorrelatedbc qqH 1.014268285532821/0.9857317144671792
+systematic deepjetsfcorrelatedbc ttbar 1.00834254663782/0.9916574533621795
+systematic deepjetsfcorrelatedbc vz 1.0081782067042016/0.9918217932957981
+
+systematic deepjetsfcorrelatedlight ggH 1.0090912445173073/0.9909087554826927
+systematic deepjetsfcorrelatedlight qqH 1.014268285532821/0.9857317144671792
+systematic deepjetsfcorrelatedlight ttbar 1.00834254663782/0.9916574533621795
+systematic deepjetsfcorrelatedlight vz 1.0081782067042016/0.9918217932957981
+
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
-systematic deepjetsf False
-systematic deepjetsfcorrelated False
+systematic deepjetsf True
+systematic deepjetsfcorrelated True
 systematic CMS_scale_j_split True
 systematic CMS_scale_J_split False
 systematic luminosity True
