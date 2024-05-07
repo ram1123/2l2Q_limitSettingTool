@@ -12,6 +12,7 @@ from systematicsClass import *
 from utils import *
 from utils_hist import getTH1F, save_histograms, get_histogram, create_up_down_hist
 from utils_hist import check_object_validity
+from utils_hist import plot_and_save
 
 ROOT.gROOT.ProcessLine(
     "struct zz2lJ_massStruct {"
@@ -30,6 +31,7 @@ class datacardClass:
         self.setup_parameters()
         #  To extend the lifecycle of all RooFit objects by storing them as attributes of self
         self.rooVars = {}
+        self.background_hists = {}
 
     def setup_parameters(self):
         self.low_M = 0
@@ -218,6 +220,147 @@ class datacardClass:
         )
         logger.debug("{} rate: {}".format(self.rooVars["signalCB_{}_{}".format(signal_type, channel)].GetName(), fullRangeSigRate))
 
+    def setup_background_shapes(self):
+        # Open the template file for the given final state (fs)
+        TempFile_fs = ROOT.TFile("templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year), "READ")
+        if not TempFile_fs or TempFile_fs.IsZombie():
+            raise FileNotFoundError("Could not open the template file for final state {}".format(self.fs))
+
+        # Define the histogram names based on jet type and category
+        prefix = "hmass_{}SR".format(self.jetType)
+        hist_suffixes = {
+            "vz": "VZ_perInvFb_Bin50GeV",
+            "ttbar": "TTplusWW_perInvFb_Bin50GeV",
+            "zjet": "Zjet_perInvFb_Bin50GeV"
+        }
+        categories = {
+            "untagged": "",
+            "btagged": "btag",
+            "vbftagged": "vbf"
+        }
+
+        # Retrieve histograms for each background
+        for key, suffix in hist_suffixes.items():
+            for category, cat_string in categories.items():
+                hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
+                hist = TempFile_fs.Get(hist_name)
+                hist.SetDirectory(ROOT.gROOT)  # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
+
+                # print range of histogram
+                logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
+                if not hist:
+                    raise ValueError("Histogram {} not found in file".format(hist_name))
+                self.background_hists[key + "_" + category + "_template"] = hist
+
+                # Print integral for sanity check
+                logger.debug("{} integral: {}".format(hist_name, hist.Integral()))
+
+        # Smooth the histograms
+        for key, hist in self.background_hists.items():
+            hist_temp = hist.Clone()
+            hist.Smooth(1)  # Apply simple smoothing; adjust parameters as needed
+
+            # Print integral for sanity check
+            logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
+            save_histograms(hist, hist_temp, "{}_smoothed.png".format(key))
+
+        # Create RooHistPdf objects
+        self.rooHistPdfs = {}
+        for key, hist in self.background_hists.items():
+            # get the integral of hist
+            # Create RooDataHist from TH1 histogram
+            data_hist = ROOT.RooDataHist("dh_{}".format(key), "DataHist for {}".format(key), ROOT.RooArgList(self.zz2l2q_mass), hist)
+
+            # Create RooHistPdf from RooDataHist
+            pdf = ROOT.RooHistPdf("pdf_{}".format(key), "PDF for {}".format(key), ROOT.RooArgSet(self.zz2l2q_mass), data_hist)
+            self.rooHistPdfs[key] = pdf
+
+            # plot and save the RooDataHist and RooHistPdf
+            if self.SanityCheckPlot:
+                # compute the integral of the pdf
+                logger.warning("Integral of hist: {:21}: {}".format(key, hist.Integral()))
+
+                fullRangeBkgRate = (pdf.createIntegral(ROOT.RooArgSet(self.zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")).getVal())
+                logger.warning("Integral of pdf : {:21}: {}".format(pdf.GetName(), fullRangeBkgRate))
+
+                plot_and_save(data_hist, pdf, self.zz2l2q_mass, key, self.outputDir)
+
+        logger.error(self.background_hists)
+        # return self.rooHistPdfs
+
+    def setup_nuisances(self, systematics):
+        """
+        Set up the JES and BTAG nuisances and prepare RooArgList with all nuisances.
+        """
+        all_nuisances = []
+        jetString = "J" if self.jetType == "merged" else "j"
+
+        # JES nuisances for each split source
+        for source in systematics.SplitSource:
+            nuisance = ROOT.RooRealVar(
+                "CMS_scale_{}_{}".format(jetString, source),
+                "CMS_scale_{}_{}".format(jetString, source),
+                0,
+                -2,
+                2,
+            )
+            all_nuisances.append(nuisance)
+            self.rooVars["CMS_scale_{}_{}".format(jetString, source)] = nuisance
+
+        # JES nuisances for each split source considering the year
+        for source in systematics.SplitSourceYears:
+            nuisance = ROOT.RooRealVar(
+                "CMS_scale_{}_{}_{}".format(jetString, source, self.year),
+                "CMS_scale_{}_{}_{}".format(jetString, source, self.year),
+                0,
+                -2,
+                2,
+            )
+            all_nuisances.append(nuisance)
+            self.rooVars["CMS_scale_{}_{}_{}".format(jetString, source, self.year)] = (
+                nuisance
+            )
+
+        # Create a RooArgList from all JES nuisances
+        arglist_all_JES = ROOT.RooArgList()
+        for nuisance in all_nuisances:
+            arglist_all_JES.add(nuisance)
+
+        # Creating BTAG nuisance
+        BTAG = ROOT.RooRealVar("BTAG_" + self.jetType, "BTAG_" + self.jetType, 0, -2, 2)
+        self.rooVars["BTAG_" + self.jetType] = BTAG
+
+        # Combining BTAG with JES nuisances for cumulative effect
+        arglist_all_JES_BTAG = ROOT.RooArgList()
+        arglist_all_JES_BTAG.add(BTAG)
+        for nuisance in all_nuisances:
+            arglist_all_JES_BTAG.add(nuisance)
+
+        # Generating the formula string for cumulative effects
+        cumulative_jes_effect = "+".join(
+            "@{}".format(i) for i in range(len(arglist_all_JES))
+        )
+        cumulative_jes_effect_with_btag = "+".join(
+            "@{}".format(i + 1) for i in range(len(arglist_all_JES))
+        )
+        for i in range(arglist_all_JES.getSize()):
+            # logger.debug("JES nuisances: {} \n{}".format(arglist_all_JES[i], arglist_all_JES[i].Print("v")))
+            logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
+        # logger.debug("BTAG nuisance: {}".format(BTAG.GetName()))
+        logger.debug("cumulative_jes_effect: {}".format(cumulative_jes_effect))
+        logger.debug(
+            "cumulative_jes_effect_with_btag: {}".format(
+                cumulative_jes_effect_with_btag
+            )
+        )
+
+        self.rooVars["arglist_all_JES"] = arglist_all_JES
+        self.rooVars["arglist_all_JES_BTAG"] = arglist_all_JES_BTAG
+        self.rooVars["cumulative_jes_effect"] = cumulative_jes_effect
+        self.rooVars["cumulative_jes_effect_with_btag"] = (
+            cumulative_jes_effect_with_btag
+        )
+
     def set_append_name(self):
         self.fs = "2e"
         if self.channel == self.ID_2muResolved:
@@ -259,11 +402,16 @@ class datacardClass:
 
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
         self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
+        self.setup_workspace()
         self.set_append_name()
         self.set_category_tree()
         self.set_channels(theInputs)
         self.set_jet_type()
         self.theInputs = theInputs
+
+        # logger.error("Check cat and jetType: {}, {}".format(self.cat, self.jetType))
+        # if not (self.cat == "untagged" and "merged" in self.jetType):
+        # return
 
         self.LUMI = self.setup_roo_real_var("LUMI_{0:.0f}_{1}".format(self.sqrts, self.year), "Integrated Luminosity", self.lumi)
         self.MH = self.setup_roo_real_var("MH", "MH", self.mH)
@@ -295,8 +443,8 @@ class datacardClass:
         signalCB_VBF = self.rooVars['signalCB_VBF_{}'.format(self.channel)]
         self.rooVars["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
-        # low, high = self.rooVars["zz2l2q_mass"].getRange("fullsignalrange")
-        # logger.debug("fullsignalrange: {0} to {1}".format(low, high))
+        low, high = self.rooVars["zz2l2q_mass"].getRange("fullsignalrange")
+        logger.debug("fullsignalrange: {0} to {1}".format(low, high))
 
         # check_object_validity(self.rooVars['zz2l2q_mass'], "zz2l2q_mass")
         # check_object_validity(self.rooVars['signalCB_ggH_{}'.format(self.channel)], "signalCB_ggH_{}".format(self.channel))
@@ -305,12 +453,112 @@ class datacardClass:
         #     logger.info("{}: {}".format(key, value))
 
         # fullRangeSigRate = (self.rooVars["signalCB_{}_{}".format("ggH", self.channel)].createIntegral(ROOT.RooArgSet(self.zz2l2q_mass),ROOT.RooFit.Range("fullsignalrange")).getVal())
+        # self.zz2l2q_mass.setRange("manualRange", 0, 3000)
+        # fullRangeSigRate = (self.rooVars["signalCB_{}_{}".format("ggH", self.channel)].createIntegral(ROOT.RooArgSet(self.zz2l2q_mass),ROOT.RooFit.Range("manualRange")).getVal())
         # logger.debug("{} rate: {}".format(self.rooVars["signalCB_{}_{}".format("ggH", channel)].GetName(), fullRangeSigRate))
 
         # fullRangeSigRate_VBF = (self.rooVars["signalCB_{}_{}".format("VBF", self.channel)].createIntegral(ROOT.RooArgSet(self.zz2l2q_mass),ROOT.RooFit.Range("fullsignalrange")).getVal())
         # logger.debug("{} rate: {}".format(self.rooVars["signalCB_{}_{}".format("VBF", channel)].GetName(), fullRangeSigRate_VBF))
         # sys.exit()
 
+        sigFraction = 1.0
+        # ================== BACKGROUND SHAPE ================== #
+        # Background shape
+        self.setup_background_shapes()
+        logger.debug("Background shapes are set up successfully")
+
+        # Get JES and JER systematics
+        # setup_nuisances(systematics)
+        self.setup_nuisances(systematics)
+
+        # # print each nuisances
+        # for i in range(self.rooVars["arglist_all_JES"].getSize()):
+        #     logger.debug("{:3}. JES nuisances: {} ".format(i, self.rooVars["arglist_all_JES"][i]))
+
+        # for i in range(self.rooVars["arglist_all_JES_BTAG"].getSize()):
+        #     logger.debug("{:3}. JES+BTAG nuisances: {} ".format(i, self.rooVars["arglist_all_JES_BTAG"][i]))
+
+        # ================== Background Rate ================== #
+        self.calculate_background_rates_vz()
+
+        # self.workspace.Print("v")
+        sys.exit()
+
+    def calculate_background_rates_vz(self):
+        """
+        Calculate and return background rates for various processes based on the histograms provided in self.background_hists.
+        """
+        # Integral calculations for background histograms
+        bkgRate_vz_Shape = {
+            "untagged": self.background_hists["vz_untagged_template"].Integral(),
+            "btagged": self.background_hists["vz_btagged_template"].Integral(),
+            "vbftagged": self.background_hists["vz_vbftagged_template"].Integral(),
+        }
+
+        # Ratios for normalization
+        btagRatio = (
+            bkgRate_vz_Shape["btagged"] / bkgRate_vz_Shape["untagged"]
+            if bkgRate_vz_Shape["untagged"]
+            else 0
+        )
+        vbfRatio = (
+            bkgRate_vz_Shape["vbftagged"]
+            / (bkgRate_vz_Shape["untagged"] + bkgRate_vz_Shape["btagged"])
+            if (bkgRate_vz_Shape["untagged"] + bkgRate_vz_Shape["btagged"])
+            else 0
+        )
+
+        # Determine the correct background rate and formula based on category and jet type
+        cat_suffix = (
+            self.cat_tree if self.cat_tree in ["untagged", "btagged", "vbftagged"] else "untagged"
+        )
+        jet_prefix = "resolved" if "resolved" in self.jetType else "merged"
+        formula = {
+            "resolved_untagged": "(1-0.05*@0*{btagRatio})*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "resolved_btagged": "(1+0.05*@0)*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "resolved_vbftagged": "(1+0.1*({cumulative_jes_effect}))",
+            "merged_untagged": "(1-0.2*@0*{btagRatio})*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "merged_btagged": "(1+0.2*@0)*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "merged_vbftagged": "(1+0.1*({cumulative_jes_effect}))",
+        }.get("{}_{}".format(jet_prefix, cat_suffix))
+
+        logger.debug("(cat, jet): ({}, {})".format(cat_suffix, jet_prefix))
+        logger.debug(formula.format(
+                btagRatio=btagRatio,
+                cumulative_jes_effect=self.rooVars["cumulative_jes_effect"],
+                cumulative_jes_effect_with_btag=self.rooVars["cumulative_jes_effect_with_btag"],
+                vbfRatio=vbfRatio,
+            )
+        )
+        logger.debug(formula)
+
+        logger.warning("================== Not BTAG =====================")
+        logger.warning(self.rooVars["arglist_all_JES"].Print("v"))
+        logger.warning("==================  BTAG =====================")
+        logger.warning(self.rooVars["arglist_all_JES_BTAG"].Print("v"))
+        logger.warning("==================================================")
+
+        rfvSigRate_vz = ROOT.RooFormulaVar(
+            "bkg_vz_norm",
+            formula.format(
+                btagRatio=btagRatio,
+                cumulative_jes_effect=self.rooVars["cumulative_jes_effect"],
+                cumulative_jes_effect_with_btag=self.rooVars[
+                    "cumulative_jes_effect_with_btag"
+                ],
+                vbfRatio=vbfRatio,
+            ),
+            (
+                self.rooVars["arglist_all_JES"]
+                if "vbftagged" in cat_suffix
+                else self.rooVars["arglist_all_JES_BTAG"]
+            ),
+        )
+        getattr(self.workspace, "import")(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
+
+        logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
+        logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
+        # return rfvSigRate_vz
 
 if __name__ == "__main__":
     try:
