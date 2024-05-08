@@ -208,7 +208,8 @@ class datacardClass:
             self.rooVars["a2_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["n2_{}_{}_{}".format(signal_type, channel, self.year)]
         )
-        self.rooVars["signalCB_{}_{}".format(signal_type, channel)].Print("v")
+        if self.DEBUG:
+            self.rooVars["signalCB_{}_{}".format(signal_type, channel)].Print("v")
 
         fullRangeSigRate = (
             self.rooVars["signalCB_{}_{}".format(signal_type, self.channel)]
@@ -437,11 +438,13 @@ class datacardClass:
 
         self.setup_signal_shape(SignalShape, systematics, 'ggH', self.channel)
         signalCB_ggH = self.rooVars["signalCB_ggH_{}".format(self.channel)]
-        self.rooVars["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
+        if self.DEBUG:
+            self.rooVars["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
 
         self.setup_signal_shape(SignalShape, systematics, 'VBF', self.channel)
         signalCB_VBF = self.rooVars['signalCB_VBF_{}'.format(self.channel)]
-        self.rooVars["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
+        if self.DEBUG:
+            self.rooVars["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
         low, high = self.rooVars["zz2l2q_mass"].getRange("fullsignalrange")
         logger.debug("fullsignalrange: {0} to {1}".format(low, high))
@@ -479,8 +482,8 @@ class datacardClass:
         #     logger.debug("{:3}. JES+BTAG nuisances: {} ".format(i, self.rooVars["arglist_all_JES_BTAG"][i]))
 
         # ================== Background Rate ================== #
-        # self.calculate_background_rates_vz()
-        # self.workspace.Print("v")
+        self.calculate_background_rates_vz()
+        self.workspace.Print("v")
 
         # ================== SIGNAL RATE ================== #
         VBF_rate, VBF_vbf_ratio, VBF_btag_ratio = self.calculate_signal_rates("VBF")
@@ -494,6 +497,7 @@ class datacardClass:
         self.calculate_signal_rates_next(
             self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
         )
+        self.workspace.Print("v")
         # sys.exit()
 
     def setup_signal_fractions(self, vbfRatioVBF):
@@ -561,8 +565,9 @@ class datacardClass:
         logger.debug("Signal Rate ggH: {}".format(rfvSigRate_ggH.getVal()))
         logger.debug("Signal Rate VBF: {}".format(rfvSigRate_VBF.getVal()))
 
-        return rfvSigRate_ggH, rfvSigRate_VBF
-        # exit()
+        getattr(self.workspace, "import")(rfvSigRate_ggH, ROOT.RooFit.RecycleConflictNodes())
+        getattr(self.workspace, "import")(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
+
 
     def get_formulas(self, vbfRatioGGH, vbfRatioVBF, btagRatioGGH, btagRatioVBF):
         num_jes_sources = len(self.rooVars["arglist_all_JES"])
@@ -813,11 +818,12 @@ class datacardClass:
         )
         logger.debug(formula)
 
-        logger.warning("================== Not BTAG =====================")
-        logger.warning(self.rooVars["arglist_all_JES"].Print("v"))
-        logger.warning("==================  BTAG =====================")
-        logger.warning(self.rooVars["arglist_all_JES_BTAG"].Print("v"))
-        logger.warning("==================================================")
+        if self.DEBUG:
+            logger.warning("================== Not BTAG =====================")
+            logger.warning(self.rooVars["arglist_all_JES"].Print("v"))
+            logger.warning("==================  BTAG =====================")
+            logger.warning(self.rooVars["arglist_all_JES_BTAG"].Print("v"))
+            logger.warning("==================================================")
 
         rfvSigRate_vz = ROOT.RooFormulaVar(
             "bkg_vz_norm",
@@ -837,8 +843,9 @@ class datacardClass:
         )
         getattr(self.workspace, "import")(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
 
-        logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
-        logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
+        if self.DEBUG:
+            logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
+            logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
         # return rfvSigRate_vz
 
 
