@@ -6,13 +6,12 @@ ROOT.gErrorIgnoreLevel = ROOT.kInfo
 import sys
 from decimal import *
 from subprocess import *
+from array import array
 
 from inputReader import *
 from systematicsClass import *
 from utils import *
-from utils_hist import getTH1F, save_histograms, get_histogram, create_up_down_hist
-from utils_hist import check_object_validity
-from utils_hist import plot_and_save
+from utils_hist import (plot_and_save, save_histograms)
 
 ROOT.gROOT.ProcessLine(
     "struct zz2lJ_massStruct {"
@@ -32,6 +31,7 @@ class datacardClass:
         #  To extend the lifecycle of all RooFit objects by storing them as attributes of self
         self.rooVars = {}
         self.background_hists = {}
+        self.workspace = ROOT.RooWorkspace("w", "workspace")
 
     def setup_parameters(self):
         self.low_M = 0
@@ -58,7 +58,6 @@ class datacardClass:
         return file
 
     def setup_workspace(self):
-        self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.workspace.importClassCode(ROOT.RooDoubleCB.Class(), True)
         self.workspace.importClassCode(ROOT.RooFormulaVar.Class(), True)
 
@@ -131,7 +130,7 @@ class datacardClass:
             "mean_err_" + self.channel,
             mean_formula,
             ROOT.RooArgList(
-                self.MH,
+                self.rooVars["MH"],
                 self.rooVars["mean_{}_sig".format(lep_type)],
                 self.rooVars["mean_{}_sig".format(jet_suffix)],
                 self.rooVars["mean_{}_err".format(lep_type)],
@@ -175,7 +174,7 @@ class datacardClass:
             - self.mH,
         )
         name = "mean_{}_{}".format(signal_type, channel)
-        self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(name, "@0+@1", ROOT.RooArgList(self.MH, self.rooVars["bias_{}_{}".format(signal_type, channel)]))
+        self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(name, "@0+@1", ROOT.RooArgList(self.rooVars["MH"], self.rooVars["bias_{}_{}".format(signal_type, channel)]))
 
         mean_err, rfv_sigma = self.get_signal_shape_mean_error(SignalShape, signal_type)
         name = "rfv_mean_{}_{}".format(signal_type, channel)
@@ -262,7 +261,8 @@ class datacardClass:
 
             # Print integral for sanity check
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
-            save_histograms(hist, hist_temp, "{}_smoothed.png".format(key))
+            if self.SanityCheckPlot:
+                save_histograms(hist, hist_temp, "{}_smoothed.png".format(key))
 
         # Create RooHistPdf objects
         self.rooHistPdfs = {}
@@ -413,8 +413,8 @@ class datacardClass:
         # if not (self.cat == "untagged" and "merged" in self.jetType):
         # return
 
-        self.LUMI = self.setup_roo_real_var("LUMI_{0:.0f}_{1}".format(self.sqrts, self.year), "Integrated Luminosity", self.lumi)
-        self.MH = self.setup_roo_real_var("MH", "MH", self.mH)
+        self.rooVars["LUMI"] = self.setup_roo_real_var("LUMI_{0:.0f}_{1}".format(self.sqrts, self.year), "Integrated Luminosity", self.lumi)
+        self.rooVars["MH"] = self.setup_roo_real_var("MH", "MH", self.mH)
 
         ## ---------------- SET PLOTTING STYLE ---------------- ##
         ROOT.setTDRStyle(True)
@@ -461,7 +461,7 @@ class datacardClass:
         # logger.debug("{} rate: {}".format(self.rooVars["signalCB_{}_{}".format("VBF", channel)].GetName(), fullRangeSigRate_VBF))
         # sys.exit()
 
-        sigFraction = 1.0
+        self.sigFraction = 1.0
         # ================== BACKGROUND SHAPE ================== #
         # Background shape
         self.setup_background_shapes()
@@ -479,10 +479,291 @@ class datacardClass:
         #     logger.debug("{:3}. JES+BTAG nuisances: {} ".format(i, self.rooVars["arglist_all_JES_BTAG"][i]))
 
         # ================== Background Rate ================== #
-        self.calculate_background_rates_vz()
-
+        # self.calculate_background_rates_vz()
         # self.workspace.Print("v")
-        sys.exit()
+
+        # ================== SIGNAL RATE ================== #
+        VBF_rate, VBF_vbf_ratio, VBF_btag_ratio = self.calculate_signal_rates("VBF")
+        ggH_rate, ggH_vbf_ratio, ggH_btag_ratio = self.calculate_signal_rates("ggH")
+
+        logger.info("VBF rate: {}, ggH rate: {}".format(VBF_rate, ggH_rate))
+        logger.info("VBF VBF ratio: {}, ggH VBF ratio: {}".format(VBF_vbf_ratio, ggH_vbf_ratio))
+        logger.info("VBF B-tag ratio: {}, ggH B-tag ratio: {}".format(VBF_btag_ratio, ggH_btag_ratio))
+
+        self.setup_signal_fractions(VBF_vbf_ratio)
+        self.calculate_signal_rates_next(
+            self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
+        )
+        # sys.exit()
+
+    def setup_signal_fractions(self, vbfRatioVBF):
+        # Set the VBF fraction based on condition
+        if self.FracVBF == -1:
+            logger.info("FracVBF is set to be floating within [0, 1]")
+            self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", vbfRatioVBF, 0.0, 1.0)
+            # Define fraction of events coming from ggH process
+            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "1 - @0", ROOT.RooArgList(self.rooVars["frac_VBF"]))
+        else:
+            logger.info("Using fixed FracVBF = {}".format(self.FracVBF))
+            self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", self.FracVBF, 0.0, 1.0)
+            self.rooVars["frac_VBF"].setConstant(True)
+            # Define fraction of events coming from ggH process
+            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "1 - @0", ROOT.RooArgList(self.rooVars["frac_VBF"]))
+            self.rooVars["frac_ggH"].setConstant(True)
+
+        # return self.rooVars["frac_VBF"], self.rooVars["frac_ggH"]
+
+    def calculate_signal_rates_next(
+        self, frac_VBF, frac_ggH, ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
+    ):
+        # Define branching ratio for ZZ->2l2q (l=e,mu) process without tau decays in signal MC
+        # This value is calculated as the product of:
+        # - 2: number of either Z-boson can decay to leptons or quarks and its indistinguishable partner
+        # - 0.69911: branching ratio of each Z boson to decay into 2 quarks (q)
+        # - 0.033662: branching ratio of Z boson to decay into 2 electrons
+        # - 0.033662: branching ratio of Z boson to decay into 2 muons
+        # - 2: as the Z boson can decay to either electrons or muons
+        # - 1000: scaling factor used to convert the cross-section in femtobarns (fb) to the appropriate units for the analysis
+        self.rooVars["BR"] = ROOT.RooRealVar("BR", "Branching Ratio", 2 * 0.69911 * 2 * 0.033662 * 1000)
+
+        # Prepare arguments lists for ggH and VBF signal rates
+        self.rooVars["arglist_ggH"] = ROOT.RooArgList(self.rooVars["arglist_all_JES"])
+        self.rooVars["arglist_ggH"].add(self.rooVars["LUMI"])
+        self.rooVars["arglist_ggH"].add(self.rooVars["BR"])
+        self.rooVars["arglist_ggH"].add(self.rooVars["frac_ggH"])
+
+        self.rooVars["arglist_VBF"] = ROOT.RooArgList(self.rooVars["arglist_all_JES"])
+        self.rooVars["arglist_VBF"].add(self.rooVars["LUMI"])
+        self.rooVars["arglist_VBF"].add(self.rooVars["BR"])
+        self.rooVars["arglist_VBF"].add(self.rooVars["frac_VBF"])
+
+        self.rooVars["arglist_ggH_with_BTAG"] = ROOT.RooArgList(self.rooVars["arglist_all_JES_BTAG"])
+        self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["LUMI"])
+        self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["BR"])
+        self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["frac_ggH"])
+
+        self.rooVars["arglist_VBF_with_BTAG"] = ROOT.RooArgList(self.rooVars["arglist_all_JES_BTAG"])
+        self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["LUMI"])
+        self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
+        self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["frac_VBF"])
+
+        # Calculate signal rates using predefined formulas based on category and jet type
+        formula_ggH, formula_VBF = self.get_formulas(
+            ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
+        )
+        logger.warning("Formula ggH: {}".format(formula_ggH))
+        logger.warning("Formula VBF: {}".format(formula_VBF))
+        # # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list
+        rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
+        rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_ggH_with_BTAG"])
+
+        # # Debugging outputs
+        logger.debug("Signal Rate ggH: {}".format(rfvSigRate_ggH.getVal()))
+        logger.debug("Signal Rate VBF: {}".format(rfvSigRate_VBF.getVal()))
+
+        return rfvSigRate_ggH, rfvSigRate_VBF
+        # exit()
+
+    def get_formulas(self, vbfRatioGGH, vbfRatioVBF, btagRatioGGH, btagRatioVBF):
+        num_jes_sources = len(self.rooVars["arglist_all_JES"])
+        cumulative_jes_effect = self.rooVars["cumulative_jes_effect"]
+        cumulative_jes_effect_with_btag = self.rooVars["cumulative_jes_effect_with_btag"]
+        # Define the formula strings based on category and jet type
+        if self.jetType == "resolved" and self.cat == "vbf_tagged":
+            formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(
+                self.rooVars["cumulative_jes_effect"],
+                num_jes_sources,
+                num_jes_sources+1,
+                num_jes_sources+2,
+            )
+            # formula_VBF = "(1+0.12*@0)*@1*@2*@3"
+            formula_VBF = "(1+0.12*({}))*@{}*@{}*@{}".format(
+                self.rooVars["cumulative_jes_effect"],
+                num_jes_sources,
+                num_jes_sources+1,
+                num_jes_sources+2,
+            )
+        elif self.jetType == "resolved" and self.cat == "b_tagged":
+            formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
+                self.rooVars["cumulative_jes_effect_with_btag"],
+                str(vbfRatioGGH),
+                num_jes_sources,
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+            )
+            formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
+                self.rooVars["cumulative_jes_effect_with_btag"],
+                str(vbfRatioVBF),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+        elif self.jetType == "resolved" and self.cat == "untagged":
+            formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioGGH),
+                self.rooVars["cumulative_jes_effect_with_btag"],
+                str(vbfRatioGGH),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+            formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioVBF),
+                self.rooVars["cumulative_jes_effect_with_btag"],
+                str(vbfRatioVBF),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+                )
+        elif self.jetType == "merged" and self.cat == "vbf_tagged":
+            formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioGGH),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+            formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioVBF),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+        elif self.jetType == "merged" and self.cat == "untagged":
+            formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioGGH),
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioGGH),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+            formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioVBF),
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioVBF),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+        else:
+            # FIXME: this category does not exits in main code. I added it for completeness
+            formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioGGH),
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioGGH),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+            formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
+                str(btagRatioVBF),
+                cumulative_jes_effect_with_btag,
+                str(vbfRatioVBF),
+                num_jes_sources + 1,
+                num_jes_sources + 2,
+                num_jes_sources + 3,
+            )
+
+        return formula_ggH, formula_VBF
+
+    # Example usage within the class
+    # datacard = datacardClass()
+    # frac_VBF, frac_ggH = datacard.setup_signal_fractions()
+    # rfvSigRate_ggH, rfvSigRate_VBF = datacard.calculate_signal_rates(frac_VBF, frac_ggH)
+
+    def calculate_signal_rates(self, signal_type):
+        # Debugging output
+        logger.debug("Calculating signal rates for {}".format(signal_type))
+
+        # Open the ROOT file for the given signal type
+        file_path = "SigEff/2l2q_Efficiency_spin0_{}_{}.root".format(signal_type, self.year)
+        accxeff_file = ROOT.TFile(file_path)
+        logger.debug("Opened file: {}".format(file_path))
+
+        # Extract acceptance x efficiency for various tagging categories
+        categories = ["vbf-tagged", "b-tagged", "untagged"]
+
+        accxeff = {"{}_accxeff_{}".format(signal_type, cat): accxeff_file.Get("spin0_{}_{}_{}".format(signal_type, self.channel, cat)).GetListOfFunctions().First().Eval(self.mH) for cat in categories}
+        logger.debug("Acc x Eff for {}: {}".format(signal_type, accxeff))
+
+        # Calculate ratios
+        vbf_ratio = accxeff[signal_type + "_accxeff_vbf-tagged"] / (accxeff[signal_type + "_accxeff_untagged"] + accxeff[signal_type + "_accxeff_b-tagged"])
+        btag_ratio = (
+            accxeff[signal_type + "_accxeff_b-tagged"] / accxeff[signal_type + "_accxeff_untagged"] if accxeff[signal_type + "_accxeff_untagged"] != 0 else 0
+        )
+        logger.debug("VBF ratio: {}, B-tag ratio: {}".format(vbf_ratio, btag_ratio))
+
+        # Retrieve the specific signal rate for this category and signal type
+        formatted_name = self.appendName.replace("b_tagged", "b-tagged").replace(
+            "vbf_tagged", "vbf-tagged"
+        )
+        sig_rate_shape = (
+            accxeff_file.Get("spin0_{}_{}".format(signal_type, formatted_name))
+            .GetListOfFunctions()
+            .First()
+            .Eval(self.mH)
+        )
+
+        # Adjust rate by the given fraction (sigFraction)
+        sig_rate_shape *= self.sigFraction
+
+        # Ensure non-negative rates
+        sig_rate_shape = max(sig_rate_shape, 0.0)
+        logger.debug("{} Signal rate: {}".format(signal_type, sig_rate_shape))
+
+        # Close the ROOT file
+        accxeff_file.Close()
+        return sig_rate_shape, vbf_ratio, btag_ratio
+
+    def setup_zjets_background(self): # NOTUSED:
+        """This function is not used in the current implementation. It is kept for reference purposes.
+        """
+        # Step 1: Load necessary inputs
+        p0p0_cov_zjets = theInputs["p0p0_cov_zjets"]
+        p0p1_cov_zjets = theInputs["p0p1_cov_zjets"]
+        p0l0_cov_zjets = theInputs["p0l0_cov_zjets"]
+        p0l1_cov_zjets = theInputs["p0l1_cov_zjets"]
+
+        p1p0_cov_zjets = theInputs["p0p1_cov_zjets"]
+        p1p1_cov_zjets = theInputs["p1p1_cov_zjets"]
+        p1l0_cov_zjets = theInputs["l0p1_cov_zjets"]
+        p1l1_cov_zjets = theInputs["p1l1_cov_zjets"]
+
+        l0p0_cov_zjets = theInputs["p0l0_cov_zjets"]
+        l0p1_cov_zjets = theInputs["l0p1_cov_zjets"]
+        l0l0_cov_zjets = theInputs["l0l0_cov_zjets"]
+        l0l1_cov_zjets = theInputs["l0l1_cov_zjets"]
+
+        l1p0_cov_zjets = theInputs["p0l1_cov_zjets"]
+        l1p1_cov_zjets = theInputs["p1l1_cov_zjets"]
+        l1l0_cov_zjets = theInputs["l0l1_cov_zjets"]
+        l1l1_cov_zjets = theInputs["l1l1_cov_zjets"]
+
+        # Step 2: Setup covariance matrix based on the category and jet type
+        if self.cat == "untagged" and self.jetType == "resolved":
+            cov_elements = [p0p0_cov_zjets, p0l0_cov_zjets, p0p1_cov_zjets, p0l1_cov_zjets, l0p0_cov_zjets, l0l0_cov_zjets, l0p1_cov_zjets, l0l1_cov_zjets, p1p0_cov_zjets, p1l0_cov_zjets, p1p1_cov_zjets, p1l1_cov_zjets, l1p0_cov_zjets, l1l0_cov_zjets, l1p1_cov_zjets, l1l1_cov_zjets]
+            n = 4
+        else:
+            cov_elements = [p0p0_cov_zjets, p0l0_cov_zjets, l0p0_cov_zjets, l0l0_cov_zjets]
+            n = 2
+
+        cov = ROOT.TMatrixDSym(n, array("d", cov_elements))
+
+        # Step 3: Eigen decomposition
+        eigen = ROOT.TMatrixDSymEigen(cov)
+        vecs = eigen.GetEigenVectors()
+        vals = eigen.GetEigenValues()
+
+        # Step 4: Define nuisance parameters
+        # nuisances without correlation that would control Z+jets spectrum (shape and normalization)
+        eigVars = []
+        for i in range(n):
+            eigName = "eig{}_{}_{}_{}".format(i, self.jetType, self.cat, self.year)
+            eigRooRealVar = ROOT.RooRealVar(eigName, eigName, 0, -3, 3)
+            eigRooRealVar.setConstant(True)
+            eigVars.append(eigRooRealVar)
 
     def calculate_background_rates_vz(self):
         """
@@ -559,6 +840,7 @@ class datacardClass:
         logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
         logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
         # return rfvSigRate_vz
+
 
 if __name__ == "__main__":
     try:
