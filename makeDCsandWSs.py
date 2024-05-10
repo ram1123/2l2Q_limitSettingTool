@@ -4,9 +4,11 @@ It uses argparse to handle command-line options and settings.
 """
 
 import os
+import sys
 import logging
 from inputReader import *
-from datacardClass import *
+# from datacardClass import datacardClass
+from datacardClass_Improved import datacardClass
 from utils import *
 import argparse
 from ListOfDatacards import datacardList, datacardList_condor

@@ -28,17 +28,24 @@ from ROOT import zz2lJ_massStruct
 class datacardClass:
 
     def __init__(self, year, DEBUG=False):
+        self.year = year
+        self.DEBUG = DEBUG
+        self.loadIncludes()
+        self.setup_parameters()
 
+    def setup_parameters(self):
+        # Parameters for the analysis
+        self.low_M = 0
+        self.high_M = 4000
+        self.bins = int((self.high_M - self.low_M) / 100)
+        # bins_val = [0, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000, 1200, 1500, 2000, 2500, 3000, 4000]
+        # self.bins = len(bins_val  ) - 1
         self.ID_2muResolved = "mumuqq_Resolved"
         self.ID_2eResolved = "eeqq_Resolved"
         self.ID_2muMerged = "mumuqq_Merged"
         self.ID_2eMerged = "eeqq_Merged"
-        self.year = year
-        self.DEBUG = DEBUG
-        self.loadIncludes()
 
     def loadIncludes(self):
-
         ROOT.gSystem.AddIncludePath("-I$ROOFITSYS/include/")
         ROOT.gSystem.AddIncludePath("-Iinclude/")
         ROOT.gROOT.ProcessLine(".L include/tdrstyle.cc")
@@ -75,6 +82,31 @@ class datacardClass:
             output_file_name = hist.GetName() + ".png"
         c1.SaveAs(output_file_name)
 
+    def create_up_down_hist(self, hist):
+        # list of histograms, one for each bin
+        up_hist_list = []
+        down_hist_list = []
+
+        for i in range(0, hist.GetNbinsX()):
+            if hist.GetBinContent(i) < 1:
+                up_hist = hist.Clone()
+                down_hist = hist.Clone()
+                up_hist.SetName(hist.GetName() + "_" + str(i)+ "_up")
+                up_hist.SetTitle(hist.GetTitle() + "_" + str(i)+ "_up")
+                down_hist.SetName(hist.GetName() + "_" + str(i)+ "_down")
+                down_hist.SetTitle(hist.GetTitle() + "_" + str(i)+ "_down")
+
+                if hist.GetBinContent(i) == 0.0:
+                    up_hist.SetBinContent(i, 0.000001)
+                    down_hist.SetBinContent(i, 0)
+                else:
+                    up_hist.SetBinContent(i, hist.GetBinContent(i) + hist.GetBinErrorUp(i))
+                    down_hist.SetBinContent(i, max(0.0, hist.GetBinContent(i) - hist.GetBinErrorLow(i)))
+
+                up_hist_list.append(up_hist)
+                down_hist_list.append(down_hist)
+
+        return up_hist_list, down_hist_list
 
     def plot_rooDataHist(self, data_list, mass_var):
         """
@@ -195,12 +227,6 @@ class datacardClass:
             self.mH, True, theInputs, self.year, self.DEBUG
         )  # the second argument is for the systematic unc. coming from XSxBR
 
-        self.low_M = 0
-        self.high_M = 4000
-        self.bins = int((self.high_M - self.low_M) / 100)
-        # bins_val = [0, 50, 100, 150, 200, 250, 300, 350, 400,
-        # 500, 600, 700, 800, 900, 1000, 1200, 1500, 2000, 2500, 3000, 4000]
-        # self.bins = len(bins_val  ) - 1
 
         mzz_name = "zz2l2q_mass"
         zz2l2q_mass = ROOT.RooRealVar(mzz_name, mzz_name, self.low_M, self.high_M)
@@ -458,6 +484,14 @@ class datacardClass:
         n2_VBF = ROOT.RooRealVar(
             name, name, (VBFshape.Get("n2")).GetListOfFunctions().First().Eval(self.mH)
         )
+        logger.warning("a1_ggH: {}".format(a1_ggH.getValV()))
+        logger.warning("a2_ggH: {}".format(a2_ggH.getValV()))
+        logger.warning("n1_ggH: {}".format(n1_ggH.getValV()))
+        logger.warning("n2_ggH: {}".format(n2_ggH.getValV()))
+        logger.warning("a1_VBF: {}".format(a1_VBF.getValV()))
+        logger.warning("a2_VBF: {}".format(a2_VBF.getValV()))
+        logger.warning("n1_VBF: {}".format(n1_VBF.getValV()))
+        logger.warning("n2_VBF: {}".format(n2_VBF.getValV()))
 
         ## --------------------- SHAPE FUNCTIONS ---------------------- ##
 
@@ -484,6 +518,16 @@ class datacardClass:
             n2_ggH,
         )
         name = "signalCB_VBF_" + (self.channel)
+        logger.debug(
+            "signalCB_VBF parameter: rfv_mean_VBF = {} rfv_sigma_VBF = {} a1_VBF = {} n1_VBF = {} a2_VBF = {} n2_VBF = {}".format(
+                rfv_mean_VBF.getVal(),
+                rfv_sigma_VBF.getVal(),
+                a1_VBF.getVal(),
+                n1_VBF.getVal(),
+                a2_VBF.getVal(),
+                n2_VBF.getVal(),
+            )
+        )
         signalCB_VBF = ROOT.RooDoubleCB(
             name,
             name,
@@ -495,19 +539,22 @@ class datacardClass:
             a2_VBF,
             n2_VBF,
         )
+        signalCB_VBF.Print("v")
         logger.debug("signalCB_ggH name: {}".format(name))
-        fullRangeSigRate = signalCB_ggH.createIntegral(
-            ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")
-        ).getVal()
+        fullRangeSigRate = signalCB_ggH.createIntegral(ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")).getVal()
+        fullRangeSigRate_VBF = signalCB_VBF.createIntegral(ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")).getVal()
+
         fullRangRate = signalCB_ggH.createIntegral(
             ROOT.RooArgSet(zz2l2q_mass), ROOT.RooFit.Range("fullrange")
         ).getVal()
         sigFraction = fullRangRate / fullRangeSigRate
         # sigFraction = 1.0  # FIXME: Set to 1.0 for some checks
+        logger.error("ggH Integral: {}".format(fullRangeSigRate))
+        logger.error("VBF Integral: {}".format(fullRangeSigRate_VBF))
 
         logger.debug("fullRangRate: {}".format(fullRangRate))
         logger.debug("fullRangeSigRate: {}".format(fullRangeSigRate))
-        logger.debug("fraction of signal in the mass range is: {}".format(sigFraction))
+        logger.warning("fraction of signal in the mass range is: {}".format(sigFraction))
 
         ## --------------------- BKG mZZ Templates ---------------------##
 
@@ -671,6 +718,14 @@ class datacardClass:
         vzTemplateMVV = TempFile.Get(vzTemplateMVV_Name)
         ttbarTemplateMVV = TempFile.Get(ttbarpluswwTemplateMVV_Name)
         zjetTemplateMVV = TempFile.Get(zjetTemplateMVV_Name)  # add zjet template
+
+        vzTemplateMVV_Stat_up_list, vzTemplateMVV_Stat_down_list =  self.create_up_down_hist(vzTemplateMVV)
+        # ttbarTemplateMVV_Stat_up_list, ttbarTemplateMVV_Stat_down_list =  self.create_up_down_hist(ttbarTemplateMVV)
+        # zjetTemplateMVV_Stat_up_list, zjetTemplateMVV_Stat_down_list =  self.create_up_down_hist(zjetTemplateMVV)
+
+        logger.debug("Length of vzTemplateMVV_Stat_up_list: {}".format(len(vzTemplateMVV_Stat_up_list)))
+        # logger.debug("Length of ttbarTemplateMVV_Stat_up_list: {}".format(len(ttbarTemplateMVV_Stat_up_list)))
+        # logger.debug("Length of zjetTemplateMVV_Stat_up_list: {}".format(len(zjetTemplateMVV_Stat_up_list)))
 
         vzTemplateName = "vz_" + self.appendName + "_" + str(self.year)
         vz_smooth = self.getTH1F(vzTemplateName)
@@ -854,6 +909,38 @@ class datacardClass:
             ROOT.RooArgSet(zz2l2q_mass),
             vzTempDataHistMVV,
         )
+        # create the RooHistPdf for the up and down variations availalbe in the list of up and down histograms
+        bkg_vz_Stat_up_list = []
+        bkg_vz_Stat_down_list = []
+        for i, vzTemplateMVV_Stat_up in enumerate(vzTemplateMVV_Stat_up_list):
+            vzTempDataHistMVV_Stat_up = ROOT.RooDataHist(
+                vzTemplateName + "_Stat_up_Bin" + str(i),
+                vzTemplateName + "_Stat_up_Bin" + str(i),
+                ROOT.RooArgList(zz2l2q_mass),
+                vzTemplateMVV_Stat_up,
+            )
+            bkg_vz_Stat_up = ROOT.RooHistPdf(
+                vzTemplateName + "Pdf_Stat_up_Bin" + str(i),
+                vzTemplateName + "Pdf_Stat_up_Bin" + str(i),
+                ROOT.RooArgSet(zz2l2q_mass),
+                vzTempDataHistMVV_Stat_up,
+            )
+            bkg_vz_Stat_up_list.append(bkg_vz_Stat_up)
+
+        for i, vzTemplateMVV_Stat_down in enumerate(vzTemplateMVV_Stat_down_list):
+            vzTempDataHistMVV_Stat_down = ROOT.RooDataHist(
+                vzTemplateName + "_Stat_down_Bin" + str(i),
+                vzTemplateName + "_Stat_down_Bin" + str(i),
+                ROOT.RooArgList(zz2l2q_mass),
+                vzTemplateMVV_Stat_down,
+            )
+            bkg_vz_Stat_down = ROOT.RooHistPdf(
+                vzTemplateName + "Pdf_Stat_down_Bin" + str(i),
+                vzTemplateName + "Pdf_Stat_down_Bin" + str(i),
+                ROOT.RooArgSet(zz2l2q_mass),
+                vzTempDataHistMVV_Stat_down,
+            )
+            bkg_vz_Stat_down_list.append(bkg_vz_Stat_down)
 
         ## ttbar shape
         ttbarTempDataHistMVV = ROOT.RooDataHist(
@@ -1934,6 +2021,38 @@ class datacardClass:
             1.0,
             1,
         )
+        # get templates for stat unc
+        bkgTemplateMorphPdf_vz_Stat_up_list = []
+        bkgTemplateMorphPdf_vz_Stat_down_list = []
+        for i in range(0, len(vzTemplateMVV_Stat_up_list)):
+            name = "bkgTemplateMorphPdf_vz_" + self.jetType + "_" + str(self.year) + "_Stat_up_bin{}".format(i)
+            bkgTemplateMorphPdf_vz_Stat_up_list.append(
+                ROOT.FastVerticalInterpHistPdf2D(
+                    name,
+                    name,
+                    zz2l2q_mass,
+                    D,
+                    true,
+                    funcList_vz,
+                    morphVarListBkg,
+                    1.0,
+                    1,
+                )
+            )
+            name = "bkgTemplateMorphPdf_vz_" + self.jetType + "_" + str(self.year) + "_Stat_down_bin{}".format(i)
+            bkgTemplateMorphPdf_vz_Stat_down_list.append(
+                ROOT.FastVerticalInterpHistPdf2D(
+                    name,
+                    name,
+                    zz2l2q_mass,
+                    D,
+                    true,
+                    funcList_vz,
+                    morphVarListBkg,
+                    1.0,
+                    1,
+                )
+            )
 
         #### bkg 2D : mzz + Djet;
         name = "bkg2d_zjets" + "_" + str(self.year)
@@ -1964,6 +2083,34 @@ class datacardClass:
                 ROOT.RooArgSet(bkgTemplateMorphPdf_vz), ROOT.RooArgSet(D)
             ),
         )
+        # bkg2d stat unctatinty using: bkg_vz_Stat_up_list, bkg_vz_Stat_down_list
+        bkg2d_vz_Stat_up_list = []
+        bkg2d_vz_Stat_down_list = []
+        for i, bkg_vz_stat_unc_temp in enumerate(bkg_vz_Stat_up_list):
+            name = "bkg2d_vz_Stat_up_bin{}_{}".format(i, self.year)
+            bkg2d_vz_Stat_up_list.append(
+                ROOT.RooProdPdf(
+                    name,
+                    name,
+                    ROOT.RooArgSet(bkg_vz_stat_unc_temp),
+                    ROOT.RooFit.Conditional(
+                        ROOT.RooArgSet(bkgTemplateMorphPdf_vz_Stat_up_list[i]),
+                        ROOT.RooArgSet(D),
+                    ),
+                )
+            )
+        for i, bkg_vz_stat_unc_temp in enumerate(bkg_vz_Stat_down_list):
+            name = "bkg2d_vz_Stat_down_bin{}_{}".format(i, self.year)
+            bkg2d_vz_Stat_down_list.append(
+                ROOT.RooProdPdf(
+                    name,
+                    name,
+                    ROOT.RooArgSet(bkg_vz_stat_unc_temp),
+                    ROOT.RooFit.Conditional(
+                        ROOT.RooArgSet(bkgTemplateMorphPdf_vz_Stat_up_list[i]), ROOT.RooArgSet(D)
+                    )
+                )
+            )
 
         ## ----------------------- PLOTS FOR SANITY CHECKS -------------------------- ##
         if self.SanityCheckPlot:
@@ -2324,7 +2471,7 @@ class datacardClass:
             sys.exit()
 
         zz2lJ_mass_struct = zz2lJ_massStruct()
-        tmpFile = ROOT.TFile("tmpFile.root", "RECREATE")
+        tmpFile = ROOT.TFile("tmpFile.root", "RECREATE")    # Not used
         data_obs_tree = (data_obs_file.Get(treeName)).CloneTree(0)
         data_obs_tree.Branch("zz2lJ_mass", zz2lJ_mass_struct, "zz2lJ_mass/D")
         logger.info("Data entries: {}".format(data_obs_file.Get(treeName).GetEntries()))
@@ -2404,9 +2551,12 @@ class datacardClass:
         w = ROOT.RooWorkspace("w", "w")
         w.importClassCode(ROOT.RooDoubleCB.Class(), True)
         w.importClassCode(ROOT.RooFormulaVar.Class(), True)
+        # print everything in the workspace
+        # print(w.Print("v"))
         getattr(w, "import")(
             data_obs, ROOT.RooFit.Rename("data_obs")
         )  ### Should this be renamed?
+        # w.Print("v")
 
         if self.is2D == 0:
             signalCB_ggH.SetNameTitle("ggH_hzz", "ggH_hzz")
@@ -2428,7 +2578,14 @@ class datacardClass:
             getattr(w, "import")(bkg_vz, ROOT.RooFit.RecycleConflictNodes())
             getattr(w, "import")(bkg_ttbar, ROOT.RooFit.RecycleConflictNodes())
             # getattr(w,'import')(bkg_zjets, ROOT.RooFit.RecycleConflictNodes())
+            # print("bkg_zjet: ", bkg_zjet)
             getattr(w, "import")(bkg_zjet, ROOT.RooFit.RecycleConflictNodes())
+            for i, bkg_vz_stat_temp_up in enumerate(bkg_vz_Stat_up_list):
+                bkg_vz_stat_temp_up.SetNameTitle("bkg_vz_Stat_up_bin{}".format(i), "bkg_vz_Stat_up_bin{}".format(i))
+                getattr(w, "import")(bkg_vz_stat_temp_up, ROOT.RooFit.RecycleConflictNodes())
+            for i, bkg_vz_stat_temp_dn in enumerate(bkg_vz_Stat_down_list):
+                bkg_vz_stat_temp_dn.SetNameTitle("bkg_vz_Stat_down_bin{}".format(i), "bkg_vz_Stat_down_bin{}".format(i))
+                getattr(w, "import")(bkg_vz_stat_temp_dn, ROOT.RooFit.RecycleConflictNodes())
 
         if self.is2D == 1:
             bkg2d_vz.SetNameTitle("bkg_vz", "bkg_vz")
@@ -2437,6 +2594,55 @@ class datacardClass:
             getattr(w, "import")(bkg2d_vz, ROOT.RooFit.RecycleConflictNodes())
             getattr(w, "import")(bkg2d_ttbar, ROOT.RooFit.RecycleConflictNodes())
             getattr(w, "import")(bkg2d_zjets, ROOT.RooFit.RecycleConflictNodes())
+            # print("type(bkg2d_vz)", type(bkg2d_vz))
+            # print("type(bkg2d_vz_Stat_down_list[0])", type(bkg2d_vz_Stat_down_list[0]))
+            # print("----------------- START PRINTING bkg2d_vz -----------------")
+            # bkg2d_vz.Print("v")
+            # # bkg2d_vz_Stat_down_list[0].SetNameTitle("bkg_vz_Stat_down_bin0", "bkg_vz_Stat_down_bin0")
+            # # getattr(w, "import")(bkg2d_vz_Stat_down_list[0], ROOT.RooFit.RecycleConflictNodes())
+
+            # print(
+            #     "----------------- START PRINTING bkg2d_vz_Stat_down_list -----------------"
+            # )
+            # # w.Print("v")
+            # bkg2d_vz_Stat_down_list[0].Print("v")
+            # print("----------------- END PRINTING -----------------")
+            # for i, bkg_vz_stat_down in enumerate(bkg2d_vz_Stat_down_list):
+            #     # bkg_vz_stat_down.Print("v") # Print the RooFormulaVar
+            #     if bkg_vz_stat_down:
+            #         # Checking if all components are valid
+            #         components = bkg_vz_stat_down.getComponents()
+            #         print("components: ", components)
+            #         for comp in components:
+            #             print("comp: ", comp)
+            #             if not comp:  # Check if any component is None or invalid
+            #                 print("Invalid component in {bkg_vz_stat_down}".format(bkg_vz_stat_down=bkg_vz_stat_down))
+            #                 continue  # Skip importing this one or fix the issue before importing
+
+            #         down_pdf_name = "bkg_vz_Stat_down_bin{i}".format(i=i)
+            #         bkg_vz_stat_down.SetNameTitle(down_pdf_name, down_pdf_name)
+            #         getattr(w, "import")(bkg_vz_stat_down, ROOT.RooFit.RecycleConflictNodes())
+            #     else:
+            #         print("Warning: Object at index {i} is None or invalid".format(i=i))
+            #     exit()
+
+        # Importing the PDF into the RooWorkspace
+        # getattr(w, 'import')(bkg_vz_stat_down, ROOT.RooFit.RecycleConflictNodes())
+
+        # print("bkg2d_vz_Stat_up_list: ", bkg2d_vz_Stat_up_list)
+        # for i in range(len(bkg2d_vz_Stat_down_list)):
+        # bkg2d_vz_Stat_down_list[i].SetNameTitle("bkg_vz_Stat_down_bin{}".format(i), "bkg_vz_Stat_down_bin{}".format(i))
+        # getattr(w, "import")(bkg2d_vz_Stat_down_list[i], ROOT.RooFit.RecycleConflictNodes())
+        # for i, bkg2d_vz_nbins in enumerate(bkg2d_vz_Stat_down_list):
+        # bkg2d_vz_nbins.SetNameTitle("bkg_vz_Stat_down_bin{}".format(i), "bkg_vz_Stat_down_bin{}".format(i))
+        # getattr(w, "import")(bkg2d_vz_nbins, ROOT.RooFit.RecycleConflictNodes())
+        # for i, bkg2d_vz_stat_temp in enumerate(bkg2d_vz_Stat_up_list):
+        #     bkg2d_vz_stat_temp.SetNameTitle("bkg_vz_Stat_up_bin{}".format(i), "bkg_vz_Stat_up_bin{}".format(i))
+        #     getattr(w, "import")(bkg2d_vz_stat_temp, ROOT.RooFit.RecycleConflictNodes())
+        # exit()
+        # print("----------------- START PRINTING -----------------")
+        # w.Print("v")
+        # print("----------------- END PRINTING -----------------")
 
         getattr(w, "import")(rfvSigRate_ggH, ROOT.RooFit.RecycleConflictNodes())
         getattr(w, "import")(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
@@ -2507,6 +2713,11 @@ class datacardClass:
         channelName1D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
         # channelName2D=['ggH_hzz','qqH_hzz','bkg2d_vz','bkg2d_ttbar','bkg2d_zjets']
         channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
+        # for i in range(0, len(bkg2d_vz_Stat_down_list)):
+        #     channelName1D.append("bkg_vz_Stat_up_bin{}".format(i))
+        #     channelName1D.append("bkg_vz_Stat_down_bin{}".format(i))
+        #     channelName2D.append("bkg_vz_Stat_up_bin{}".format(i))
+        #     channelName2D.append("bkg_vz_Stat_down_bin{}".format(i))
 
         for chan in channelList:
             if theInputs[chan]:

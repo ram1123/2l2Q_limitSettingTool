@@ -270,21 +270,43 @@ class datacardClass:
         for key, hist in self.background_hists.items():
             # get the integral of hist
             # Create RooDataHist from TH1 histogram
-            data_hist = ROOT.RooDataHist("dh_{}".format(key), "DataHist for {}".format(key), ROOT.RooArgList(self.zz2l2q_mass), hist)
+            self.rooVars["data_hist"] = ROOT.RooDataHist("dh_{}".format(key), "DataHist for {}".format(key), ROOT.RooArgList(self.zz2l2q_mass), hist)
 
             # Create RooHistPdf from RooDataHist
-            pdf = ROOT.RooHistPdf("pdf_{}".format(key), "PDF for {}".format(key), ROOT.RooArgSet(self.zz2l2q_mass), data_hist)
-            self.rooHistPdfs[key] = pdf
+            self.rooHistPdfs["pdf_{}".format(key)] = ROOT.RooHistPdf(
+                "pdf_{}".format(key),
+                "PDF for {}".format(key),
+                ROOT.RooArgSet(self.zz2l2q_mass),
+                self.rooVars["data_hist"],
+            )
 
             # plot and save the RooDataHist and RooHistPdf
             if self.SanityCheckPlot:
                 # compute the integral of the pdf
                 logger.warning("Integral of hist: {:21}: {}".format(key, hist.Integral()))
 
-                fullRangeBkgRate = (pdf.createIntegral(ROOT.RooArgSet(self.zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")).getVal())
-                logger.warning("Integral of pdf : {:21}: {}".format(pdf.GetName(), fullRangeBkgRate))
+                fullRangeBkgRate = (
+                    self.rooHistPdfs["pdf_{}".format(key)]
+                    .createIntegral(
+                        ROOT.RooArgSet(self.zz2l2q_mass),
+                        ROOT.RooFit.Range("fullsignalrange"),
+                    )
+                    .getVal()
+                )
+                logger.warning(
+                    "Integral of pdf : {:21}: {}".format(
+                        self.rooHistPdfs["pdf_{}".format(key)].GetName(),
+                        fullRangeBkgRate,
+                    )
+                )
 
-                plot_and_save(data_hist, pdf, self.zz2l2q_mass, key, self.outputDir)
+                plot_and_save(
+                    self.rooVars["data_hist"],
+                    self.rooHistPdfs["pdf_{}".format(key)],
+                    self.zz2l2q_mass,
+                    key,
+                    self.outputDir,
+                )
 
         logger.error(self.background_hists)
         # return self.rooHistPdfs
@@ -498,7 +520,233 @@ class datacardClass:
             self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
         )
         self.workspace.Print("v")
-        # sys.exit()
+
+        # ================== DATA ================== #
+        self.get_MELA_2D_pdfs()
+        self.process_data_obs()
+        sys.exit()
+
+    # def setup_signal_models(self):
+    def get_MELA_2D_pdfs(self):
+        # Template file paths
+        templateDir = "templates2D"
+        templateSigName = "{}/2l2q_spin0_template_{}.root".format(
+            templateDir, self.year
+        )
+
+        # Opening template ROOT files
+        sigTempFile = ROOT.TFile(templateSigName)
+        if not sigTempFile or sigTempFile.IsZombie():
+            print("Error opening signal template file:", templateSigName)
+            return
+
+        # Determine the signal template name based on the channel
+        TString_sig = "sig_resolved"
+        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+            TString_sig = "sig_merged"
+
+        # Accessing templates
+        sigTemplate = sigTempFile.Get(TString_sig)
+        sigTemplate_Up = sigTempFile.Get(TString_sig + "_up")
+        sigTemplate_Down = sigTempFile.Get(TString_sig + "_dn")
+
+        logger.debug("Using templateSigName: {}".format(templateSigName))
+
+        # Setup discriminant variable
+        dBins = sigTemplate.GetYaxis().GetNbins()
+        dLow = sigTemplate.GetYaxis().GetXmin()
+        dHigh = sigTemplate.GetYaxis().GetXmax()
+        self.rooVars["D"] = ROOT.RooRealVar("Dspin0", "Discriminant Variable (Dspin0)", dLow, dHigh)
+        self.rooVars["D"].setBins(dBins)
+        logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
+
+        self.rooVars["funcList_ggH"] = ROOT.RooArgList()
+        self.rooVars["funcList_VBF"] = ROOT.RooArgList()
+        # self.rooVars["funcList_ggH_Up"] = ROOT.RooArgList()
+        # self.rooVars["funcList_ggH_Down"] = ROOT.RooArgList()
+        # self.rooVars["funcList_VBF_Up"] = ROOT.RooArgList()
+        # self.rooVars["funcList_VBF_Down"] = ROOT.RooArgList()
+
+        # Convert TH2 histograms to RooDataHist
+        self.create_and_attach_roo_data_hist(sigTemplate, TString_sig, "ggH")
+        self.create_and_attach_roo_data_hist(sigTemplate_Up, TString_sig, "ggH_Up")
+        self.create_and_attach_roo_data_hist(sigTemplate_Down, TString_sig, "ggH_Down", True)
+
+        # self.create_and_attach_roo_data_hist(sigTemplate, TString_sig, "VBF")
+        # self.create_and_attach_roo_data_hist(sigTemplate_Up, TString_sig, "VBF_Up")
+        # self.create_and_attach_roo_data_hist(sigTemplate_Down, TString_sig, "VBF_Down")
+        # Optionally add more model configurations if needed
+
+        # Close file
+        sigTempFile.Close()
+
+    def create_and_attach_roo_data_hist(self, histogram, TString_sig, tag, trigger = False):
+        """Helper method to create RooDataHist and attach it to class attributes"""
+        TemplateName = "sigTempDataHist_{}_{}".format(TString_sig, self.year)
+        dataHist = ROOT.RooDataHist(
+            TemplateName,
+            TemplateName,
+            ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]),
+            histogram,
+        )
+        # setattr(self, TemplateName, dataHist)
+        self.rooVars[TemplateName] = dataHist
+
+        # Create RooHistPdf from RooDataHist
+        pdfName = "sigTemplatePdf_{}_{}_{}".format(TString_sig, tag, self.year)
+        pdf = ROOT.RooHistPdf(pdfName, pdfName, ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]), dataHist)
+        # setattr(self, pdfName, pdf)
+        self.rooVars[pdfName] = pdf
+
+        logger.debug("self.sigMorph: {}".format(self.sigMorph))
+
+        # if self.sigMorph:
+        #     self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].add(self.rooVars[pdfName])
+        # elif tag == "ggH" or tag == "VBF":
+        #     self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].add(self.rooVars[pdfName])
+        self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].add(self.rooVars[pdfName])
+
+        logger.debug("funcList size: {}".format(self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].getSize()))
+        for i in range(self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].getSize()):
+            print("=====    {}    =====".format(i))
+            logger.warning(self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].Print("v"))
+        # for i in range(self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].getSize()):
+        # logger.warning("{:3}. funcList: {}".format(i, self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))][i]))
+
+        print("Created and stored PDF: {}".format(pdfName))
+        # morphing
+        # FIXME: Check if sig/bkg MELA should be correlated or uncorrelated
+        morphSigVarName = "CMS_zz2l2q_sigMELA_" + self.jetType
+        self.rooVars[morphSigVarName] = ROOT.RooRealVar(morphSigVarName, morphSigVarName, 0, -2, 2)
+        if self.sigMorph:
+            self.rooVars[morphSigVarName].setConstant(False)
+        else:
+            self.rooVars[morphSigVarName].setConstant(True)
+
+        self.rooVars["morphVarListSig_"+self.jetType] = ROOT.RooArgList()
+        if self.sigMorph:
+            self.rooVars["morphVarListSig_"+self.jetType].add(self.rooVars[morphSigVarName])  ## just one morphing for all signal processes
+
+        true = True
+        TemplateName = "sigTemplateMorphPdf_{}_{}_{}".format(tag, TString_sig, self.year)
+
+        # print each input variable that goes to the ROOT.FastVerticalInterpHistPdf2D
+        for i in range(self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))].getSize()):
+            logger.warning("{:3}. funcList: {}".format(i, self.rooVars["funcList_{}".format(tag.replace("_Up","").replace("_Down",""))][i]))
+
+        # print each morphing variable
+        for i in range(self.rooVars["morphVarListSig_"+self.jetType].getSize()):
+            logger.warning("{:3}. morphVarListSig: {}".format(i, self.rooVars["morphVarListSig_"+self.jetType][i]))
+
+        logger.warning("TemplateName: {}".format(TemplateName))
+        logger.warning("self.zz2l2q_mass: {}".format(self.zz2l2q_mass))
+        logger.warning("self.rooVars[D]: {}".format(self.rooVars["D"]))
+
+        if trigger:
+            self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                TemplateName,
+                TemplateName,
+                self.zz2l2q_mass,
+                self.rooVars["D"],
+                true,
+                self.rooVars[
+                    "funcList_{}".format(tag.replace("_Up", "").replace("_Down", ""))
+                ],
+                self.rooVars["morphVarListSig_" + self.jetType],
+                1.0,
+                1,
+            )
+
+            logger.warning(
+                "self.rooVars[TemplateName]: {}".format(self.rooVars[TemplateName])
+            )
+        """
+
+        ##### 2D -> mzz + Djet
+        name = "sigCB2d_{}_{}".format(tag, self.year)
+        self.rooVars[name] = ROOT.RooProdPdf(
+            name,
+            name,
+            ROOT.RooArgSet(self.rooVars["signalCB_{}_{}".format(tag, self.channel)]),
+            ROOT.RooFit.Conditional(
+                ROOT.RooArgSet(self.rooVars[TemplateName]), ROOT.RooArgSet(self.rooVars["D"])
+            ),
+        )
+
+        if tag == "ggH":
+            self.rooVars[name].SetNameTitle("ggH_hzz", "ggH_hzz")
+        elif tag == "VBF":
+            self.rooVars[name].SetNameTitle("qqH_hzz", "qqH_hzz")
+
+        getattr(self.workspace, "import")(
+            self.rooVars[name], ROOT.RooFit.RecycleConflictNodes()
+        )
+        """
+
+    def process_data_obs(self):
+        dataFileDir = "CMSdata"
+        dataFileName = "{}/Data_SR.root".format(dataFileDir)
+        logger.debug("dataFileName: {}".format(dataFileName))
+
+        # Open ROOT file
+        data_obs_file = ROOT.TFile(dataFileName)
+        if data_obs_file.IsZombie() or not data_obs_file.IsOpen():
+            logger.error("Failed to open file: {}. Existing the program".format(dataFileName))
+            sys.exit(1)
+
+        # Define tree names based on channel and category
+        treeName = self.get_tree_name()
+        logger.debug("treeName: {}".format(treeName))
+        tree = data_obs_file.Get(treeName)
+        if not tree:
+            logger.debug('File "{}", or tree "{}", not found'.format(dataFileName, treeName))
+            logger.debug("Exiting...")
+            sys.exit(1)
+
+        # Clone tree and create new branch
+        data_obs_tree = tree.CloneTree(0)
+        zz2lJ_mass_struct = zz2lJ_massStruct()
+        data_obs_tree.Branch("zz2lJ_mass", zz2lJ_mass_struct, "zz2lJ_mass/D")
+
+        # Fill tree with adjusted mass values
+        for i in xrange(tree.GetEntries()):  # Use xrange for Python 2
+            tree.GetEntry(i)
+            zz2lJ_mass_struct.zz2lJ_mass = getattr(tree, "zz2l2q_mass")
+            data_obs_tree.Fill()
+
+        # Log entries and create RooDataSet
+        logger.info("Data entries: {}".format(tree.GetEntries()))
+        datasetName = "data_obs"
+        data_obs = ROOT.RooDataSet(
+            datasetName, datasetName, data_obs_tree, ROOT.RooArgSet(self.zz2l2q_mass)
+        )
+        # data_obs = ROOT.RooDataSet(
+        # datasetName, datasetName, data_obs_tree, ROOT.RooArgSet(self.zz2l2q_mass, D)
+        # )
+
+        logger.debug("data_obs: {}".format(data_obs))
+        return data_obs
+
+    def get_tree_name(self):
+        tree_mapping = {
+            ('eeqq_Resolved', 'vbf_tagged'): "TreeSR0",
+            ('eeqq_Resolved', 'b_tagged'): "TreeSR1",
+            ('eeqq_Resolved', 'untagged'): "TreeSR2",
+            ('eeqq_Merged', 'vbf_tagged'): "TreeSR3",
+            ('eeqq_Merged', 'b_tagged'): "TreeSR4",
+            ('eeqq_Merged', 'untagged'): "TreeSR5",
+            ('mumuqq_Resolved', 'vbf_tagged'): "TreeSR6",
+            ('mumuqq_Resolved', 'b_tagged'): "TreeSR7",
+            ('mumuqq_Resolved', 'untagged'): "TreeSR8",
+            ('mumuqq_Merged', 'vbf_tagged'): "TreeSR9",
+            ('mumuqq_Merged', 'b_tagged'): "TreeSR10",
+            ('mumuqq_Merged', 'untagged'): "TreeSR11"
+        }
+        return tree_mapping.get((self.channel, self.cat), "")
+
+    # Example usage within the class
+    # datacard = datacardClass()
+    # data_obs_dataset = datacard.process_data_obs()
 
     def setup_signal_fractions(self, vbfRatioVBF):
         # Set the VBF fraction based on condition
