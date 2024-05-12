@@ -14,7 +14,7 @@ Setup Higgs combine tool
 .. code:: bash
 
    cmssw-el7
-   export SCRAM_ARCH=slc7_amd64_gcc700
+   export SCRAM_ARCH=slc7_amd64_gcc900
    cmsrel CMSSW_11_3_4
    cd CMSSW_11_3_4/src
    cmsenv
@@ -34,7 +34,7 @@ Setup Higgs combine tool
 .. code:: bash
 
    cd $CMSSW_BASE/src
-   git clone git@github.com:ram1123/2l2q_limitsettingtool.git -b jialin_dev
+   git clone git@github.com:ram1123/2l2Q_limitSettingTool.git -b improve/datacardClass
 
 Usage
 =====
