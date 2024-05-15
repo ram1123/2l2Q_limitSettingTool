@@ -35,6 +35,22 @@ def save_histograms(hist, template = None, output_file_name = None):
         legend.AddEntry(template, "template", "l")
 
     legend.Draw()
+
+    # Also add the integral of the histogram to the plot
+    integral = hist.Integral()
+    integral_text = ROOT.TLatex(0.4, 0.6, "Integral: {:.2f}".format(integral))
+    integral_text.SetNDC()
+    # set color to red
+    integral_text.SetTextColor(ROOT.kRed)
+    integral_text.Draw()
+
+    integral_template = template.Integral()
+    integral_text_template = ROOT.TLatex(0.4, 0.5, "Integral (template): {:.2f}".format(integral_template))
+    integral_text_template.SetNDC()
+    integral_text_template.SetTextColor(ROOT.kBlue)
+    integral_text_template.Draw()
+
+
     if output_file_name is None:
         output_file_name = hist.GetName() + ".png"
     c1.SaveAs(output_file_name)
