@@ -110,16 +110,7 @@ class datacardClass:
         self.zjets_chan = inputs["zjets"]
         self.ttbar_chan = inputs["ttbar"]
 
-    def initialize_settings(
-        self,
-        theMH,
-        theis2D,
-        theOutputDir,
-        theInputs,
-        theCat,
-        theFracVBF,
-        SanityCheckPlot,
-    ):
+    def initialize_settings(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot):
         self.mH = theMH
         self.lumi = theInputs["lumi"]
         self.sqrts = theInputs["sqrts"]
@@ -161,31 +152,34 @@ class datacardClass:
         systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
 
         ## ------------------------- RATES ----------------------------- ##
+        sigRate_ggH_Shape, vbf_ratio, btag_ratio = self.getSignalRates("ggH")
+        sigRate_VBF_Shape, vbf_ratio, btag_ratio = self.getSignalRates("VBF")
+
         self.setup_background_shapes_ReproduceRate_fs()
         self.setup_background_shapes_ReproduceRate_2l()
         self.setup_background_shapes_ReproduceRate("vz")
         self.setup_background_shapes_ReproduceRate("ttbar")
         self.setup_background_shapes_ReproduceRate("zjet")
-        sigRate_ggH_Shape, vbf_ratio, btag_ratio = self.getSignalRates("ggH")
-        sigRate_VBF_Shape, vbf_ratio, btag_ratio = self.getSignalRates("VBF")
-
-        self.setup_background_shapes()
-        bkgRate_vz_Shape = self.calculate_background_rates("vz")
-        bkgRate_ttbar_Shape = self.calculate_background_rates("ttbar")
-        bkgRate_zjets_Shape = self.calculate_background_rates("zjet")
-
-        # obtain rate for respective categories using smooth histograms
-        vz_rate_smooth = self.getRateFromSmoothedHist("vz")
-        ttbar_rate_smooth = self.getRateFromSmoothedHist("ttbar")
-        zjet_rate_smooth = self.getRateFromSmoothedHist("zjet")
 
         if self.SanityCheckPlot:
-            self.compareSmoothedHist()
+            self.compareOldNewBinnedHistogram()
 
-        logger.error("Signal rates: ggH: {:.4f}, qqH: {:.4f}".format(sigRate_ggH_Shape, sigRate_VBF_Shape))
-        logger.error("Background rates (smoothed): VZ: {:.4f}".format(vz_rate_smooth))
+        self.setup_background_shapes()
+        # FIXME: This rate is not used in the legacy code. But, we should switch to this for rate calculation
+        # bkgRate_vz_Shape = self.calculate_background_rates("vz")
+        # bkgRate_ttbar_Shape = self.calculate_background_rates("ttbar")
+        # bkgRate_zjets_Shape = self.calculate_background_rates("zjet")
+
+        # obtain rate using the new histogram based on the number of bins and range used in self.bins and self.low_M, self.high_M
+        # this is obtained from the 1D histograms present in the templates1D directory
+        bkgRate_vz_Shape = self.getRateFromSmoothedHist("vz")
+        bkgRate_ttbar_Shape = self.getRateFromSmoothedHist("ttbar")
+        bkgRate_zjets_Shape = self.getRateFromSmoothedHist("zjet")
+
+
+        logger.debug("Signal rates: ggH: {:.4f}, qqH: {:.4f}".format(sigRate_ggH_Shape, sigRate_VBF_Shape))
+        # logger.debug("Background rates (smoothed): VZ: {:.4f}".format(bkgRate_vz_Shape))
         logger.error("Background rates: VZ: {:.4f}, TTbar: {:.4f}, Zjets: {:.4f}\n\n".format(bkgRate_vz_Shape, bkgRate_ttbar_Shape, bkgRate_zjets_Shape))
-        # exit()
 
         ## --------------------------- DATACARDS -------------------------- ##
 
@@ -193,9 +187,9 @@ class datacardClass:
         rates["ggH"] = sigRate_ggH_Shape
         rates["qqH"] = sigRate_VBF_Shape
 
-        rates["vz"] = vz_rate_smooth
-        rates["ttbar"] = ttbar_rate_smooth
-        rates["zjets"] = zjet_rate_smooth
+        rates["vz"] = bkgRate_vz_Shape
+        rates["ttbar"] = bkgRate_ttbar_Shape
+        rates["zjets"] = bkgRate_zjets_Shape
 
         name_ShapeWS2 = ""
         name_ShapeWS2 = "hzz2l2q_{0}_{1:.0f}TeV.input.root".format(self.appendName, self.sqrts)
@@ -209,14 +203,7 @@ class datacardClass:
 
         name_Shape = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.txt".format(self.outputDir, self.mH, self.appendName, self.sqrts)
         fo = open(name_Shape, "wb")
-        self.WriteDatacard(
-            fo,
-            theInputs,
-            name_ShapeWS2,
-            rates,
-            self.rooDataSet["data_obs"].numEntries(),
-            self.is2D,
-        )
+        self.WriteDatacard(fo, theInputs, name_ShapeWS2, rates, self.rooDataSet["data_obs"].numEntries(), self.is2D)
 
         # FIXME: This is a temporary fix to write the systematics to the datacard
         # FIXME: Why we are just using the ttbar_MuEG_file for systematics?
@@ -240,7 +227,7 @@ class datacardClass:
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
 
-    def compareSmoothedHist(self):
+    def compareOldNewBinnedHistogram(self):
         # Make a comparison of the smoothed histograms and the original histograms
         #  plot them on the same canvas with different colors and add the legend
 
@@ -254,7 +241,6 @@ class datacardClass:
                 # save_histograms(hist_smooth, hist, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
                 save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
 
-        exit()
 
     def getRateFromSmoothedHist(self, process):
         """
@@ -264,7 +250,7 @@ class datacardClass:
         # rate = self.background_hists_smooth["{}_smooth".format(process, )].Integral()
         for key, hist in self.background_hists_smooth.items():
             logger.debug("key: {}, hist: {}".format(key, hist))
-        print("{}_{}_smooth".format(process, self.cat_tree))
+        logger.debug("Hist name from rate is obtained: {}_{}_smooth".format(process, self.cat_tree))
         rate = self.background_hists_smooth["{}_{}_smooth".format(process, self.cat_tree)].Integral()
         return rate
 
@@ -413,12 +399,14 @@ class datacardClass:
             return bkgRate_Shape["vbftagged"]
 
     def setup_background_shapes_ReproduceRate_fs(self):
-        # yield from given fs
-        TempFile_fs = ROOT.TFile("templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year), "READ")
-        if not TempFile_fs or TempFile_fs.IsZombie():
-            raise FileNotFoundError("Could not open the template file for final state {}".format(self.fs))
+        # Open the template file
+        template_file_path = "templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year)
+        temp_file_fs = ROOT.TFile(template_file_path, "READ")
 
-        # Define the histogram names based on jet type and category
+        if not temp_file_fs or temp_file_fs.IsZombie():
+            raise IOError("Could not open the template file: {}".format(template_file_path))
+
+        # Define histogram names based on jet type and category
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
             "vz": "VZ_perInvFb_Bin50GeV",
@@ -429,40 +417,43 @@ class datacardClass:
             "untagged": "",
             "btagged": "btag",
             "vbftagged": "vbf",
-        }  # FIXME: This is a temporary fix. Need to get back to the  categories
+        }
 
-        # Retrieve histograms for each background
+        # Retrieve histograms for each background and category
         for key, suffix in hist_suffixes.items():
             for category, cat_string in categories.items():
                 hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
-                hist = TempFile_fs.Get(hist_name)
+                hist = temp_file_fs.Get(hist_name)
+
+                if not hist:
+                    raise ValueError("Histogram {} not found in file: {}".format(hist_name, template_file_path))
 
                 # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
                 hist.SetDirectory(ROOT.gROOT)
 
-                # print range of histogram
                 logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
-                if not hist:
-                    raise ValueError("Histogram {} not found in file".format(hist_name))
-                logger.debug("{}_{}_template".format(key, category))
-                self.background_hists["{}_{}_template".format(key, category)] = hist
+                # Store the histogram in the background_hists dictionary
+                hist_key = "{}_{}_template".format(key, category)
+                self.background_hists[hist_key] = hist
 
-        # print(self.background_hists)
+                logger.debug("Stored histogram {} in background_hists".format(hist_key))
+
+        # Log all histograms in background_hists
         for key, hist in self.background_hists.items():
-            logger.debug("key: {}, hist: {}".format(key, hist))
+            logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
+
+        temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate_2l(self):
-        # yield from given fs
-        TempFile_fs = ROOT.TFile(
-            "templates1D/Template1D_spin0_2l_{}.root".format(self.year), "READ"
-        )
-        if not TempFile_fs or TempFile_fs.IsZombie():
-            raise FileNotFoundError(
-                "Could not open the template file for final state {}".format(self.fs)
-            )
+        # Open the template file
+        template_file_path = "templates1D/Template1D_spin0_2l_{}.root".format(self.year)
+        temp_file_fs = ROOT.TFile(template_file_path, "READ")
 
-        # Define the histogram names based on jet type and category
+        if not temp_file_fs or temp_file_fs.IsZombie():
+            raise IOError("Could not open the template file: {}".format(template_file_path))
+
+        # Define histogram names based on jet type and category
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
             "vz": "VZ_perInvFb_Bin50GeV",
@@ -473,22 +464,27 @@ class datacardClass:
         # Retrieve histograms for each background
         for key, suffix in hist_suffixes.items():
             hist_name = "{}_{}".format(prefix, suffix)
-            hist = TempFile_fs.Get(hist_name)
+            hist = temp_file_fs.Get(hist_name)
+
+            if not hist:
+                raise ValueError("Histogram {} not found in file: {}".format(hist_name))
 
             # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
             hist.SetDirectory(ROOT.gROOT)
 
-            # print range of histogram
             logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
-            if not hist:
-                raise ValueError("Histogram {} not found in file".format(hist_name))
-            logger.debug("{}_template".format(key))
-            self.background_hists["{}_template".format(key)] = hist
+            # Store the histogram in the background_hists dictionary
+            hist_key = "{}_template".format(key)
+            self.background_hists[hist_key] = hist
 
-        # print(self.background_hists)
+            logger.debug("Stored histogram {} in background_hists".format(hist_key))
+
+        # Log all histograms in background_hists
         for key, hist in self.background_hists.items():
-            logger.debug("key: {}, hist: {}".format(key, hist))
+            logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
+
+        temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate(self, process):
         categories = ["_untagged", "_btagged", "_vbftagged", ""]
@@ -536,7 +532,7 @@ class datacardClass:
                     # This prevents further iterations of the inner loop, which is correct in this context
                     # as each bin of vz_smooth should correspond to only one bin in vzTemplateMVV.
                     #
-        # print("===> ", self.background_hists_smooth)
+
         for key, hist in self.background_hists_smooth.items():
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
 
