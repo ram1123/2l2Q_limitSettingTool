@@ -31,6 +31,7 @@ class datacardClass:
         self.rooDataHist = {}
         self.signalCBs = {}  # Dictionary to store signalCB objects
         self.rooProdPdf = {}  # Dictionary to store RooProdPdf objects
+        self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
         self.background_hists = {}
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
@@ -201,12 +202,21 @@ class datacardClass:
         SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year)
         SignalShape = self.open_root_file(SignalShapeFile)
 
-        self.setup_signal_shape(SignalShape, systematics, 'ggH', self.channel)
+        self.get_signal_shape_mean_error(SignalShape)
+        self.setup_signal_shape(SignalShape, systematics, "VBF", self.channel)
+        self.setup_signal_shape(SignalShape, systematics, "ggH", self.channel)
+
+        logger.info("==========  print mean and sigma  =========")
+        self.rooVars["rfv_mean_{}_{}".format("VBF", self.channel)].Print("v")
+        self.rooVars["rfv_sigma_{}_{}".format("VBF", self.channel)].Print("v")
+        self.rooVars["rfv_mean_{}_{}".format("ggH", self.channel)].Print("v")
+        self.rooVars["rfv_sigma_{}_{}".format("ggH", self.channel)].Print("v")
+        logger.info("==========  END =========")
+
+
         logger.warning("============  SignalCB Shape ggH  ============")
         self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
-        # exit()
 
-        self.setup_signal_shape(SignalShape, systematics, 'VBF', self.channel)
         logger.warning("============  SignalCB Shape VBF  ============")
         self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
@@ -244,7 +254,6 @@ class datacardClass:
 
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
-        exit()
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -469,6 +478,11 @@ class datacardClass:
             logger.error("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
             self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
 
+            logger.warning("==========  print mean and sigma  =========")
+            self.rooVars["rfv_mean_{}_{}".format(sample, self.channel)].Print("v")
+            self.rooVars["rfv_sigma_{}_{}".format(sample, self.channel)].Print("v")
+            logger.warning("==========  END =========")
+
             logger.error("self.rooVars[{}]".format(TemplateName))
             self.rooVars[TemplateName].Print("v")
 
@@ -496,24 +510,20 @@ class datacardClass:
                 tag_temp = "ggH"
             elif sample == "VBF":
                 tag_temp = "qqH"
+
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             if sample == "ggH":
-                logger.warning("sample: {}".format(name))
                 self.rooProdPdf[name].SetNameTitle("ggH_hzz", "ggH_hzz")
                 self.rooProdPdf[name].Print("v")
             elif sample == "VBF":
-                logger.warning("sample: {}".format(name))
                 self.rooProdPdf[name].SetNameTitle("qqH_hzz", "qqH_hzz")
                 self.rooProdPdf[name].Print("v")
 
-            # logger.error("self.rooVars[{}]".format(name))
-            # self.rooVars[name].Print("v")
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
             logger.error("added to workspace: {}".format(name))
             self.workspace.Print("v")
-        exit()
 
-    def get_signal_shape_mean_error(self, SignalShape, signal_type):
+    def get_signal_shape_mean_error(self, SignalShape):
         # Define systematic variables for both electron and muon channels
         systematic_vars = [
             ("mean_e_sig", "CMS_zz2l2q_mean_e_sig", 0.0, -5.0, 5.0),
@@ -553,7 +563,7 @@ class datacardClass:
         mean_formula = "(@0*@1*@3 + @0*@2*@4)/2"
         sigma_formula = "sqrt((1+0.05*@0*@2)*(1+@1*@3))"
 
-        self.rooVars["mean_err"] = ROOT.RooFormulaVar(
+        self.rooVars["mean_err_" + self.channel] = ROOT.RooFormulaVar(
             "mean_err_" + self.channel,
             mean_formula,
             ROOT.RooArgList(
@@ -565,7 +575,7 @@ class datacardClass:
             ),
         )
 
-        self.rooVars["rfv_sigma_SF"] = ROOT.RooFormulaVar(
+        self.rooFormulaVars["sigma_SF_" + self.channel] = ROOT.RooFormulaVar(
             "sigma_SF_" + self.channel,
             sigma_formula,
             ROOT.RooArgList(
@@ -576,21 +586,28 @@ class datacardClass:
             ),
         )
 
-        # Sigma of DCB using a dynamic approach
-        sigma_value = (SignalShape.Get("sigma")).GetListOfFunctions().First().Eval(self.mH)
-        self.rooVars["sigma"] = ROOT.RooRealVar(
-            "sigma_{}_{}".format(signal_type, self.channel),
-            "sigma_{}_{}".format(signal_type, self.channel),
-            sigma_value,
-        )
+        signal_type_list = ["ggH", "VBF"]
+        for signal_type in signal_type_list:
+            # Sigma of DCB using a dynamic approach
+            sigma_value = (SignalShape.Get("sigma")).GetListOfFunctions().First().Eval(self.mH)
+            self.rooVars["sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooRealVar(
+                "sigma_{}_{}".format(signal_type, self.channel),
+                "sigma_{}_{}".format(signal_type, self.channel),
+                sigma_value,
+            )
 
-        self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooFormulaVar(
-            "rfv_sigma_{}_{}".format(signal_type, self.channel),
-            "@0*@1",
-            ROOT.RooArgList(self.rooVars["sigma"], self.rooVars["rfv_sigma_SF"]),
-        )
+            logger.warning("===      Input values for mean and sigma      ===")
+            self.rooVars["sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+            self.rooFormulaVars["sigma_SF_" + self.channel].Print("v")
+            logger.warning("===      END      ===")
 
-        return self.rooVars["mean_err"], self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)]
+            self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooFormulaVar(
+                "rfv_sigma_{}_{}".format(signal_type, self.channel),
+                "@0*@1",
+                ROOT.RooArgList(self.rooVars["sigma_{}_{}".format(signal_type, self.channel)], self.rooFormulaVars["sigma_SF_" + self.channel]),
+            )
+            self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+
 
     def setup_signal_shape(self, SignalShape, systematics, signal_type, channel):
         name = "bias_{}_{}".format(signal_type, channel)
@@ -603,20 +620,10 @@ class datacardClass:
         name = "mean_{}_{}".format(signal_type, channel)
         self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(name, "@0+@1", ROOT.RooArgList(self.rooVars["MH"], self.rooVars["bias_{}_{}".format(signal_type, channel)]))
 
-        mean_err, rfv_sigma = self.get_signal_shape_mean_error(SignalShape, signal_type)
-
-        # # self.rooVars["mean_err"], self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)]
-
-        # logger.error(rfv_sigma.GetName())
-        # rfv_sigma.Print("v")
-
-
         name = "rfv_mean_{}_{}".format(signal_type, channel)
         self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(
-            name, "@0+@1", ROOT.RooArgList(self.rooVars["mean_{}_{}".format(signal_type, channel)], mean_err)
+            name, "@0+@1", ROOT.RooArgList(self.rooVars["mean_{}_{}".format(signal_type, channel)], self.rooVars["mean_err_" + self.channel])
         )
-        # logger.error("rfv_mean_{}_{}".format(signal_type, channel))
-        # self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] .Print("v")
 
         self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
             "a1_{}_{}_{}".format(signal_type, channel, self.year), "Low tail", SignalShape.Get("a1").GetListOfFunctions().First().Eval(self.mH)
@@ -635,13 +642,12 @@ class datacardClass:
             "Double Crystal Ball Model for {} in {}".format(signal_type, channel),
             self.rooVars["zz2l2q_mass"],
             self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)],
-            rfv_sigma, # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)],
+            self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)],
             self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["n1_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["a2_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["n2_{}_{}_{}".format(signal_type, channel, self.year)]
         )
-        # self.signalCBs["signalCB_{}_{}".format(signal_type, channel)].Print("v")
 
         fullRangeSigRate = (
             self.signalCBs["signalCB_{}_{}".format(signal_type, self.channel)]
@@ -658,6 +664,10 @@ class datacardClass:
             .getVal()
         )
         logger.debug("{} rate: {}".format(self.signalCBs["signalCB_{}_{}".format(signal_type, channel)].GetName(), fullRangeSigRate))
+        logger.warning("==========  print mean and sigma  =========")
+        self.rooVars["rfv_mean_{}_{}".format(signal_type, self.channel)].Print("v")
+        self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+        logger.warning("==========  END =========")
 
     def getSignalRates(self, signal_type):
         logger.debug("Calculating signal rates for {}".format(signal_type))
