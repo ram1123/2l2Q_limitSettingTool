@@ -79,9 +79,7 @@ class datacardClass:
             self.zz2l2q_mass.SetTitle("zz2lJ_mass")
 
         self.zz2l2q_mass.setRange("fullrange", self.low_M, self.high_M)
-        self.zz2l2q_mass.setRange(
-            "fullsignalrange", self.mH - 0.25 * self.mH, self.mH + 0.25 * self.mH
-        )
+        self.zz2l2q_mass.setRange("fullsignalrange", self.mH - 0.25 * self.mH, self.mH + 0.25 * self.mH)
         self.rooVars["zz2l2q_mass"] = self.zz2l2q_mass
         logger.info("Observables are set up successfully")
 
@@ -124,8 +122,7 @@ class datacardClass:
         self.SanityCheckPlot = SanityCheckPlot
         logger.debug("Settings initialized for channel: {}".format(self.channel))
 
-    def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
-        self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
+    def initialize_workspace_and_observables(self, theMH, theInputs):
         self.setup_workspace()  # Setup the RooWorkspace
         self.set_append_name()  # Set the finalState (fs) and postfix variable
         self.set_category_tree()  # Set the category tree: cat_tree and cat
@@ -147,6 +144,10 @@ class datacardClass:
         ROOT.setTDRStyle(True)
         ROOT.gStyle.SetPalette(1)
         ROOT.gStyle.SetPadLeftMargin(0.16)
+
+    def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
+        self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
+        self.initialize_workspace_and_observables(theMH, theInputs)
 
         ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
         systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
@@ -194,9 +195,7 @@ class datacardClass:
         name_ShapeWS2 = "hzz2l2q_{0}_{1:.0f}TeV.input.root".format(self.appendName, self.sqrts)
 
         # ================== SIGNAL SHAPE ================== #
-        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(
-            self.jetType, self.year
-        )
+        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year)
         SignalShape = self.open_root_file(SignalShapeFile)
 
         self.setup_signal_shape(SignalShape, systematics, 'ggH', self.channel)
@@ -214,11 +213,8 @@ class datacardClass:
 
         ## ------------------------- DATA ----------------------------- ##
         self.rooDataSet["data_obs"] = self.getData()
-        # logger.debug("Data: {}".format(self.rooDataSet["data_obs"].Print("v")))
-
         getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
         self.workspace.Print("v")
-        exit()
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -262,7 +258,6 @@ class datacardClass:
                 hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
                 # save_histograms(hist_smooth, hist, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
                 save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
-
 
     def getRateFromSmoothedHist(self, process):
         """
@@ -381,9 +376,13 @@ class datacardClass:
         # # Convert TH2 histograms to RooDataHist
         # Got error if I uncomment this block
         # if self.sigMorph:
+        #     logger.debug("Creating RooDataHist for ggH_Up")
         #     self.create_and_attach_roo_data_hist(sigTemplate_Up, TString_sig, "ggH_Up", False)
+        #     logger.debug("Creating RooDataHist for ggH_Down")
         #     self.create_and_attach_roo_data_hist(sigTemplate_Down, TString_sig, "ggH_Down", False)
+        # logger.debug("Creating RooDataHist for ggH")
         # self.create_and_attach_roo_data_hist(sigTemplate, TString_sig, "ggH", True)
+        exit()
 
         if self.sigMorph:
             self.create_and_attach_roo_data_hist(sigTemplate_Up, TString_sig, "VBF_Up", False)
@@ -542,6 +541,13 @@ class datacardClass:
                 tag_temp = "VBF"
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             logger.warning("name: {}".format(name))
+            print("ram===========")
+            self.rooVars["signalCB_{}_{}".format(tag_temp, self.channel)].Print("v")
+            print("-----------------")
+            self.rooVars[sigTemplateMorphPdf].Print("v")
+            print("-----------------")
+            self.rooVars["D"].Print("v")
+            print("-----------------")
             self.rooVars[name] = ROOT.RooProdPdf(
                 name,
                 name,
@@ -699,6 +705,13 @@ class datacardClass:
             self.rooVars["signalCB_{}_{}".format(signal_type, self.channel)]
             .createIntegral(
                 ROOT.RooArgSet(self.zz2l2q_mass), ROOT.RooFit.Range("fullsignalrange")
+            )
+            .getVal()
+        )
+        fullRangeRate = (
+            self.rooVars["signalCB_{}_{}".format(signal_type, self.channel)]
+            .createIntegral(
+                ROOT.RooArgSet(self.zz2l2q_mass), ROOT.RooFit.Range("fullrange")
             )
             .getVal()
         )
