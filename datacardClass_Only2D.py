@@ -30,6 +30,7 @@ class datacardClass:
         self.rooDataSet = {}
         self.rooDataHist = {}
         self.signalCBs = {}  # Dictionary to store signalCB objects
+        self.rooProdPdf = {}  # Dictionary to store RooProdPdf objects
         self.background_hists = {}
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
@@ -203,6 +204,7 @@ class datacardClass:
         self.setup_signal_shape(SignalShape, systematics, 'ggH', self.channel)
         logger.warning("============  SignalCB Shape ggH  ============")
         self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
+        # exit()
 
         self.setup_signal_shape(SignalShape, systematics, 'VBF', self.channel)
         logger.warning("============  SignalCB Shape VBF  ============")
@@ -431,8 +433,12 @@ class datacardClass:
             self.rooVars["morphVarListSig_" + self.jetType].add(self.rooVars[morphSigVarName])  ## just one morphing for all signal processes
 
         logger.error("I am here...")
-        # for sample in ["ggH", "VBF"]:
-        for sample in ["VBF", "ggH"]:
+        # ERROR: Date: 16 may 2024: Find out why it is not working for ggH. But its working fine for VBF.
+        # sample_list = ["ggH"]
+        # sample_list = ["VBF"]
+        sample_list = ["ggH", "VBF"]
+        logger.warning("=========   Print FastVerticalInterpHistPdf2D: START  =========")
+        for sample in sample_list:
             logger.warning("sample: {}".format(sample))
             # get the morphing variable ROOT.FastVerticalInterpHistPdf2D
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
@@ -447,15 +453,29 @@ class datacardClass:
                 1.0,
                 1,
             )
-            # self.rooVars[TemplateName].Print("v")
+            self.rooVars[TemplateName].Print("v")
+        logger.warning("=========   Print FastVerticalInterpHistPdf2D: END  =========")
 
+        for sample in sample_list:
             # 2D -> mzz + Djet
             if sample == "ggH":
                 tag_temp = "ggH"
             elif sample == "VBF":
                 tag_temp = "qqH"
+
+            TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
-            self.rooVars[name] = ROOT.RooProdPdf(
+            logger.warning("======  parameters entered in RooProdPdf  ======")
+            logger.error("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
+            self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
+
+            logger.error("self.rooVars[{}]".format(TemplateName))
+            self.rooVars[TemplateName].Print("v")
+
+            logger.error("self.rooVars[D]")
+            self.rooVars["D"].Print("v")
+
+            self.rooProdPdf[name] = ROOT.RooProdPdf(
                 name,
                 name,
                 ROOT.RooArgSet(self.signalCBs["signalCB_{}_{}".format(sample, self.channel)]),
@@ -466,16 +486,32 @@ class datacardClass:
             )
             # self.rooVars[name].Print("v")
 
-            if sample == "ggH":
-                self.rooVars[name].SetNameTitle("ggH_hzz", "ggH_hzz")
-            elif sample == "VBF":
-                self.rooVars[name].SetNameTitle("qqH_hzz", "qqH_hzz")
+        logger.warning("======  Print self.rooProdPdf: START  ======")
+        print(self.rooProdPdf)
+        logger.warning("======  Print self.rooProdPdf: END  ======")
 
+        sample_list = ["ggH", "VBF"]
+        for sample in sample_list:
+            if sample == "ggH":
+                tag_temp = "ggH"
+            elif sample == "VBF":
+                tag_temp = "qqH"
+            name = "sigCB2d_{}_{}".format(tag_temp, self.year)
+            if sample == "ggH":
+                logger.warning("sample: {}".format(name))
+                self.rooProdPdf[name].SetNameTitle("ggH_hzz", "ggH_hzz")
+                self.rooProdPdf[name].Print("v")
+            elif sample == "VBF":
+                logger.warning("sample: {}".format(name))
+                self.rooProdPdf[name].SetNameTitle("qqH_hzz", "qqH_hzz")
+                self.rooProdPdf[name].Print("v")
+
+            # logger.error("self.rooVars[{}]".format(name))
             # self.rooVars[name].Print("v")
-            getattr(self.workspace, "import")(self.rooVars[name], ROOT.RooFit.RecycleConflictNodes())
+            getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
             logger.error("added to workspace: {}".format(name))
             self.workspace.Print("v")
-            exit()
+        exit()
 
     def get_signal_shape_mean_error(self, SignalShape, signal_type):
         # Define systematic variables for both electron and muon channels
@@ -568,10 +604,19 @@ class datacardClass:
         self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(name, "@0+@1", ROOT.RooArgList(self.rooVars["MH"], self.rooVars["bias_{}_{}".format(signal_type, channel)]))
 
         mean_err, rfv_sigma = self.get_signal_shape_mean_error(SignalShape, signal_type)
+
+        # # self.rooVars["mean_err"], self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)]
+
+        # logger.error(rfv_sigma.GetName())
+        # rfv_sigma.Print("v")
+
+
         name = "rfv_mean_{}_{}".format(signal_type, channel)
         self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(
             name, "@0+@1", ROOT.RooArgList(self.rooVars["mean_{}_{}".format(signal_type, channel)], mean_err)
         )
+        # logger.error("rfv_mean_{}_{}".format(signal_type, channel))
+        # self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] .Print("v")
 
         self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
             "a1_{}_{}_{}".format(signal_type, channel, self.year), "Low tail", SignalShape.Get("a1").GetListOfFunctions().First().Eval(self.mH)
@@ -590,7 +635,7 @@ class datacardClass:
             "Double Crystal Ball Model for {} in {}".format(signal_type, channel),
             self.rooVars["zz2l2q_mass"],
             self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)],
-            rfv_sigma,
+            rfv_sigma, # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)],
             self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["n1_{}_{}_{}".format(signal_type, channel, self.year)],
             self.rooVars["a2_{}_{}_{}".format(signal_type, channel, self.year)],
