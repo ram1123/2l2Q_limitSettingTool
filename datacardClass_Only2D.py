@@ -208,15 +208,41 @@ class datacardClass:
         logger.warning("============  SignalCB Shape VBF  ============")
         self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
-        ## ------------------------- MELA 2D ----------------------------- ##
-        # self.get_MELA_2D_pdfs()
-        self.getRooProdPDFofMorphedSignal()
-        exit()
+        # ## -------------------------  Get 2D template ----------------------------- ##
+        templateDir = "templates2D"
+        templateSigName = "{}/2l2q_spin0_template_{}.root".format(
+            templateDir, self.year
+        )
+        logger.debug("Using templateSigName: {}".format(templateSigName))
+
+        TString_sig = "sig_resolved"
+        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+            TString_sig = "sig_merged"
+
+        # Opening template ROOT files
+        sigTempFile = ROOT.TFile(templateSigName)
+        if not sigTempFile or sigTempFile.IsZombie():
+            print("Error opening signal template file:", templateSigName)
+            return
+
+        # Setup discriminant variable
+        sigTemplate = sigTempFile.Get(TString_sig)
+        dBins = sigTemplate.GetYaxis().GetNbins()
+        dLow = sigTemplate.GetYaxis().GetXmin()
+        dHigh = sigTemplate.GetYaxis().GetXmax()
+        self.rooVars["D"] = ROOT.RooRealVar("Dspin0", "Discriminant Variable (Dspin0)", dLow, dHigh)
+        self.rooVars["D"].setBins(dBins)
+        logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
+        sigTempFile.Close()
 
         ## ------------------------- DATA ----------------------------- ##
         self.rooDataSet["data_obs"] = self.getData()
         getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
         self.workspace.Print("v")
+
+        ## ------------------------- MELA 2D ----------------------------- ##
+        self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
+        exit()
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -339,44 +365,21 @@ class datacardClass:
         logger.debug("data_obs: {}".format(self.rooDataSet["data_obs"]))
         return self.rooDataSet["data_obs"]
 
-    def getRooProdPDFofMorphedSignal(self):
+    def getRooProdPDFofMorphedSignal(self, TString_sig, templateSigName):
         # Determine the signal template name based on the channel
         logger.warning("Inside getRooProdPDFofMorphedSignal")
         self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
         self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
         logger.warning("====================================================")
-        TString_sig = "sig_resolved"
-        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
-            TString_sig = "sig_merged"
 
         self.rooVars["funcList_ggH"] = ROOT.RooArgList()
         self.rooVars["funcList_VBF"] = ROOT.RooArgList()
-
-        # Accessing templates
-        # sigTemplate = sigTempFile.Get(TString_sig)
-        # sigTemplate_Up = sigTempFile.Get(TString_sig + "_up")
-        # sigTemplate_Down = sigTempFile.Get(TString_sig + "_dn")
-        # Template file paths
-        templateDir = "templates2D"
-        templateSigName = "{}/2l2q_spin0_template_{}.root".format(
-            templateDir, self.year
-        )
-        logger.debug("Using templateSigName: {}".format(templateSigName))
 
         # Opening template ROOT files
         sigTempFile = ROOT.TFile(templateSigName)
         if not sigTempFile or sigTempFile.IsZombie():
             print("Error opening signal template file:", templateSigName)
             return
-
-        # Setup discriminant variable
-        sigTemplate = sigTempFile.Get(TString_sig)
-        dBins = sigTemplate.GetYaxis().GetNbins()
-        dLow = sigTemplate.GetYaxis().GetXmin()
-        dHigh = sigTemplate.GetYaxis().GetXmax()
-        self.rooVars["D"] = ROOT.RooRealVar("Dspin0", "Discriminant Variable (Dspin0)", dLow, dHigh)
-        self.rooVars["D"].setBins(dBins)
-        logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
 
         #  Get the RooDataHist for signal templates
         for tag in ["", "_up", "_dn"]:
@@ -444,7 +447,8 @@ class datacardClass:
                 1.0,
                 1,
             )
-            self.rooVars[TemplateName].Print("v")
+            # self.rooVars[TemplateName].Print("v")
+
             # 2D -> mzz + Djet
             if sample == "ggH":
                 tag_temp = "ggH"
