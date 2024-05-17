@@ -292,7 +292,7 @@ class datacardClass:
         logger.warning("============  SignalCB Shape VBF  ============")
         self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
-        # ## -------------------------  Get 2D template ----------------------------- ##
+        ## -------------------------  Get 2D template ----------------------------- ##
         templateDir = "templates2D"
         templateSigName = "{}/2l2q_spin0_template_{}.root".format(
             templateDir, self.year
@@ -326,10 +326,11 @@ class datacardClass:
 
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
-
         self.setup_nuisances(systematics) # needed for  module "calculate_signal_rates_next"
         self.setup_signal_fractions(vbf_ratio)
         self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], sigRate_ggH_Shape, sigRate_VBF_Shape, btag_ratio, vbf_ratio)
+
+        logger.error("jetType: {}, cat: {}".format(self.jetType, self.cat))
         self.workspace.Print("v")
         # exit()
 
@@ -807,6 +808,7 @@ class datacardClass:
     def calculate_background_rates(self, process):
         """
         Calculate and return background rates for various processes based on the histograms provided in self.background_hists.
+        For now not used. But keep it for future reference or some cross-checking.
         """
         # Integral calculations for background histograms
         bkgRate_Shape = {
@@ -1088,23 +1090,23 @@ class datacardClass:
         # Prepare arguments lists for ggH and VBF signal rates
         self.rooVars["arglist_ggH"] = ROOT.RooArgList(self.rooVars["arglist_all_JES"])
         self.rooVars["arglist_ggH"].add(self.rooVars["LUMI"])
-        self.rooVars["arglist_ggH"].add(self.rooVars["BR"])
         self.rooVars["arglist_ggH"].add(self.rooVars["frac_ggH"])
+        self.rooVars["arglist_ggH"].add(self.rooVars["BR"])
 
         self.rooVars["arglist_VBF"] = ROOT.RooArgList(self.rooVars["arglist_all_JES"])
         self.rooVars["arglist_VBF"].add(self.rooVars["LUMI"])
-        self.rooVars["arglist_VBF"].add(self.rooVars["BR"])
         self.rooVars["arglist_VBF"].add(self.rooVars["frac_VBF"])
+        self.rooVars["arglist_VBF"].add(self.rooVars["BR"])
 
         self.rooVars["arglist_ggH_with_BTAG"] = ROOT.RooArgList(self.rooVars["arglist_all_JES_BTAG"])
         self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["LUMI"])
-        self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["BR"])
         self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["frac_ggH"])
+        self.rooVars["arglist_ggH_with_BTAG"].add(self.rooVars["BR"])
 
         self.rooVars["arglist_VBF_with_BTAG"] = ROOT.RooArgList(self.rooVars["arglist_all_JES_BTAG"])
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["LUMI"])
-        self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["frac_VBF"])
+        self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
 
         # Calculate signal rates using predefined formulas based on category and jet type
         formula_ggH, formula_VBF = self.get_formulas(
@@ -1128,7 +1130,7 @@ class datacardClass:
         cumulative_jes_effect = self.rooVars["cumulative_jes_effect"]
         cumulative_jes_effect_with_btag = self.rooVars["cumulative_jes_effect_with_btag"]
         # Define the formula strings based on category and jet type
-        if self.jetType == "resolved" and self.cat == "vbf_tagged":
+        if self.cat == "vbf_tagged":
             formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect"],
                 num_jes_sources,
@@ -1174,7 +1176,7 @@ class datacardClass:
                 num_jes_sources + 2,
                 num_jes_sources + 3,
                 )
-        elif self.jetType == "merged" and self.cat == "vbf_tagged":
+        elif self.jetType == "merged" and self.cat == "b_tagged":
             formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 cumulative_jes_effect_with_btag,
                 str(vbfRatioGGH),
@@ -1207,23 +1209,8 @@ class datacardClass:
                 num_jes_sources + 3,
             )
         else:
-            # FIXME: this category does not exits in main code. I added it for completeness
-            formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
-                str(btagRatioGGH),
-                cumulative_jes_effect_with_btag,
-                str(vbfRatioGGH),
-                num_jes_sources + 1,
-                num_jes_sources + 2,
-                num_jes_sources + 3,
-            )
-            formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
-                str(btagRatioVBF),
-                cumulative_jes_effect_with_btag,
-                str(vbfRatioVBF),
-                num_jes_sources + 1,
-                num_jes_sources + 2,
-                num_jes_sources + 3,
-            )
+            # Give error that the category is not recognized
+            raise ValueError("Category {} not recognized. So, can't get_formulas()".format(self.cat))
 
         return formula_ggH, formula_VBF
 
