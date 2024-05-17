@@ -32,6 +32,7 @@ class datacardClass:
         self.signalCBs = {}  # Dictionary to store signalCB objects
         self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
         self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
+        self.rooArgSets = {}  # Dictionary to store RooArgSet objects
         self.background_hists = {}
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
@@ -591,99 +592,126 @@ class datacardClass:
             logger.error("added to workspace: {}".format(name))
             self.workspace.Print("v")
 
+
     def getRooProdPDFofMorphedBackgrounds(self, process):
-        vzTemplateName = "vz_" + self.appendName + "_" + str(self.year)
+        vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
+        vzTemplateMVV = self.background_hists["{}_template".format(process)]
 
-        vzTemplateMVV = self.background_hists["{}{}_template".format(process, "")]
-
-        vzTempDataHistMVV = ROOT.RooDataHist(
-            vzTemplateName,
-            vzTemplateName,
-            ROOT.RooArgList(self.zz2l2q_mass),
-            vzTemplateMVV,  # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
+        # Create and store RooDataHist
+        self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
+            vzTemplateName, vzTemplateName, ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
+            # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
             # This comment goes same for ttbar and zjet templates
         )
 
-        logger.warning("====    vzTempDataHistMVV: {}    ====".format(vzTemplateName))
+        logger.warning("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
         vzTemplateMVV.Print("v")
         print("++++++++")
-        vzTempDataHistMVV.Print("v")
-        logger.warning("====    vzTempDataHistMVV: END    ====")
+        self.rooDataHist[vzTemplateName].Print("v")
+        logger.warning("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
 
-        bkg_vz = ROOT.RooHistPdf(
-            vzTemplateName + "Pdf",
-            vzTemplateName + "Pdf",
+        # Create and store RooHistPdf
+        vzTemplatePdfName = "{}Pdf".format(vzTemplateName)
+        self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
+            vzTemplatePdfName,
+            vzTemplatePdfName,
             ROOT.RooArgSet(self.zz2l2q_mass),
-            vzTempDataHistMVV,
+            self.rooDataHist[vzTemplateName],
         )
-        logger.warning("====    bkg_vz: {}    ====".format(vzTemplateName + "Pdf"))
-        bkg_vz.Print("v")
-        logger.warning("====    bkg_vz: END    ====")
-        #    Success until here :)
 
+        logger.warning("====    bkg_vz: {}    ====".format(vzTemplatePdfName))
+        self.rooDataHist[vzTemplatePdfName].Print("v")
+        logger.warning("====    bkg_vz: END    ====")
+
+        # Open zjets template file
         templatezjetsBkgName = "templates2D/2l2q_spin0_template_{}.root".format(self.year)
         zjetsTempFile = ROOT.TFile(templatezjetsBkgName)
+        if not zjetsTempFile or zjetsTempFile.IsZombie():
+            logger.error("Failed to open zjets template file: {}".format(templatezjetsBkgName))
+            return
 
-        funcList_zjets = ROOT.RooArgList()
+        # Initialize funcList_zjets as RooArgList
+        if "funcList_zjets" not in self.rooArgSets:
+            self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
 
         TString_bkg = "DY_resolved"
-        if self.channel == "mumuqq_Merged" or self.channel == "eeqq_Merged":
+        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
             TString_bkg = "DY_merged"
 
+        # Process variations
         variations = ["", "_Up", "_Down"]
         for variation in variations:
             logger.warning("variation: {}".format(variation))
             if not self.bkgMorph and variation != "":
+                logger.error("Skipping variation: {}".format(variation))
                 continue
 
-            variations_tag_for_hist = "_Up" if variation == "_up" else "_Down" if variation == "_dn" else ""
+            variations_tag_for_hist = "_up" if variation == "_Up" else "_dn" if variation == "_Down" else ""
+            logger.error("variations: {}, variations_tag_for_hist: {}".format(variation, variations_tag_for_hist))
+            logger.warning("Looking for hist: {}".format(TString_bkg + variations_tag_for_hist))
+
             zjetsTemplate = zjetsTempFile.Get(TString_bkg + variations_tag_for_hist)
+            if not zjetsTemplate:
+                logger.error("Failed to get zjets template: {}".format(TString_bkg + variations_tag_for_hist))
+                continue
 
-            TemplateName = "zjetsTempDataHist_" + TString_bkg  + variation + "_" + str(self.year)
-            zjetsTempDataHist = ROOT.RooDataHist(
-                TemplateName, TemplateName, ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]), zjetsTemplate
+            logger.warning("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format( zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX(), ) )
+
+            TemplateName = "zjetsTempDataHist_{}{}_{}".format(TString_bkg, variation, self.year)
+            self.rooDataHist[TemplateName] = ROOT.RooDataHist(
+                TemplateName,
+                TemplateName,
+                ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]),
+                zjetsTemplate,
             )
 
-            TemplateName = "zjetsTemplatePdf_" + TString_bkg + variation + "_" + str(self.year)
-            bkgTemplatePdf_zjets = ROOT.RooHistPdf(
-                TemplateName,
-                TemplateName,
+            PdfName = "zjetsTemplatePdf_{}{}_{}".format(TString_bkg, variation, self.year)
+            self.rooDataHist[PdfName] = ROOT.RooHistPdf(
+                PdfName,
+                PdfName,
                 ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
-                zjetsTempDataHist,
+                self.rooDataHist[TemplateName],
             )
 
-            funcList_zjets.add(bkgTemplatePdf_zjets)
+            self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
+            self.rooArgSets["funcList_zjets"].Print("v")
 
-        morphBkgVarName = "CMS_zz2l2q_bkgMELA_" + self.jetType
-        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
-        alphaMorphBkg.setConstant(False)
-        morphVarListBkg = ROOT.RooArgList()
-        morphVarListBkg.add(alphaMorphBkg)
+        logger.warning("Finished processing zjets templates.")
 
-        # TemplateName = (
-        #     "bkgTemplateMorphPdf_zjets_" + self.jetType + "_" + str(self.year)
-        # )
-        # bkgTemplateMorphPdf_zjets = ROOT.FastVerticalInterpHistPdf2D(
-        #     TemplateName,
-        #     TemplateName,
-        #     self.zz2l2q_mass,
-        #     self.rooVars["D"],
-        #     True,
-        #     funcList_zjets,
-        #     morphVarListBkg,
-        #     1.0,
-        #     1,
-        # )
-        # name = "bkg2d_vz" + "_" + str(self.year)
-        # bkg2d_vz = ROOT.RooProdPdf(
-        #     name,
-        #     name,
-        #     ROOT.RooArgSet(bkg_vz),
-        #     ROOT.RooFit.Conditional(
-        #         ROOT.RooArgSet(bkgTemplateMorphPdf_vz), ROOT.RooArgSet(D)
-        #     ),
-        # )
-        pass
+        morphBkgVarName = "CMS_zz2l2q_bkgMELA_{}".format(self.jetType)
+        self.rooVars[morphBkgVarName] = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
+        self.rooVars[morphBkgVarName].setConstant(False)
+        self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
+
+        TemplateName = "bkgTemplateMorphPdf_vz_{}_{}".format(self.jetType, self.year)
+        self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+            TemplateName,
+            TemplateName,
+            self.zz2l2q_mass,
+            self.rooVars["D"],
+            True,
+            self.rooArgSets["funcList_zjets"],
+            self.rooArgSets["morphVarListBkg"],
+            1.0,
+            1,
+        )
+
+        name = "bkg2d_vz_{}".format(self.year)
+        self.rooProdPdf[name] = ROOT.RooProdPdf(
+            name,
+            name,
+            ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
+            ROOT.RooFit.Conditional(
+                ROOT.RooArgSet(self.rooVars[TemplateName]),
+                ROOT.RooArgSet(self.rooVars["D"]),
+            ),
+        )
+
+        self.rooProdPdf[name].SetNameTitle("bkg_vz", "bkg_vz")
+        self.rooProdPdf[name].Print("v")
+
+        getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
+        self.workspace.Print("v")
 
     def get_signal_shape_mean_error(self, SignalShape):
         # Define systematic variables for both electron and muon channels
