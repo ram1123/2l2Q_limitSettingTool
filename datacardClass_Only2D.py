@@ -30,7 +30,7 @@ class datacardClass:
         self.rooDataSet = {}
         self.rooDataHist = {}
         self.signalCBs = {}  # Dictionary to store signalCB objects
-        self.rooProdPdf = {}  # Dictionary to store RooProdPdf objects
+        self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
         self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
         self.background_hists = {}
         self.background_hists_smooth = {}
@@ -332,7 +332,10 @@ class datacardClass:
 
         logger.error("jetType: {}, cat: {}".format(self.jetType, self.cat))
         self.workspace.Print("v")
-        # exit()
+
+        ## ------------------------- Backgrounds 2D: Write to workspace ----------------------------- ##
+        self.getRooProdPDFofMorphedBackgrounds("vz")
+        exit()
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -362,20 +365,6 @@ class datacardClass:
 
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
-
-    def compareOldNewBinnedHistogram(self):
-        # Make a comparison of the smoothed histograms and the original histograms
-        #  plot them on the same canvas with different colors and add the legend
-
-        process = {"vz", "ttbar", "zjet"}
-        categories = {"_untagged", "_btagged", "_vbftagged", ""}
-
-        for proc in process:
-            for cat in categories:
-                hist = self.background_hists["{}{}_template".format(proc, cat)]
-                hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
-                # save_histograms(hist_smooth, hist, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
-                save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
 
     def getRateFromSmoothedHist(self, process):
         """
@@ -471,7 +460,7 @@ class datacardClass:
             print("Error opening signal template file:", templateSigName)
             return
 
-        #  Get the RooDataHist for signal templates
+        #  Get the rooDataHist for signal templates
         for tag in ["", "_up", "_dn"]:
             sigTemplate = sigTempFile.Get(TString_sig + tag)
             if not sigTemplate:
@@ -483,7 +472,7 @@ class datacardClass:
             self.rooDataHist[TemplateName] = ROOT.RooDataHist(
                         TemplateName, TemplateName, ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]), sigTemplate
                     )
-            logger.debug("Created RooDataHist: {}".format(TemplateName))
+            logger.debug("Created rooDataHist: {}".format(TemplateName))
 
         # Get the RooHistPdf for signal templates separately for ggH and VBF
         for sample in ["ggH", "VBF"]:
@@ -553,7 +542,7 @@ class datacardClass:
 
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
-            logger.warning("======  parameters entered in RooProdPdf  ======")
+            logger.warning("======  parameters entered in rooProdPdf  ======")
             logger.error("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
             self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
 
@@ -601,6 +590,100 @@ class datacardClass:
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
             logger.error("added to workspace: {}".format(name))
             self.workspace.Print("v")
+
+    def getRooProdPDFofMorphedBackgrounds(self, process):
+        vzTemplateName = "vz_" + self.appendName + "_" + str(self.year)
+
+        vzTemplateMVV = self.background_hists["{}{}_template".format(process, "")]
+
+        vzTempDataHistMVV = ROOT.RooDataHist(
+            vzTemplateName,
+            vzTemplateName,
+            ROOT.RooArgList(self.zz2l2q_mass),
+            vzTemplateMVV,  # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
+            # This comment goes same for ttbar and zjet templates
+        )
+
+        logger.warning("====    vzTempDataHistMVV: {}    ====".format(vzTemplateName))
+        vzTemplateMVV.Print("v")
+        print("++++++++")
+        vzTempDataHistMVV.Print("v")
+        logger.warning("====    vzTempDataHistMVV: END    ====")
+
+        bkg_vz = ROOT.RooHistPdf(
+            vzTemplateName + "Pdf",
+            vzTemplateName + "Pdf",
+            ROOT.RooArgSet(self.zz2l2q_mass),
+            vzTempDataHistMVV,
+        )
+        logger.warning("====    bkg_vz: {}    ====".format(vzTemplateName + "Pdf"))
+        bkg_vz.Print("v")
+        logger.warning("====    bkg_vz: END    ====")
+        #    Success until here :)
+
+        templatezjetsBkgName = "templates2D/2l2q_spin0_template_{}.root".format(self.year)
+        zjetsTempFile = ROOT.TFile(templatezjetsBkgName)
+
+        funcList_zjets = ROOT.RooArgList()
+
+        TString_bkg = "DY_resolved"
+        if self.channel == "mumuqq_Merged" or self.channel == "eeqq_Merged":
+            TString_bkg = "DY_merged"
+
+        variations = ["", "_Up", "_Down"]
+        for variation in variations:
+            logger.warning("variation: {}".format(variation))
+            if not self.bkgMorph and variation != "":
+                continue
+
+            variations_tag_for_hist = "_Up" if variation == "_up" else "_Down" if variation == "_dn" else ""
+            zjetsTemplate = zjetsTempFile.Get(TString_bkg + variations_tag_for_hist)
+
+            TemplateName = "zjetsTempDataHist_" + TString_bkg  + variation + "_" + str(self.year)
+            zjetsTempDataHist = ROOT.RooDataHist(
+                TemplateName, TemplateName, ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]), zjetsTemplate
+            )
+
+            TemplateName = "zjetsTemplatePdf_" + TString_bkg + variation + "_" + str(self.year)
+            bkgTemplatePdf_zjets = ROOT.RooHistPdf(
+                TemplateName,
+                TemplateName,
+                ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
+                zjetsTempDataHist,
+            )
+
+            funcList_zjets.add(bkgTemplatePdf_zjets)
+
+        morphBkgVarName = "CMS_zz2l2q_bkgMELA_" + self.jetType
+        alphaMorphBkg = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
+        alphaMorphBkg.setConstant(False)
+        morphVarListBkg = ROOT.RooArgList()
+        morphVarListBkg.add(alphaMorphBkg)
+
+        # TemplateName = (
+        #     "bkgTemplateMorphPdf_zjets_" + self.jetType + "_" + str(self.year)
+        # )
+        # bkgTemplateMorphPdf_zjets = ROOT.FastVerticalInterpHistPdf2D(
+        #     TemplateName,
+        #     TemplateName,
+        #     self.zz2l2q_mass,
+        #     self.rooVars["D"],
+        #     True,
+        #     funcList_zjets,
+        #     morphVarListBkg,
+        #     1.0,
+        #     1,
+        # )
+        # name = "bkg2d_vz" + "_" + str(self.year)
+        # bkg2d_vz = ROOT.RooProdPdf(
+        #     name,
+        #     name,
+        #     ROOT.RooArgSet(bkg_vz),
+        #     ROOT.RooFit.Conditional(
+        #         ROOT.RooArgSet(bkgTemplateMorphPdf_vz), ROOT.RooArgSet(D)
+        #     ),
+        # )
+        pass
 
     def get_signal_shape_mean_error(self, SignalShape):
         # Define systematic variables for both electron and muon channels
@@ -686,7 +769,6 @@ class datacardClass:
                 ROOT.RooArgList(self.rooVars["sigma_{}_{}".format(signal_type, self.channel)], self.rooFormulaVars["sigma_SF_" + self.channel]),
             )
             self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
-
 
     def setup_signal_shape(self, SignalShape, systematics, signal_type, channel):
         name = "bias_{}_{}".format(signal_type, channel)
@@ -828,6 +910,12 @@ class datacardClass:
             return bkgRate_Shape["vbftagged"]
 
     def setup_background_shapes_ReproduceRate_fs(self):
+        """This function sets the histogram templates for the background shapes for the given final state that can be 2e, or 2mu and based on jets category.
+
+        Raises:
+            IOError: If no root file is found or the file is a zombie
+            ValueError: If the histogram is not found in the file
+        """
         # Open the template file
         template_file_path = "templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year)
         temp_file_fs = ROOT.TFile(template_file_path, "READ")
@@ -875,6 +963,12 @@ class datacardClass:
         temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate_2l(self):
+        """This function sets the histogram templates for the background shapes for the inclusive 2l final state and inclusive jet category and year.
+
+        Raises:
+            IOError: If no root file is found or the file is a zombie
+            ValueError: If the histogram is not found in the file
+        """
         # Open the template file
         template_file_path = "templates1D/Template1D_spin0_2l_{}.root".format(self.year)
         temp_file_fs = ROOT.TFile(template_file_path, "READ")
@@ -1004,19 +1098,19 @@ class datacardClass:
 
         # Smooth the histograms
         for key, hist in self.background_hists.items():
-            hist_temp = hist.Clone()
-            hist.Smooth(1)  # Apply simple smoothing; adjust parameters as needed
+            hist_smooth = hist.Clone()
+            hist_smooth.Smooth(1)  # Apply simple smoothing; adjust parameters as needed
 
             # Print integral for sanity check
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
-            # if self.SanityCheckPlot:
-            #     save_histograms(hist, hist_temp, "{}/{}_smoothed.png".format(self.outputDir, key))
+            if self.SanityCheckPlot:
+                save_histograms(hist, hist_smooth, "{}/{}_smoothed.png".format(self.outputDir, key))
 
         # Create RooHistPdf objects
         self.rooHistPdfs = {}
         for key, hist in self.background_hists.items():
             # get the integral of hist
-            # Create RooDataHist from TH1 histogram
+            # Create rooDataHist from TH1 histogram
             self.rooVars["data_hist"] = ROOT.RooDataHist(
                 "dh_{}".format(key),
                 "DataHist for {}".format(key),
@@ -1024,7 +1118,7 @@ class datacardClass:
                 hist,
             )
 
-            # Create RooHistPdf from RooDataHist
+            # Create RooHistPdf from rooDataHist
             self.rooHistPdfs["pdf_{}".format(key)] = ROOT.RooHistPdf(
                 "pdf_{}".format(key),
                 "PDF for {}".format(key),
@@ -1032,7 +1126,11 @@ class datacardClass:
                 self.rooVars["data_hist"],
             )
 
-            # plot and save the RooDataHist and RooHistPdf
+            logger.warning("check rooHistPdfs: {}".format("pdf_{}".format(key)))
+            self.rooHistPdfs["pdf_{}".format(key)].Print("v")
+            logger.warning("check rooHistPdfs: END")
+
+            # plot and save the rooDataHist and RooHistPdf
             if self.SanityCheckPlot:
                 # compute the integral of the pdf
                 logger.warning("Integral of hist: {:21}: {}".format(key, hist.Integral()))
@@ -1214,7 +1312,6 @@ class datacardClass:
 
         return formula_ggH, formula_VBF
 
-
     def WriteDatacard(self, file, theInputs, nameWS, theRates, obsEvents, is2D):
 
         numberSig = self.numberOfSigChan(theInputs)
@@ -1299,3 +1396,17 @@ class datacardClass:
         if inputs["ttbar"]: counter += 1
 
         return counter
+
+    def compareOldNewBinnedHistogram(self):
+        # Make a comparison of the smoothed histograms and the original histograms
+        #  plot them on the same canvas with different colors and add the legend
+
+        process = {"vz", "ttbar", "zjet"}
+        categories = {"_untagged", "_btagged", "_vbftagged", ""}
+
+        for proc in process:
+            for cat in categories:
+                hist = self.background_hists["{}{}_template".format(proc, cat)]
+                hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
+                # save_histograms(hist_smooth, hist, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
+                save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
