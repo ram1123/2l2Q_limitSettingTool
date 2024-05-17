@@ -335,7 +335,7 @@ class datacardClass:
         self.workspace.Print("v")
 
         ## ------------------------- Backgrounds 2D: Write to workspace ----------------------------- ##
-        self.getRooProdPDFofMorphedBackgrounds("vz")
+        self.getRooProdPDFofMorphedBackgrounds("vz") # I am trying to add all process inside the function so no need to pass the process
         exit()
 
         ## Write Datacards
@@ -594,30 +594,32 @@ class datacardClass:
 
 
     def getRooProdPDFofMorphedBackgrounds(self, process):
-        vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
-        vzTemplateMVV = self.background_hists["{}_template".format(process)]
+        background_list = ["vz", "ttbar", "zjet"]
+        for process in background_list:
+            vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
+            vzTemplateMVV = self.background_hists["{}_template".format(process)]
 
-        # Create and store RooDataHist
-        self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
-            vzTemplateName, vzTemplateName, ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
-            # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
-            # This comment goes same for ttbar and zjet templates
-        )
+            # Create and store RooDataHist
+            self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
+                vzTemplateName, vzTemplateName, ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
+                # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
+                # This comment goes same for ttbar and zjet templates
+            )
 
-        logger.warning("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
-        vzTemplateMVV.Print("v")
-        print("++++++++")
-        self.rooDataHist[vzTemplateName].Print("v")
-        logger.warning("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
+            logger.warning("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
+            vzTemplateMVV.Print("v")
+            print("++++++++")
+            self.rooDataHist[vzTemplateName].Print("v")
+            logger.warning("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
 
-        # Create and store RooHistPdf
-        vzTemplatePdfName = "{}Pdf".format(vzTemplateName)
-        self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
-            vzTemplatePdfName,
-            vzTemplatePdfName,
-            ROOT.RooArgSet(self.zz2l2q_mass),
-            self.rooDataHist[vzTemplateName],
-        )
+            # Create and store RooHistPdf
+            vzTemplatePdfName = "{}Pdf".format(vzTemplateName)
+            self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
+                vzTemplatePdfName,
+                vzTemplatePdfName,
+                ROOT.RooArgSet(self.zz2l2q_mass),
+                self.rooDataHist[vzTemplateName],
+            )
 
         logger.warning("====    bkg_vz: {}    ====".format(vzTemplatePdfName))
         self.rooDataHist[vzTemplatePdfName].Print("v")
@@ -683,34 +685,36 @@ class datacardClass:
         self.rooVars[morphBkgVarName].setConstant(False)
         self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
 
-        TemplateName = "bkgTemplateMorphPdf_vz_{}_{}".format(self.jetType, self.year)
-        self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-            TemplateName,
-            TemplateName,
-            self.zz2l2q_mass,
-            self.rooVars["D"],
-            True,
-            self.rooArgSets["funcList_zjets"],
-            self.rooArgSets["morphVarListBkg"],
-            1.0,
-            1,
-        )
+        for process in background_list:
+            TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
+            self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                TemplateName,
+                TemplateName,
+                self.zz2l2q_mass,
+                self.rooVars["D"],
+                True,
+                self.rooArgSets["funcList_zjets"],  # identical to all background processes
+                self.rooArgSets["morphVarListBkg"], # identical to all background processes
+                1.0,
+                1,
+            )
 
-        name = "bkg2d_vz_{}".format(self.year)
-        self.rooProdPdf[name] = ROOT.RooProdPdf(
-            name,
-            name,
-            ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
-            ROOT.RooFit.Conditional(
-                ROOT.RooArgSet(self.rooVars[TemplateName]),
-                ROOT.RooArgSet(self.rooVars["D"]),
-            ),
-        )
+        for process in background_list:
+            name = "bkg2d_{}_{}".format(process, self.year)
+            self.rooProdPdf[name] = ROOT.RooProdPdf(
+                name,
+                name,
+                ROOT.RooArgSet(self.rooDataHist["{}Pdf".format(vzTemplateName)]),
+                ROOT.RooFit.Conditional(
+                    ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                    ROOT.RooArgSet(self.rooVars["D"]),
+                ),
+            )
 
-        self.rooProdPdf[name].SetNameTitle("bkg_vz", "bkg_vz")
-        self.rooProdPdf[name].Print("v")
+            self.rooProdPdf[name].SetNameTitle("bkg_{}".format(process), "bkg_{}".format(process))
+            self.rooProdPdf[name].Print("v")
 
-        getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
+            getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
         self.workspace.Print("v")
 
     def get_signal_shape_mean_error(self, SignalShape):
