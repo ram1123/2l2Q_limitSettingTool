@@ -505,12 +505,14 @@ class datacardClass:
         logger.debug("BTAG roorealvar: {}".format(BTAG))
         # for lines where both JES and BTAG are used, the cumulative JES effect will start from @1 since @0 is reserved for BTAG. so add BTAG to the arglist first
         arglist_all_JES_BTAG = ROOT.RooArgList()
-        arglist_all_JES_BTAG.add(BTAG)
+        #arglist_all_JES_BTAG.add(BTAG) # remove the old version of BTAG from the list (changed by Jialin)
         for nuisance in all_nuisances:
           logger.debug(nuisance.GetName())
           arglist_all_JES_BTAG.add(nuisance)
+        arglist_all_JES_BTAG = arglist_all_JES
 
-        cumulative_jes_effect_with_btag = "+".join("@{}".format(i+1) for i in range(num_jes_sources))
+        #cumulative_jes_effect_with_btag = "+".join("@{}".format(i+1) for i in range(num_jes_sources))
+        cumulative_jes_effect_with_btag = "+".join("@{}".format(i) for i in range(num_jes_sources)) # remove the old version of BTAG from the list (changed by Jialin)
 
         ## rates for vz
         #bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()*self.lumi
@@ -528,7 +530,8 @@ class datacardClass:
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.1*({}))".format(cumulative_jes_effect), arglist_all_JES)
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.05*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          #rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.05*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm", "(1+0.05*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect, vbfRatio), arglist_all_JES)
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="resolved" and self.cat=='untagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.05*@0*{})*(1-0.1*({})*{})".format(btagRatio, cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
@@ -537,7 +540,8 @@ class datacardClass:
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.1*({}))".format(cumulative_jes_effect), arglist_all_JES)
           bkgRate_vz_Shape = bkgRate_vz_Shape_vbftagged
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          #rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
+          rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1+0.2*@0)*(1-0.1*({})*{})".format(cumulative_jes_effect, vbfRatio), arglist_all_JES)
           bkgRate_vz_Shape = bkgRate_vz_Shape_btagged
         elif(self.jetType=="merged" and self.cat=='untagged') :
           rfvSigRate_vz = ROOT.RooFormulaVar("bkg_vz_norm","(1-0.2*@0*{})*(1-0.1*({})*{})".format(btagRatio, cumulative_jes_effect_with_btag, vbfRatio), arglist_all_JES_BTAG)
@@ -1174,41 +1178,59 @@ class datacardClass:
           logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
           logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
         elif(self.jetType=="resolved" and self.cat=='b_tagged') :
-          formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
+          #formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources, num_jes_sources + 1, num_jes_sources + 2)
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG) #remove the old BTAG formula (changed by Jialin on 2024-05-18)
+          #formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(cumulative_jes_effect, num_jes_sources, num_jes_sources + 1, num_jes_sources + 2)
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH) 
 
-          formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          #formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF) #remove the old BTAG formula (changed by Jialin on 2024-05-18
 
           # Print the RooFormulaVar using logger
           logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
           logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
         elif(self.jetType=="resolved" and self.cat=='untagged') :
-          formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
+          #formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH) #remove the old BTAG formula (changed by Jialin on 2024-05-18)
 
-          formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          #formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources, num_jes_sources + 1, num_jes_sources + 2)
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF) #remove the old BTAG formula (changed by Jialin on 2024-05-18)
 
           # Print the RooFormulaVar using logger
           logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
           logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
         elif(self.jetType=="merged" and self.cat=='b_tagged') :
-          formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          #formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
+          #print "[DEBUG] formula_ggH: ", formula_ggH
+          #print "[DEBUG] length of arglist_ggH_with_BTAG: ", len(arglist_ggH_with_BTAG)
           rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH) #remove the old BTAG formula (changed by Jialin on 2024-05-18)
 
-          formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          #formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
           rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, agrlist_VBF) #remove the old BTAG formula (changed by Jialin on 2024-05-18 
 
           # Print the RooFormulaVar using logger
           logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
           logger.debug("rfvSigRate_VBF: {}".format(rfvSigRate_VBF))
         elif(self.jetType=="merged" and self.cat=='untagged') :
-          formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
+          #formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(str(btagRatioGGH), cumulative_jes_effect_with_btag, str(vbfRatioGGH), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
+          #rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH_with_BTAG)
+          rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, arglist_ggH) #remove the old BTAG formula (changed by Jialin on 2024-05-18)
 
-          formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
-          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
+          #formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources + 1, num_jes_sources + 2, num_jes_sources + 3)
+          formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(str(btagRatioVBF), cumulative_jes_effect_with_btag, str(vbfRatioVBF), num_jes_sources , num_jes_sources + 1, num_jes_sources + 2)
+          #rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF_with_BTAG)
+          rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, arglist_VBF) #remove the old BTAG formula (changed by Jialin on 2024-05-18
 
           # Print the RooFormulaVar using logger
           logger.debug("rfvSigRate_ggH: {}".format(rfvSigRate_ggH))
