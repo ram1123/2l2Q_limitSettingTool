@@ -166,25 +166,21 @@ class datacardClass:
             "@{}".format(i) for i in range(len(arglist_all_JES))
         )
         cumulative_jes_effect_with_btag = "+".join(
-            "@{}".format(i + 1) for i in range(len(arglist_all_JES))
+            "@{}".format(i + 1) for i in range(len(arglist_all_JES_BTAG))
         )
         for i in range(arglist_all_JES.getSize()):
-            # logger.debug("JES nuisances: {} \n{}".format(arglist_all_JES[i], arglist_all_JES[i].Print("v")))
             logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
+
+        for i in range(arglist_all_JES_BTAG.getSize()):
+            logger.debug("{:4}. JES nuisances with BTAG: {}".format(i, arglist_all_JES_BTAG[i]))
         # logger.debug("BTAG nuisance: {}".format(BTAG.GetName()))
         logger.debug("cumulative_jes_effect: {}".format(cumulative_jes_effect))
-        logger.debug(
-            "cumulative_jes_effect_with_btag: {}".format(
-                cumulative_jes_effect_with_btag
-            )
-        )
+        logger.debug("cumulative_jes_effect_with_btag: {}".format(cumulative_jes_effect_with_btag))
 
         self.rooVars["arglist_all_JES"] = arglist_all_JES
         self.rooVars["arglist_all_JES_BTAG"] = arglist_all_JES_BTAG
         self.rooVars["cumulative_jes_effect"] = cumulative_jes_effect
-        self.rooVars["cumulative_jes_effect_with_btag"] = (
-            cumulative_jes_effect_with_btag
-        )
+        self.rooVars["cumulative_jes_effect_with_btag"] = cumulative_jes_effect_with_btag
 
     def initialize_settings(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot):
         self.mH = theMH
@@ -226,6 +222,15 @@ class datacardClass:
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
         self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
         self.initialize_workspace_and_observables(theMH, theInputs)
+
+        if (
+            (self.channel == self.ID_2muMerged and self.cat == "b_tagged" and self.jetType == "merged") or
+            (self.channel == self.ID_2muMerged and self.cat == "untagged" and self.jetType == "merged")
+        ):
+            """ For debugging purpose, break if channel is 2mu_Merged and cat is b_tagged and jetType is merged.
+            """
+            logger.error("break if channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
+            return
 
         ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
         systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
@@ -331,7 +336,7 @@ class datacardClass:
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
         self.setup_nuisances(systematics) # needed for  module "calculate_signal_rates_next"
         self.setup_signal_fractions(vbf_ratioVBF)
-        self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], vbf_ratioGGH, vbf_ratioVBF, btag_ratioGGH, vbf_ratioVBF)
+        self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], vbf_ratioGGH, vbf_ratioVBF, btag_ratioGGH, btag_ratioVBF)
 
         logger.debug("jetType: {}, cat: {}".format(self.jetType, self.cat))
         # self.workspace.Print("v")
@@ -347,7 +352,8 @@ class datacardClass:
         self.getRooProdPDFofMorphedBackgrounds() # I am trying to add all process inside the function so no need to pass the process
         self.workspace.Print("v")
         self.workspace.writeToFile(name_ShapeWS)
-        exit()
+        if self.DEBUG:
+            exit()
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -1240,14 +1246,16 @@ class datacardClass:
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
 
         # Calculate signal rates using predefined formulas based on category and jet type
-        formula_ggH, formula_VBF = self.get_formulas(
-            ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio
-        )
+        formula_ggH, formula_VBF = self.get_formulas(ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio)
         logger.debug("Formula ggH: {}".format(formula_ggH))
         logger.debug("Formula VBF: {}".format(formula_VBF))
-        # # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list
-        rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
-        rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF_with_BTAG"])
+        # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list based on category
+        if self.cat == "b_tagged":
+            rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
+            rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF_with_BTAG"])
+        else:
+            rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH"])
+            rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF"])
 
         # # Debugging outputs
         logger.debug("Signal Rate ggH: {}".format(rfvSigRate_ggH.getVal()))
