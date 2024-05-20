@@ -166,7 +166,7 @@ class datacardClass:
             "@{}".format(i) for i in range(len(arglist_all_JES))
         )
         cumulative_jes_effect_with_btag = "+".join(
-            "@{}".format(i + 1) for i in range(len(arglist_all_JES_BTAG))
+            "@{}".format(i + 1) for i in range(len(arglist_all_JES)) # +1 to skip the first BTAG nuisance, so len should be used with without_btag
         )
         for i in range(arglist_all_JES.getSize()):
             logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
@@ -223,14 +223,17 @@ class datacardClass:
         self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
         self.initialize_workspace_and_observables(theMH, theInputs)
 
-        if (
-            (self.channel == self.ID_2muMerged and self.cat == "b_tagged" and self.jetType == "merged") or
-            (self.channel == self.ID_2muMerged and self.cat == "untagged" and self.jetType == "merged")
-        ):
-            """ For debugging purpose, break if channel is 2mu_Merged and cat is b_tagged and jetType is merged.
-            """
-            logger.error("break if channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
-            return
+        # if (
+        #     (self.channel == self.ID_2muMerged and self.cat == "b_tagged" and self.jetType == "merged")
+        #     or
+        #     (self.channel == self.ID_2muMerged and self.cat == "untagged" and self.jetType == "merged")
+        #     or
+        #     (self.channel == self.ID_2eMerged and self.cat == "vbf_tagged" and self.jetType == "merged")
+        # ):
+        #     """ For debugging purpose, break if channel is 2mu_Merged and cat is b_tagged and jetType is merged.
+        #     """
+        #     logger.error("break if channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
+        #     return
 
         ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
         systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
@@ -1245,15 +1248,39 @@ class datacardClass:
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["frac_VBF"])
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
 
+        logger.error("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
         # Calculate signal rates using predefined formulas based on category and jet type
         formula_ggH, formula_VBF = self.get_formulas(ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio)
         logger.debug("Formula ggH: {}".format(formula_ggH))
         logger.debug("Formula VBF: {}".format(formula_VBF))
         # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list based on category
-        if self.cat == "b_tagged":
+        if self.cat == "b_tagged" or self.cat == "untagged":
+            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_VBF"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_ggH"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
             rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
             rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF_with_BTAG"])
         else:
+            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_VBF"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
+            for i in range(0, len(self.rooVars["arglist_ggH"])):  # 0, 1, 2, 3, 4, 5
+                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
+            logger.debug("formula_ggH: {}".format(formula_ggH))
+            for i in range(0, len(self.rooVars["arglist_ggH"])):
+                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
+
+            logger.debug("formula_VBF: {}".format(formula_VBF))
+            for i in range(0, len(self.rooVars["arglist_VBF"])):
+                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
             rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH"])
             rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF"])
 
@@ -1268,6 +1295,7 @@ class datacardClass:
         num_jes_sources = len(self.rooVars["arglist_all_JES"])
         cumulative_jes_effect = self.rooVars["cumulative_jes_effect"]
         cumulative_jes_effect_with_btag = self.rooVars["cumulative_jes_effect_with_btag"]
+        logger.error("Number of JES sources: {}".format(num_jes_sources))
         # Define the formula strings based on category and jet type
         if self.cat == "vbf_tagged":
             formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(
@@ -1317,14 +1345,14 @@ class datacardClass:
                 )
         elif self.jetType == "merged" and self.cat == "b_tagged":
             formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
-                cumulative_jes_effect_with_btag,
+                self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
                 num_jes_sources + 1,
                 num_jes_sources + 2,
                 num_jes_sources + 3,
             )
             formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
-                cumulative_jes_effect_with_btag,
+                self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
                 num_jes_sources + 1,
                 num_jes_sources + 2,
@@ -1333,7 +1361,7 @@ class datacardClass:
         elif self.jetType == "merged" and self.cat == "untagged":
             formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioGGH),
-                cumulative_jes_effect_with_btag,
+                self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
                 num_jes_sources + 1,
                 num_jes_sources + 2,
@@ -1341,7 +1369,7 @@ class datacardClass:
             )
             formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioVBF),
-                cumulative_jes_effect_with_btag,
+                self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
                 num_jes_sources + 1,
                 num_jes_sources + 2,
