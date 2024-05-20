@@ -231,8 +231,8 @@ class datacardClass:
         systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
 
         ## ------------------------- RATES ----------------------------- ##
-        sigRate_ggH_Shape, vbf_ratio, btag_ratio = self.getSignalRates("ggH")
-        sigRate_VBF_Shape, vbf_ratio, btag_ratio = self.getSignalRates("VBF")
+        sigRate_ggH_Shape, vbf_ratioGGH, btag_ratioGGH = self.getSignalRates("ggH")
+        sigRate_VBF_Shape, vbf_ratioVBF, btag_ratioVBF = self.getSignalRates("VBF")
 
         self.setup_background_shapes_ReproduceRate_fs()
         self.setup_background_shapes_ReproduceRate_2l()
@@ -330,8 +330,8 @@ class datacardClass:
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
         self.setup_nuisances(systematics) # needed for  module "calculate_signal_rates_next"
-        self.setup_signal_fractions(vbf_ratio)
-        self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], sigRate_ggH_Shape, sigRate_VBF_Shape, btag_ratio, vbf_ratio)
+        self.setup_signal_fractions(vbf_ratioVBF)
+        self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], vbf_ratioGGH, vbf_ratioVBF, btag_ratioGGH, vbf_ratioVBF)
 
         logger.debug("jetType: {}, cat: {}".format(self.jetType, self.cat))
         # self.workspace.Print("v")
