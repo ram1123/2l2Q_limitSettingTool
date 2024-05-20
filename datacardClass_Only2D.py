@@ -269,7 +269,9 @@ class datacardClass:
         rates["ttbar"] = bkgRate_ttbar_Shape
         rates["zjets"] = bkgRate_zjets_Shape
 
+        name_ShapeWS = ""
         name_ShapeWS2 = ""
+        name_ShapeWS = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.input.root".format(self.outputDir, self.mH, self.appendName, self.sqrts)
         name_ShapeWS2 = "hzz2l2q_{0}_{1:.0f}TeV.input.root".format(self.appendName, self.sqrts)
 
         # ================== SIGNAL SHAPE ================== #
@@ -280,18 +282,18 @@ class datacardClass:
         self.setup_signal_shape(SignalShape, systematics, "VBF", self.channel)
         self.setup_signal_shape(SignalShape, systematics, "ggH", self.channel)
 
-        logger.info("==========  print mean and sigma  =========")
-        self.rooVars["rfv_mean_{}_{}".format("VBF", self.channel)].Print("v")
-        self.rooVars["rfv_sigma_{}_{}".format("VBF", self.channel)].Print("v")
-        self.rooVars["rfv_mean_{}_{}".format("ggH", self.channel)].Print("v")
-        self.rooVars["rfv_sigma_{}_{}".format("ggH", self.channel)].Print("v")
-        logger.info("==========  END =========")
+        # logger.info("==========  print mean and sigma  =========")
+        # self.rooVars["rfv_mean_{}_{}".format("VBF", self.channel)].Print("v")
+        # self.rooVars["rfv_sigma_{}_{}".format("VBF", self.channel)].Print("v")
+        # self.rooVars["rfv_mean_{}_{}".format("ggH", self.channel)].Print("v")
+        # self.rooVars["rfv_sigma_{}_{}".format("ggH", self.channel)].Print("v")
+        # logger.info("==========  END =========")
 
-        logger.warning("============  SignalCB Shape ggH  ============")
-        self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
+        # logger.debug("============  SignalCB Shape ggH  ============")
+        # self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
 
-        logger.warning("============  SignalCB Shape VBF  ============")
-        self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
+        # logger.debug("============  SignalCB Shape VBF  ============")
+        # self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
 
         ## -------------------------  Get 2D template ----------------------------- ##
         templateDir = "templates2D"
@@ -323,7 +325,7 @@ class datacardClass:
         ## ------------------------- DATA ----------------------------- ##
         self.rooDataSet["data_obs"] = self.getData()
         getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
-        self.workspace.Print("v")
+        # self.workspace.Print("v")
 
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
@@ -331,11 +333,20 @@ class datacardClass:
         self.setup_signal_fractions(vbf_ratio)
         self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], sigRate_ggH_Shape, sigRate_VBF_Shape, btag_ratio, vbf_ratio)
 
-        logger.error("jetType: {}, cat: {}".format(self.jetType, self.cat))
-        self.workspace.Print("v")
+        logger.debug("jetType: {}, cat: {}".format(self.jetType, self.cat))
+        # self.workspace.Print("v")
 
         ## ------------------------- Backgrounds 2D: Write to workspace ----------------------------- ##
-        self.getRooProdPDFofMorphedBackgrounds("vz") # I am trying to add all process inside the function so no need to pass the process
+
+        morphBkgVarName = "CMS_zz2l2q_bkgMELA_{}".format(self.jetType)
+        self.rooVars[morphBkgVarName] = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
+        self.rooVars[morphBkgVarName].setConstant(False)
+        self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
+
+        self.get_Zjets_funcList()
+        self.getRooProdPDFofMorphedBackgrounds() # I am trying to add all process inside the function so no need to pass the process
+        self.workspace.Print("v")
+        self.workspace.writeToFile(name_ShapeWS)
         exit()
 
         ## Write Datacards
@@ -447,10 +458,10 @@ class datacardClass:
 
     def getRooProdPDFofMorphedSignal(self, TString_sig, templateSigName):
         # Determine the signal template name based on the channel
-        logger.warning("Inside getRooProdPDFofMorphedSignal")
-        self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
-        self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
-        logger.warning("====================================================")
+        logger.debug("Inside getRooProdPDFofMorphedSignal")
+        # self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
+        # self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
+        # logger.debug("====================================================")
 
         self.rooVars["funcList_ggH"] = ROOT.RooArgList()
         self.rooVars["funcList_VBF"] = ROOT.RooArgList()
@@ -510,14 +521,14 @@ class datacardClass:
         if self.sigMorph:
             self.rooVars["morphVarListSig_" + self.jetType].add(self.rooVars[morphSigVarName])  ## just one morphing for all signal processes
 
-        logger.error("I am here...")
+        logger.debug("I am here...")
         # ERROR: Date: 16 may 2024: Find out why it is not working for ggH. But its working fine for VBF.
         # sample_list = ["ggH"]
         # sample_list = ["VBF"]
         sample_list = ["ggH", "VBF"]
-        logger.warning("=========   Print FastVerticalInterpHistPdf2D: START  =========")
+        logger.debug("=========   Print FastVerticalInterpHistPdf2D: START  =========")
         for sample in sample_list:
-            logger.warning("sample: {}".format(sample))
+            logger.debug("sample: {}".format(sample))
             # get the morphing variable ROOT.FastVerticalInterpHistPdf2D
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
@@ -531,8 +542,8 @@ class datacardClass:
                 1.0,
                 1,
             )
-            self.rooVars[TemplateName].Print("v")
-        logger.warning("=========   Print FastVerticalInterpHistPdf2D: END  =========")
+            # self.rooVars[TemplateName].Print("v")
+        logger.debug("=========   Print FastVerticalInterpHistPdf2D: END  =========")
 
         for sample in sample_list:
             # 2D -> mzz + Djet
@@ -543,20 +554,20 @@ class datacardClass:
 
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
-            logger.warning("======  parameters entered in rooProdPdf  ======")
-            logger.error("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
-            self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
+            logger.debug("======  parameters entered in rooProdPdf  ======")
+            logger.debug("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
+            # self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
 
-            logger.warning("==========  print mean and sigma  =========")
-            self.rooVars["rfv_mean_{}_{}".format(sample, self.channel)].Print("v")
-            self.rooVars["rfv_sigma_{}_{}".format(sample, self.channel)].Print("v")
-            logger.warning("==========  END =========")
+            logger.debug("==========  print mean and sigma  =========")
+            # self.rooVars["rfv_mean_{}_{}".format(sample, self.channel)].Print("v")
+            # self.rooVars["rfv_sigma_{}_{}".format(sample, self.channel)].Print("v")
+            logger.debug("==========  END =========")
 
-            logger.error("self.rooVars[{}]".format(TemplateName))
-            self.rooVars[TemplateName].Print("v")
+            logger.debug("self.rooVars[{}]".format(TemplateName))
+            # self.rooVars[TemplateName].Print("v")
 
-            logger.error("self.rooVars[D]")
-            self.rooVars["D"].Print("v")
+            logger.debug("self.rooVars[D]")
+            # self.rooVars["D"].Print("v")
 
             self.rooProdPdf[name] = ROOT.RooProdPdf(
                 name,
@@ -569,9 +580,9 @@ class datacardClass:
             )
             # self.rooVars[name].Print("v")
 
-        logger.warning("======  Print self.rooProdPdf: START  ======")
-        print(self.rooProdPdf)
-        logger.warning("======  Print self.rooProdPdf: END  ======")
+        # logger.debug("======  Print self.rooProdPdf: START  ======")
+        # print(self.rooProdPdf)
+        # logger.debug("======  Print self.rooProdPdf: END  ======")
 
         sample_list = ["ggH", "VBF"]
         for sample in sample_list:
@@ -583,48 +594,16 @@ class datacardClass:
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             if sample == "ggH":
                 self.rooProdPdf[name].SetNameTitle("ggH_hzz", "ggH_hzz")
-                self.rooProdPdf[name].Print("v")
+                # self.rooProdPdf[name].Print("v")
             elif sample == "VBF":
                 self.rooProdPdf[name].SetNameTitle("qqH_hzz", "qqH_hzz")
-                self.rooProdPdf[name].Print("v")
+                # self.rooProdPdf[name].Print("v")
 
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
-            logger.error("added to workspace: {}".format(name))
-            self.workspace.Print("v")
+            logger.debug("added to workspace: {}".format(name))
+            # self.workspace.Print("v")
 
-
-    def getRooProdPDFofMorphedBackgrounds(self, process):
-        background_list = ["vz", "ttbar", "zjet"]
-        for process in background_list:
-            vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
-            vzTemplateMVV = self.background_hists["{}_template".format(process)]
-
-            # Create and store RooDataHist
-            self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
-                vzTemplateName, vzTemplateName, ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
-                # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
-                # This comment goes same for ttbar and zjet templates
-            )
-
-            logger.warning("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
-            vzTemplateMVV.Print("v")
-            print("++++++++")
-            self.rooDataHist[vzTemplateName].Print("v")
-            logger.warning("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
-
-            # Create and store RooHistPdf
-            vzTemplatePdfName = "{}Pdf".format(vzTemplateName)
-            self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
-                vzTemplatePdfName,
-                vzTemplatePdfName,
-                ROOT.RooArgSet(self.zz2l2q_mass),
-                self.rooDataHist[vzTemplateName],
-            )
-
-        logger.warning("====    bkg_vz: {}    ====".format(vzTemplatePdfName))
-        self.rooDataHist[vzTemplatePdfName].Print("v")
-        logger.warning("====    bkg_vz: END    ====")
-
+    def get_Zjets_funcList(self):
         # Open zjets template file
         templatezjetsBkgName = "templates2D/2l2q_spin0_template_{}.root".format(self.year)
         zjetsTempFile = ROOT.TFile(templatezjetsBkgName)
@@ -643,21 +622,21 @@ class datacardClass:
         # Process variations
         variations = ["", "_Up", "_Down"]
         for variation in variations:
-            logger.warning("variation: {}".format(variation))
+            logger.debug("variation: {}".format(variation))
             if not self.bkgMorph and variation != "":
                 logger.error("Skipping variation: {}".format(variation))
                 continue
 
             variations_tag_for_hist = "_up" if variation == "_Up" else "_dn" if variation == "_Down" else ""
-            logger.error("variations: {}, variations_tag_for_hist: {}".format(variation, variations_tag_for_hist))
-            logger.warning("Looking for hist: {}".format(TString_bkg + variations_tag_for_hist))
+            logger.debug("variations: {}, variations_tag_for_hist: {}".format(variation, variations_tag_for_hist))
+            logger.debug("Looking for hist: {}".format(TString_bkg + variations_tag_for_hist))
 
             zjetsTemplate = zjetsTempFile.Get(TString_bkg + variations_tag_for_hist)
             if not zjetsTemplate:
-                logger.error("Failed to get zjets template: {}".format(TString_bkg + variations_tag_for_hist))
+                logger.debug("Failed to get zjets template: {}".format(TString_bkg + variations_tag_for_hist))
                 continue
 
-            logger.warning("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format( zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX(), ) )
+            logger.debug("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format( zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX(), ) )
 
             TemplateName = "zjetsTempDataHist_{}{}_{}".format(TString_bkg, variation, self.year)
             self.rooDataHist[TemplateName] = ROOT.RooDataHist(
@@ -676,16 +655,39 @@ class datacardClass:
             )
 
             self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
-            self.rooArgSets["funcList_zjets"].Print("v")
+            # self.rooArgSets["funcList_zjets"].Print("v")
 
-        logger.warning("Finished processing zjets templates.")
-
-        morphBkgVarName = "CMS_zz2l2q_bkgMELA_{}".format(self.jetType)
-        self.rooVars[morphBkgVarName] = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
-        self.rooVars[morphBkgVarName].setConstant(False)
-        self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
-
+    def getRooProdPDFofMorphedBackgrounds(self):
+        background_list = ["vz", "ttbar", "zjets"]
+        # background_list = ["vz"]
+        # background_list = [process]
         for process in background_list:
+            vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
+            vzTemplateMVV = self.background_hists["{}_template".format(process.replace("zjets", "zjet"))]
+            logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
+            # exit()
+            # Create and store RooDataHist
+            self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
+                vzTemplateName.replace("zjets", "zjet"), vzTemplateName.replace("zjets", "zjet"), ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
+                # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
+                # This comment goes same for ttbar and zjet templates
+            )
+
+            logger.debug("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
+            # vzTemplateMVV.Print("v")
+            # print("++++++++")
+            # self.rooDataHist[vzTemplateName].Print("v")
+            # logger.debug("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
+
+            # Create and store RooHistPdf
+            vzTemplatePdfName = "{}Pdf".format(vzTemplateName.replace("zjets", "zjet"))
+            self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
+                vzTemplatePdfName,
+                vzTemplatePdfName,
+                ROOT.RooArgSet(self.zz2l2q_mass),
+                self.rooDataHist[vzTemplateName],
+            )
+
             TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
             self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
                 TemplateName,
@@ -699,12 +701,11 @@ class datacardClass:
                 1,
             )
 
-        for process in background_list:
             name = "bkg2d_{}_{}".format(process, self.year)
             self.rooProdPdf[name] = ROOT.RooProdPdf(
                 name,
                 name,
-                ROOT.RooArgSet(self.rooDataHist["{}Pdf".format(vzTemplateName)]),
+                ROOT.RooArgSet(self.rooDataHist["{}Pdf".format(vzTemplateName.replace("zjets", "zjet"))]),
                 ROOT.RooFit.Conditional(
                     ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
                     ROOT.RooArgSet(self.rooVars["D"]),
@@ -712,10 +713,10 @@ class datacardClass:
             )
 
             self.rooProdPdf[name].SetNameTitle("bkg_{}".format(process), "bkg_{}".format(process))
-            self.rooProdPdf[name].Print("v")
+            # self.rooProdPdf[name].Print("v")
 
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
-        self.workspace.Print("v")
+        # self.workspace.Print("v")
 
     def get_signal_shape_mean_error(self, SignalShape):
         # Define systematic variables for both electron and muon channels
@@ -755,7 +756,7 @@ class datacardClass:
         # Define error and scale factor formulas for each channel
         jet_suffix = "J" if "merged" in self.channel.lower() else "j"
         mean_formula = "(@0*@1*@3 + @0*@2*@4)/2"
-        sigma_formula = "sqrt((1+0.05*@0*@2)*(1+@1*@3))"
+        sigma_formula = "TMath::Sqrt((1+0.05*@0*@2)*(1+@1*@3))"
 
         self.rooVars["mean_err_" + self.channel] = ROOT.RooFormulaVar(
             "mean_err_" + self.channel,
@@ -790,17 +791,17 @@ class datacardClass:
                 sigma_value,
             )
 
-            logger.warning("===      Input values for mean and sigma      ===")
-            self.rooVars["sigma_{}_{}".format(signal_type, self.channel)].Print("v")
-            self.rooFormulaVars["sigma_SF_" + self.channel].Print("v")
-            logger.warning("===      END      ===")
+            # logger.debug("===      Input values for mean and sigma      ===")
+            # self.rooVars["sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+            # self.rooFormulaVars["sigma_SF_" + self.channel].Print("v")
+            # logger.debug("===      END      ===")
 
             self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooFormulaVar(
                 "rfv_sigma_{}_{}".format(signal_type, self.channel),
                 "@0*@1",
                 ROOT.RooArgList(self.rooVars["sigma_{}_{}".format(signal_type, self.channel)], self.rooFormulaVars["sigma_SF_" + self.channel]),
             )
-            self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+            # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
 
     def setup_signal_shape(self, SignalShape, systematics, signal_type, channel):
         name = "bias_{}_{}".format(signal_type, channel)
@@ -857,10 +858,10 @@ class datacardClass:
             .getVal()
         )
         logger.debug("{} rate: {}".format(self.signalCBs["signalCB_{}_{}".format(signal_type, channel)].GetName(), fullRangeSigRate))
-        logger.warning("==========  print mean and sigma  =========")
-        self.rooVars["rfv_mean_{}_{}".format(signal_type, self.channel)].Print("v")
-        self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
-        logger.warning("==========  END =========")
+        # logger.debug("==========  print mean and sigma  =========")
+        # self.rooVars["rfv_mean_{}_{}".format(signal_type, self.channel)].Print("v")
+        # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
+        # logger.debug("==========  END =========")
 
     def getSignalRates(self, signal_type):
         logger.debug("Calculating signal rates for {}".format(signal_type))
@@ -1158,21 +1159,21 @@ class datacardClass:
                 self.rooVars["data_hist"],
             )
 
-            logger.warning("check rooHistPdfs: {}".format("pdf_{}".format(key)))
-            self.rooHistPdfs["pdf_{}".format(key)].Print("v")
-            logger.warning("check rooHistPdfs: END")
+            # logger.debug("check rooHistPdfs: {}".format("pdf_{}".format(key)))
+            # self.rooHistPdfs["pdf_{}".format(key)].Print("v")
+            # logger.debug("check rooHistPdfs: END")
 
             # plot and save the rooDataHist and RooHistPdf
             if self.SanityCheckPlot:
                 # compute the integral of the pdf
-                logger.warning("Integral of hist: {:21}: {}".format(key, hist.Integral()))
+                logger.debug("Integral of hist: {:21}: {}".format(key, hist.Integral()))
 
                 fullRangeBkgRate = (self.rooHistPdfs["pdf_{}".format(key)].createIntegral(
                         ROOT.RooArgSet(self.zz2l2q_mass),
                         ROOT.RooFit.Range("fullsignalrange"),
                     ).getVal())
 
-                logger.warning(
+                logger.debug(
                     "Integral of pdf : {:21}: {}".format(
                         self.rooHistPdfs["pdf_{}".format(key)].GetName(),
                         fullRangeBkgRate,
@@ -1195,17 +1196,17 @@ class datacardClass:
             logger.info("FracVBF is set to be floating within [0, 1]")
             self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", vbfRatioVBF, 0.0, 1.0)
             # Define fraction of events coming from ggH process
-            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "1 - @0", ROOT.RooArgList(self.rooVars["frac_VBF"]))
+            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "(1-@0)", ROOT.RooArgList(self.rooVars["frac_VBF"]))
         else:
             logger.info("Using fixed FracVBF = {}".format(self.FracVBF))
             self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", self.FracVBF, 0.0, 1.0)
             self.rooVars["frac_VBF"].setConstant(True)
             # Define fraction of events coming from ggH process
-            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "1 - @0", ROOT.RooArgList(self.rooVars["frac_VBF"]))
+            self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "(1-@0)", ROOT.RooArgList(self.rooVars["frac_VBF"]))
             self.rooVars["frac_ggH"].setConstant(True)
 
     def calculate_signal_rates_next(
-        self, frac_VBF, frac_ggH, ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
+        self, frac_VBF, frac_ggH, ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio
     ):
         # Define branching ratio for ZZ->2l2q (l=e,mu) process without tau decays in signal MC
         # This value is calculated as the product of:
@@ -1240,13 +1241,13 @@ class datacardClass:
 
         # Calculate signal rates using predefined formulas based on category and jet type
         formula_ggH, formula_VBF = self.get_formulas(
-            ggH_vbf_ratio, VBF_vbf_ratio, ggH_btag_ratio, VBF_btag_ratio
+            ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio
         )
-        logger.warning("Formula ggH: {}".format(formula_ggH))
-        logger.warning("Formula VBF: {}".format(formula_VBF))
+        logger.debug("Formula ggH: {}".format(formula_ggH))
+        logger.debug("Formula VBF: {}".format(formula_VBF))
         # # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list
         rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
-        rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_ggH_with_BTAG"])
+        rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF_with_BTAG"])
 
         # # Debugging outputs
         logger.debug("Signal Rate ggH: {}".format(rfvSigRate_ggH.getVal()))
