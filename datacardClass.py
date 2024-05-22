@@ -248,7 +248,15 @@ class datacardClass:
         #     or
         #     (self.channel == self.ID_2muMerged and self.cat == "untagged" and self.jetType == "merged")
         #     or
-        #     (self.channel == self.ID_2eMerged and self.cat == "vbf_tagged" and self.jetType == "merged")
+        #     (self.channel == self.ID_2muMerged and self.cat == "vbf_tagged" and self.jetType == "merged")
+        #     or
+        #     (self.channel == self.ID_2muResolved and self.cat == "b_tagged" and self.jetType == "resolved")
+        #     or
+        #     (self.channel == self.ID_2muResolved and self.cat == "untagged" and self.jetType == "resolved")
+        #     or
+        #     (self.channel == self.ID_2muResolved and self.cat == "vbf_tagged" and self.jetType == "resolved")
+        #     or
+        #     (self.channel == self.ID_2eMerged and self.cat == "b_tagged" and self.jetType == "merged")
         # ):
         #     """ For debugging purpose, break if channel is 2mu_Merged and cat is b_tagged and jetType is merged.
         #     """
@@ -373,10 +381,13 @@ class datacardClass:
 
         self.get_Zjets_funcList()
         self.getRooProdPDFofMorphedBackgrounds() # I am trying to add all process inside the function so no need to pass the process
-        self.workspace.writeToFile(name_ShapeWS)
+        self.calculate_background_rates_vz()
         if self.DEBUG:
             self.workspace.Print("v")
+            logger.error("Exiting the program for DEBUG mode")
             exit()
+
+        self.workspace.writeToFile(name_ShapeWS)
 
         ## Write Datacards
         systematics.setSystematics(rates)
@@ -980,6 +991,85 @@ class datacardClass:
         elif self.cat == "vbf_tagged":
             return bkgRate_Shape["vbftagged"]
 
+    def calculate_background_rates_vz(self):
+        """
+        Calculate and return background rates for various processes based on the histograms provided in self.background_hists.
+        """
+        # Integral calculations for background histograms
+        bkgRate_vz_Shape = {
+            "untagged": self.background_hists["vz_untagged_template"].Integral(),
+            "btagged": self.background_hists["vz_btagged_template"].Integral(),
+            "vbftagged": self.background_hists["vz_vbftagged_template"].Integral(),
+        }
+
+        # Ratios for normalization
+        btagRatio = (
+            bkgRate_vz_Shape["btagged"] / bkgRate_vz_Shape["untagged"]
+            if bkgRate_vz_Shape["untagged"]
+            else 0
+        )
+        vbfRatio = (
+            bkgRate_vz_Shape["vbftagged"]
+            / (bkgRate_vz_Shape["untagged"] + bkgRate_vz_Shape["btagged"])
+            if (bkgRate_vz_Shape["untagged"] + bkgRate_vz_Shape["btagged"])
+            else 0
+        )
+
+        # Determine the correct background rate and formula based on category and jet type
+        cat_suffix = (
+            self.cat_tree if self.cat_tree in ["untagged", "btagged", "vbftagged"] else "untagged"
+        )
+        jet_prefix = "resolved" if "resolved" in self.jetType else "merged"
+        formula = {
+            "resolved_untagged": "(1-0.05*@0*{btagRatio})*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "resolved_btagged": "(1+0.05*@0)*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "resolved_vbftagged": "(1+0.1*({cumulative_jes_effect}))",
+            "merged_untagged": "(1-0.2*@0*{btagRatio})*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "merged_btagged": "(1+0.2*@0)*(1-0.1*({cumulative_jes_effect_with_btag})*{vbfRatio})",
+            "merged_vbftagged": "(1+0.1*({cumulative_jes_effect}))",
+        }.get("{}_{}".format(jet_prefix, cat_suffix))
+
+        logger.debug("(cat, jet): ({}, {})".format(cat_suffix, jet_prefix))
+        logger.debug(formula.format(
+                btagRatio=btagRatio,
+                cumulative_jes_effect=self.rooVars["cumulative_jes_effect"],
+                cumulative_jes_effect_with_btag=self.rooVars["cumulative_jes_effect_with_btag"],
+                vbfRatio=vbfRatio,
+            )
+        )
+        logger.debug(formula)
+
+        if self.DEBUG:
+            logger.warning("================== Not BTAG =====================")
+            logger.warning(self.rooVars["arglist_all_JES"].Print("v"))
+            logger.warning("==================  BTAG =====================")
+            logger.warning(self.rooVars["arglist_all_JES_BTAG"].Print("v"))
+            logger.warning("==================================================")
+
+        rfvSigRate_vz = ROOT.RooFormulaVar(
+            "bkg_vz_norm",
+            formula.format(
+                btagRatio=btagRatio,
+                cumulative_jes_effect=self.rooVars["cumulative_jes_effect"],
+                cumulative_jes_effect_with_btag=self.rooVars[
+                    "cumulative_jes_effect_with_btag"
+                ],
+                vbfRatio=vbfRatio,
+            ),
+            (
+                self.rooVars["arglist_all_JES"]
+                if "vbftagged" in cat_suffix
+                else self.rooVars["arglist_all_JES_BTAG"]
+            ),
+        )
+        getattr(self.workspace, "import")(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
+        # rfvSigRate_vz.graphVizTree("bkg_vz_norm.dot")
+
+        if self.DEBUG:
+            logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
+            logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
+        # return rfvSigRate_vz
+
     def setup_background_shapes_ReproduceRate_fs(self):
         """This function sets the histogram templates for the background shapes for the given final state that can be 2e, or 2mu and based on jets category.
 
@@ -1344,9 +1434,9 @@ class datacardClass:
             formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
-                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
+                num_jes_sources + 3,
             )
             formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
