@@ -21,6 +21,7 @@ from ROOT import zz2lJ_massStruct
 class datacardClass:
 
     def __init__(self, year, DEBUG=False):
+        logger.debug("Creating a new instance of datacardClass")
         self.year = year
         self.DEBUG = DEBUG
         self.loadIncludes()
@@ -37,6 +38,14 @@ class datacardClass:
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0 # Fraction of signal to be used
+        self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
+
+    def clearRooArgSets(self):
+        """Added this as this datacard is initialized one time and used multiple times.
+            So, we need to clear the RooArgSets before using them again.
+        """
+        self.rooArgSets["funcList_zjets"].removeAll()
+        self.workspace = ROOT.RooWorkspace("w", "workspace")
 
     def setup_parameters(self):
         self.low_M = 0
@@ -220,6 +229,8 @@ class datacardClass:
         ROOT.gStyle.SetPadLeftMargin(0.16)
 
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
+        self.clearRooArgSets() #Added this as this datacard is initialized one time and used multiple times.
+        # So, we need to clear the RooArgSets before using them again.
         self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
         self.initialize_workspace_and_observables(theMH, theInputs)
 
@@ -353,9 +364,9 @@ class datacardClass:
 
         self.get_Zjets_funcList()
         self.getRooProdPDFofMorphedBackgrounds() # I am trying to add all process inside the function so no need to pass the process
-        self.workspace.Print("v")
         self.workspace.writeToFile(name_ShapeWS)
         if self.DEBUG:
+            self.workspace.Print("v")
             exit()
 
         ## Write Datacards
@@ -620,10 +631,6 @@ class datacardClass:
             logger.error("Failed to open zjets template file: {}".format(templatezjetsBkgName))
             return
 
-        # Initialize funcList_zjets as RooArgList
-        if "funcList_zjets" not in self.rooArgSets:
-            self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
-
         TString_bkg = "DY_resolved"
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
             TString_bkg = "DY_merged"
@@ -664,7 +671,9 @@ class datacardClass:
             )
 
             self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
-            # self.rooArgSets["funcList_zjets"].Print("v")
+
+        for i in range(self.rooArgSets["funcList_zjets"].getSize()):
+            logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
 
     def getRooProdPDFofMorphedBackgrounds(self):
         background_list = ["vz", "ttbar", "zjets"]
@@ -696,6 +705,13 @@ class datacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass),
                 self.rooDataHist[vzTemplateName],
             )
+
+            for i in range(self.rooArgSets["funcList_zjets"].getSize()):
+                logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
+
+            # morphing
+            for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
+                logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
             TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
             self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
@@ -1248,7 +1264,7 @@ class datacardClass:
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["frac_VBF"])
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
 
-        logger.error("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
+        logger.debug("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
         # Calculate signal rates using predefined formulas based on category and jet type
         formula_ggH, formula_VBF = self.get_formulas(ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio)
         logger.debug("Formula ggH: {}".format(formula_ggH))
@@ -1295,7 +1311,7 @@ class datacardClass:
         num_jes_sources = len(self.rooVars["arglist_all_JES"])
         cumulative_jes_effect = self.rooVars["cumulative_jes_effect"]
         cumulative_jes_effect_with_btag = self.rooVars["cumulative_jes_effect_with_btag"]
-        logger.error("Number of JES sources: {}".format(num_jes_sources))
+        logger.debug("Number of JES sources: {}".format(num_jes_sources))
         # Define the formula strings based on category and jet type
         if self.cat == "vbf_tagged":
             formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(
