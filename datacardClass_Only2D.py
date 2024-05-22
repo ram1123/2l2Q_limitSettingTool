@@ -44,8 +44,17 @@ class datacardClass:
         """Added this as this datacard is initialized one time and used multiple times.
             So, we need to clear the RooArgSets before using them again.
         """
-        self.rooArgSets["funcList_zjets"].removeAll()
+        self.rooVars = {}
+        self.rooDataSet = {}
+        self.rooDataHist = {}
+        self.signalCBs = {}  # Dictionary to store signalCB objects
+        self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
+        self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
+        self.rooArgSets = {}  # Dictionary to store RooArgSet objects
+        self.background_hists = {}
+        self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
+        self.sigFraction = 1.0  # Fraction of signal to be used
 
     def setup_parameters(self):
         self.low_M = 0
@@ -630,6 +639,10 @@ class datacardClass:
         if not zjetsTempFile or zjetsTempFile.IsZombie():
             logger.error("Failed to open zjets template file: {}".format(templatezjetsBkgName))
             return
+
+        # Initialize funcList_zjets as RooArgList
+        if "funcList_zjets" not in self.rooArgSets:
+            self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
 
         TString_bkg = "DY_resolved"
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
