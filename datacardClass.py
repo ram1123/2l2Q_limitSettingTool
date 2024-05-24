@@ -18,15 +18,15 @@ ROOT.gROOT.ProcessLine("struct zz2lJ_massStruct {" "   Double_t zz2lJ_mass;" "};
 from ROOT import zz2lJ_massStruct
 
 
-class datacardClass:
+class DatacardClass:
 
     def __init__(self, year, DEBUG=False):
-        logger.debug("Creating a new instance of datacardClass")
+        logger.debug("Creating a new instance of DatacardClass")
         self.year = year
         self.DEBUG = DEBUG
         self.loadIncludes()
         self.setup_parameters()
-        #  To extend the lifecycle of all RooFit objects by storing them as attributes of self
+        # Extend the lifecycle of all RooFit objects by storing them as attributes of self
         self.rooVars = {}
         self.rooDataSet = {}
         self.rooDataHist = {}
@@ -37,13 +37,11 @@ class datacardClass:
         self.background_hists = {}
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
-        self.sigFraction = 1.0 # Fraction of signal to be used
+        self.sigFraction = 1.0  # Fraction of signal to be used
         self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
 
     def clearRooArgSets(self):
-        """Added this as this datacard is initialized one time and used multiple times.
-            So, we need to clear the RooArgSets before using them again.
-        """
+        """Clear RooArgSets before using them again as the datacard is initialized one time and used multiple times."""
         self.rooVars = {}
         self.rooDataSet = {}
         self.rooDataHist = {}
@@ -57,6 +55,7 @@ class datacardClass:
         self.sigFraction = 1.0  # Fraction of signal to be used
 
     def setup_parameters(self):
+        """Setup initial parameters."""
         self.low_M = 0
         self.high_M = 4000
         self.bins = int((self.high_M - self.low_M) / 10)
@@ -66,6 +65,7 @@ class datacardClass:
         self.ID_2eMerged = "eeqq_Merged"
 
     def loadIncludes(self):
+        """Load necessary ROOT libraries and include paths."""
         ROOT.gSystem.AddIncludePath("-I$ROOFITSYS/include/")
         ROOT.gSystem.AddIncludePath("-Iinclude/")
         ROOT.gROOT.ProcessLine(".L include/tdrstyle.cc")
@@ -73,6 +73,7 @@ class datacardClass:
         ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit.so")
 
     def open_root_file(self, file_path):
+        """Open a ROOT file and return the file object."""
         file = ROOT.TFile.Open(file_path, "READ")
         if not file or file.IsZombie():
             logger.error("Failed to open file: {}".format(file_path))
@@ -81,15 +82,18 @@ class datacardClass:
         return file
 
     def setup_workspace(self):
+        """Setup the RooWorkspace."""
         self.workspace.importClassCode(ROOT.RooDoubleCB.Class(), True)
         self.workspace.importClassCode(ROOT.RooFormulaVar.Class(), True)
 
     def set_jet_type(self):
+        """Set the jet type based on the channel."""
         self.jetType = "resolved"
         if "merged" in (self.channel).lower():
             self.jetType = "merged"
 
     def setup_observables(self):
+        """Setup the observables for the analysis."""
         logger.info("Setting up observables")
         self.mzz_name = "zz2l2q_mass"
         self.zz2l2q_mass = ROOT.RooRealVar(
@@ -104,9 +108,21 @@ class datacardClass:
         self.zz2l2q_mass.setRange("fullrange", self.low_M, self.high_M)
         self.zz2l2q_mass.setRange("fullsignalrange", self.mH - 0.25 * self.mH, self.mH + 0.25 * self.mH)
         self.rooVars["zz2l2q_mass"] = self.zz2l2q_mass
+
+        self.rooVars["LUMI"] = ROOT.RooRealVar(
+            "LUMI_{0:.0f}_{1}".format(self.sqrts, self.year),
+            "Integrated Luminosity",
+            self.lumi,
+        )
+        self.rooVars["LUMI"].setConstant(True)
+
+        self.rooVars["MH"] = ROOT.RooRealVar("MH", "MH", self.mH)
+        self.rooVars["MH"].setConstant(True)
+
         logger.info("Observables are set up successfully")
 
     def set_append_name(self):
+        """Set the append name for the channel and category."""
         self.fs = "2e"
         if self.channel == self.ID_2muResolved:
             self.fs = "2mu"
@@ -117,6 +133,7 @@ class datacardClass:
         logger.debug("appendName is channel + cat: {}".format(postfix))
 
     def set_category_tree(self):
+        """Set the category tree based on the category."""
         self.cat_tree = "untagged"
         if self.cat == "b_tagged":
             self.cat_tree = "btagged"
@@ -124,6 +141,7 @@ class datacardClass:
             self.cat_tree = "vbftagged"
 
     def set_channels(self, inputs):
+        """Set the channels based on the input dictionary."""
         self.all_chan = inputs["all"]
         self.ggH_chan = inputs["ggH"]
         self.qqH_chan = inputs["qqH"]
@@ -132,9 +150,7 @@ class datacardClass:
         self.ttbar_chan = inputs["ttbar"]
 
     def setup_nuisances(self, systematics):
-        """
-        Set up the JES and BTAG nuisances and prepare RooArgList with all nuisances.
-        """
+        """Set up the JES and BTAG nuisances and prepare RooArgList with all nuisances."""
         all_nuisances = []
         jetString = "J" if self.jetType == "merged" else "j"
 
@@ -160,9 +176,7 @@ class datacardClass:
                 2,
             )
             all_nuisances.append(nuisance)
-            self.rooVars["CMS_scale_{}_{}_{}".format(jetString, source, self.year)] = (
-                nuisance
-            )
+            self.rooVars["CMS_scale_{}_{}_{}".format(jetString, source, self.year)] = nuisance
 
         # Create a RooArgList from all JES nuisances
         arglist_all_JES = ROOT.RooArgList()
@@ -186,21 +200,23 @@ class datacardClass:
         cumulative_jes_effect_with_btag = "+".join(
             "@{}".format(i + 1) for i in range(len(arglist_all_JES)) # +1 to skip the first BTAG nuisance, so len should be used with without_btag
         )
-        for i in range(arglist_all_JES.getSize()):
-            logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
-
-        for i in range(arglist_all_JES_BTAG.getSize()):
-            logger.debug("{:4}. JES nuisances with BTAG: {}".format(i, arglist_all_JES_BTAG[i]))
-        # logger.debug("BTAG nuisance: {}".format(BTAG.GetName()))
-        logger.debug("cumulative_jes_effect: {}".format(cumulative_jes_effect))
-        logger.debug("cumulative_jes_effect_with_btag: {}".format(cumulative_jes_effect_with_btag))
 
         self.rooVars["arglist_all_JES"] = arglist_all_JES
         self.rooVars["arglist_all_JES_BTAG"] = arglist_all_JES_BTAG
         self.rooVars["cumulative_jes_effect"] = cumulative_jes_effect
         self.rooVars["cumulative_jes_effect_with_btag"] = cumulative_jes_effect_with_btag
 
+        for i in range(arglist_all_JES.getSize()):
+            logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
+
+        for i in range(arglist_all_JES_BTAG.getSize()):
+            logger.debug("{:4}. JES nuisances with BTAG: {}".format(i, arglist_all_JES_BTAG[i]))
+
+        logger.debug("cumulative_jes_effect: {}".format(cumulative_jes_effect))
+        logger.debug("cumulative_jes_effect_with_btag: {}".format(cumulative_jes_effect_with_btag))
+
     def initialize_settings(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot):
+        """Initialize settings for the datacard."""
         self.mH = theMH
         self.lumi = theInputs["lumi"]
         self.sqrts = theInputs["sqrts"]
@@ -215,35 +231,27 @@ class datacardClass:
         logger.debug("Settings initialized for channel: {}".format(self.channel))
 
     def initialize_workspace_and_observables(self, theMH, theInputs):
+        """Initialize workspace and observables."""
         self.setup_workspace()  # Setup the RooWorkspace
         self.set_append_name()  # Set the finalState (fs) and postfix variable
         self.set_category_tree()  # Set the category tree: cat_tree and cat
-        self.set_channels(theInputs) # Set the channels: ggH, qqH, vz, zjets, ttbar
-        self.set_jet_type() # Set the jet type: resolved or merged
-        self.theInputs = theInputs # Set the inputs coming from txt file
+        self.set_channels(theInputs)  # Set the channels: ggH, qqH, vz, zjets, ttbar
+        self.set_jet_type()  # Set the jet type: resolved or merged
+        self.theInputs = theInputs  # Set the inputs coming from txt file
 
         logger.error("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
 
         ## ------------------------- OBSERVABLES ----------------------------- ##
         self.setup_observables()
-        self.rooVars["LUMI"] = ROOT.RooRealVar("LUMI_{0:.0f}_{1}".format(self.sqrts, self.year), "Integrated Luminosity", self.lumi)
-        self.rooVars["LUMI"].setConstant(True)
-
-        self.rooVars["MH"] = ROOT.RooRealVar("MH", "MH", self.mH)
-        self.rooVars["MH"].setConstant(True)
 
         ## ---------------- SET PLOTTING STYLE ---------------- ##
         ROOT.setTDRStyle(True)
         ROOT.gStyle.SetPalette(1)
         ROOT.gStyle.SetPadLeftMargin(0.16)
 
-
     def getRateFromSmoothedHist(self, process):
-        """
-        Get the rate for the given process from the smoothed histograms.
-        """
+        """Get the rate for the given process from the smoothed histograms."""
         rate = 0.0
-        # rate = self.background_hists_smooth["{}_smooth".format(process, )].Integral()
         for key, hist in self.background_hists_smooth.items():
             logger.debug("key: {}, hist: {}".format(key, hist))
         logger.debug("Hist name from rate is obtained: {}_{}_smooth".format(process, self.cat_tree))
@@ -251,6 +259,7 @@ class datacardClass:
         return rate
 
     def get_tree_name(self):
+        """Return the tree name based on the channel and category."""
         tree_mapping = {
             ("eeqq_Resolved", "vbf_tagged"): "TreeSR0",
             ("eeqq_Resolved", "b_tagged"): "TreeSR1",
@@ -268,19 +277,12 @@ class datacardClass:
         return tree_mapping.get((self.channel, self.cat), "")
 
     def getData(self):
-        dataFileDir = "CMSdata"
-        dataFileName = "{}/Data_SR.root".format(dataFileDir)
+        """Retrieve data from the ROOT file and return the RooDataSet."""
+        dataFileName = "CMSdata/Data_SR.root" # FIXME: Hardcoded
         logger.debug("dataFileName: {}".format(dataFileName))
 
-        # Open ROOT file
-        data_obs_file = ROOT.TFile(dataFileName)
-        if data_obs_file.IsZombie() or not data_obs_file.IsOpen():
-            logger.error(
-                "Failed to open file: {}. Existing the program".format(dataFileName)
-            )
-            sys.exit(1)
+        data_obs_file = self.open_root_file(dataFileName)
 
-        # Define tree names based on channel and category
         treeName = self.get_tree_name()
         logger.debug("treeName: {}".format(treeName))
         tree = data_obs_file.Get(treeName)
@@ -291,8 +293,7 @@ class datacardClass:
         else:
             logger.debug('File "{}", tree "{}" found'.format(dataFileName, treeName))
 
-        # Clone tree and create new branch
-        tmpFile = ROOT.TFile("tmpFile.root", "RECREATE")  # This is a temporary fix. We don't need tempFile.root. But if its not there then it gives error
+        tmpFile = ROOT.TFile("tmpFile.root", "RECREATE")  # FIXME: This is a temporary fix. We don't need tempFile.root. But if its not there then it gives error
         data_obs_tree = tree.CloneTree(0)
         logger.debug("data_obs_tree: {}".format(data_obs_tree))
 
@@ -300,14 +301,11 @@ class datacardClass:
         data_obs_tree.Branch("zz2lJ_mass", zz2lJ_mass_struct, "zz2lJ_mass/D")
         logger.debug("zz2lJ_mass_struct: {}".format(zz2lJ_mass_struct))
 
-        # Fill tree with adjusted mass values
-        for i in xrange(tree.GetEntries()):  # Use xrange for Python 2
+        for i in range(tree.GetEntries()):
             tree.GetEntry(i)
-            # zz2lJ_mass_struct.zz2lJ_mass = getattr(tree, "zz2l2q_mass")
             zz2lJ_mass_struct.zz2lJ_mass = data_obs_file.Get(treeName).zz2l2q_mass
             data_obs_tree.Fill()
 
-        # Log entries and create RooDataSet
         logger.info("Data entries: {}".format(tree.GetEntries()))
 
         datasetName = "data_obs"
@@ -317,21 +315,13 @@ class datacardClass:
         return self.rooDataSet["data_obs"]
 
     def getRooProdPDFofMorphedSignal(self, TString_sig, templateSigName):
-        # Determine the signal template name based on the channel
+        """Get the RooProdPDF of the morphed signal."""
         logger.debug("Inside getRooProdPDFofMorphedSignal")
-        # self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
-        # self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
-        # logger.debug("====================================================")
 
         self.rooVars["funcList_ggH"] = ROOT.RooArgList()
         self.rooVars["funcList_VBF"] = ROOT.RooArgList()
 
-        # Opening template ROOT files
-        sigTempFile = ROOT.TFile(templateSigName)
-        if not sigTempFile or sigTempFile.IsZombie():
-            print("Error opening signal template file:", templateSigName)
-            return
-
+        sigTempFile = self.open_root_file(templateSigName)
         #  Get the rooDataHist for signal templates
         for tag in ["", "_up", "_dn"]:
             sigTemplate = sigTempFile.Get(TString_sig + tag)
@@ -379,17 +369,11 @@ class datacardClass:
 
         self.rooVars["morphVarListSig_" + self.jetType] = ROOT.RooArgList()
         if self.sigMorph:
-            self.rooVars["morphVarListSig_" + self.jetType].add(self.rooVars[morphSigVarName])  ## just one morphing for all signal processes
+            self.rooVars["morphVarListSig_" + self.jetType].add(self.rooVars[morphSigVarName]) ## INFO: just one morphing for all signal processes
 
-        logger.debug("I am here...")
-        # ERROR: Date: 16 may 2024: Find out why it is not working for ggH. But its working fine for VBF.
-        # sample_list = ["ggH"]
-        # sample_list = ["VBF"]
         sample_list = ["ggH", "VBF"]
-        logger.debug("=========   Print FastVerticalInterpHistPdf2D: START  =========")
         for sample in sample_list:
             logger.debug("sample: {}".format(sample))
-            # get the morphing variable ROOT.FastVerticalInterpHistPdf2D
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
                 TemplateName,
@@ -402,11 +386,9 @@ class datacardClass:
                 1.0,
                 1,
             )
-            # self.rooVars[TemplateName].Print("v")
-        logger.debug("=========   Print FastVerticalInterpHistPdf2D: END  =========")
 
+        # 2D -> mzz + Djet
         for sample in sample_list:
-            # 2D -> mzz + Djet
             if sample == "ggH":
                 tag_temp = "ggH"
             elif sample == "VBF":
@@ -415,19 +397,6 @@ class datacardClass:
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             logger.debug("======  parameters entered in rooProdPdf  ======")
-            logger.debug("self.signalCBs[signalCB_{}_{}]".format(sample, self.channel))
-            # self.signalCBs["signalCB_{}_{}".format(sample, self.channel)].Print("v")
-
-            logger.debug("==========  print mean and sigma  =========")
-            # self.rooVars["rfv_mean_{}_{}".format(sample, self.channel)].Print("v")
-            # self.rooVars["rfv_sigma_{}_{}".format(sample, self.channel)].Print("v")
-            logger.debug("==========  END =========")
-
-            logger.debug("self.rooVars[{}]".format(TemplateName))
-            # self.rooVars[TemplateName].Print("v")
-
-            logger.debug("self.rooVars[D]")
-            # self.rooVars["D"].Print("v")
 
             self.rooProdPdf[name] = ROOT.RooProdPdf(
                 name,
@@ -438,11 +407,6 @@ class datacardClass:
                     ROOT.RooArgSet(self.rooVars["D"]),
                 ),
             )
-            # self.rooVars[name].Print("v")
-
-        # logger.debug("======  Print self.rooProdPdf: START  ======")
-        # print(self.rooProdPdf)
-        # logger.debug("======  Print self.rooProdPdf: END  ======")
 
         sample_list = ["ggH", "VBF"]
         for sample in sample_list:
@@ -454,22 +418,16 @@ class datacardClass:
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             if sample == "ggH":
                 self.rooProdPdf[name].SetNameTitle("ggH_hzz", "ggH_hzz")
-                # self.rooProdPdf[name].Print("v")
             elif sample == "VBF":
                 self.rooProdPdf[name].SetNameTitle("qqH_hzz", "qqH_hzz")
-                # self.rooProdPdf[name].Print("v")
 
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
             logger.debug("added to workspace: {}".format(name))
-            # self.workspace.Print("v")
 
     def get_Zjets_funcList(self):
-        # Open zjets template file
+        """Get the function list for Zjets."""
         templatezjetsBkgName = "templates2D/2l2q_spin0_template_{}.root".format(self.year)
-        zjetsTempFile = ROOT.TFile(templatezjetsBkgName)
-        if not zjetsTempFile or zjetsTempFile.IsZombie():
-            logger.error("Failed to open zjets template file: {}".format(templatezjetsBkgName))
-            return
+        zjetsTempFile = self.open_root_file(templatezjetsBkgName)
 
         # Initialize funcList_zjets as RooArgList
         if "funcList_zjets" not in self.rooArgSets:
@@ -479,7 +437,6 @@ class datacardClass:
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
             TString_bkg = "DY_merged"
 
-        # Process variations
         variations = ["", "_Up", "_Down"]
         for variation in variations:
             logger.debug("variation: {}".format(variation))
@@ -496,7 +453,7 @@ class datacardClass:
                 logger.debug("Failed to get zjets template: {}".format(TString_bkg + variations_tag_for_hist))
                 continue
 
-            logger.debug("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format( zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX(), ) )
+            logger.debug("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format(zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX()))
 
             TemplateName = "zjetsTempDataHist_{}{}_{}".format(TString_bkg, variation, self.year)
             self.rooDataHist[TemplateName] = ROOT.RooDataHist(
@@ -520,28 +477,20 @@ class datacardClass:
             logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
 
     def getRooProdPDFofMorphedBackgrounds(self):
+        """Get the RooProdPDF of morphed backgrounds."""
         background_list = ["vz", "ttbar", "zjets"]
-        # background_list = ["vz"]
-        # background_list = [process]
         for process in background_list:
             vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
             vzTemplateMVV = self.background_hists["{}_template".format(process.replace("zjets", "zjet"))]
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
-            # exit()
-            # Create and store RooDataHist
+
             self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
-                vzTemplateName.replace("zjets", "zjet"), vzTemplateName.replace("zjets", "zjet"), ROOT.RooArgList(self.zz2l2q_mass), vzTemplateMVV
-                # Is there any benefit of using smooth vz_smooth instead of vzTemplateMVV?
-                # This comment goes same for ttbar and zjet templates
+                vzTemplateName.replace("zjets", "zjet"),
+                vzTemplateName.replace("zjets", "zjet"),
+                ROOT.RooArgList(self.zz2l2q_mass),
+                vzTemplateMVV,
             )
 
-            logger.debug("====    self.rooDataHist[{}]:    ====".format(vzTemplateName))
-            # vzTemplateMVV.Print("v")
-            # print("++++++++")
-            # self.rooDataHist[vzTemplateName].Print("v")
-            # logger.debug("====    self.rooDataHist[{}]: END    ====".format(vzTemplateName))
-
-            # Create and store RooHistPdf
             vzTemplatePdfName = "{}Pdf".format(vzTemplateName.replace("zjets", "zjet"))
             self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
                 vzTemplatePdfName,
@@ -564,8 +513,8 @@ class datacardClass:
                 self.zz2l2q_mass,
                 self.rooVars["D"],
                 True,
-                self.rooArgSets["funcList_zjets"],  # identical to all background processes
-                self.rooArgSets["morphVarListBkg"], # identical to all background processes
+                self.rooArgSets["funcList_zjets"], # INFO: identical to all background processes
+                self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
                 1.0,
                 1,
             )
@@ -582,13 +531,11 @@ class datacardClass:
             )
 
             self.rooProdPdf[name].SetNameTitle("bkg_{}".format(process), "bkg_{}".format(process))
-            # self.rooProdPdf[name].Print("v")
 
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
-        # self.workspace.Print("v")
 
     def get_signal_shape_mean_error(self, SignalShape):
-        # Define systematic variables for both electron and muon channels
+        """Define systematic variables for both electron and muon channels."""
         systematic_vars = [
             ("mean_e_sig", "CMS_zz2l2q_mean_e_sig", 0.0, -5.0, 5.0),
             ("sigma_e_sig", "CMS_zz2l2q_sigma_e_sig", 0.0, -5.0, 5.0),
@@ -599,7 +546,6 @@ class datacardClass:
             ("mean_J_sig", "CMS_zz2lJ_mean_J_sig", 0.0, -5.0, 5.0),
             ("sigma_J_sig", "CMS_zz2lJ_sigma_J_sig", 0.0, -5.0, 5.0),
         ]
-
         # Initialize RooRealVar objects for each variable
         for varName, title, init_val, min_val, max_val in systematic_vars:
             self.rooVars[varName] = ROOT.RooRealVar(title, varName, init_val, min_val, max_val)
@@ -652,7 +598,6 @@ class datacardClass:
 
         signal_type_list = ["ggH", "VBF"]
         for signal_type in signal_type_list:
-            # Sigma of DCB using a dynamic approach
             sigma_value = (SignalShape.Get("sigma")).GetListOfFunctions().First().Eval(self.mH)
             self.rooVars["sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooRealVar(
                 "sigma_{}_{}".format(signal_type, self.channel),
@@ -660,19 +605,17 @@ class datacardClass:
                 sigma_value,
             )
 
-            # logger.debug("===      Input values for mean and sigma      ===")
-            # self.rooVars["sigma_{}_{}".format(signal_type, self.channel)].Print("v")
-            # self.rooFormulaVars["sigma_SF_" + self.channel].Print("v")
-            # logger.debug("===      END      ===")
-
             self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)] = ROOT.RooFormulaVar(
                 "rfv_sigma_{}_{}".format(signal_type, self.channel),
                 "@0*@1",
-                ROOT.RooArgList(self.rooVars["sigma_{}_{}".format(signal_type, self.channel)], self.rooFormulaVars["sigma_SF_" + self.channel]),
+                ROOT.RooArgList(
+                    self.rooVars["sigma_{}_{}".format(signal_type, self.channel)],
+                    self.rooFormulaVars["sigma_SF_" + self.channel],
+                ),
             )
-            # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
 
     def setup_signal_shape(self, SignalShape, systematics, signal_type, channel):
+        """Setup the signal shape parameters."""
         name = "bias_{}_{}".format(signal_type, channel)
         self.rooVars["bias_{}_{}".format(signal_type, channel)] = ROOT.RooRealVar(
             name,
@@ -681,24 +624,53 @@ class datacardClass:
             - self.mH,
         )
         name = "mean_{}_{}".format(signal_type, channel)
-        self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(name, "@0+@1", ROOT.RooArgList(self.rooVars["MH"], self.rooVars["bias_{}_{}".format(signal_type, channel)]))
+        self.rooVars["mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(
+            name,
+            "@0+@1",
+            ROOT.RooArgList(
+                self.rooVars["MH"], self.rooVars["bias_{}_{}".format(signal_type, channel)],
+            )
+        )
 
         name = "rfv_mean_{}_{}".format(signal_type, channel)
-        self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] = ROOT.RooFormulaVar(
-            name, "@0+@1", ROOT.RooArgList(self.rooVars["mean_{}_{}".format(signal_type, channel)], self.rooVars["mean_err_" + self.channel])
+        self.rooVars["rfv_mean_{}_{}".format(signal_type, channel)] = (
+            ROOT.RooFormulaVar(
+                name,
+                "@0+@1",
+                ROOT.RooArgList(
+                    self.rooVars["mean_{}_{}".format(signal_type, channel)],
+                    self.rooVars["mean_err_" + self.channel],
+                ),
+            )
         )
 
-        self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
-            "a1_{}_{}_{}".format(signal_type, channel, self.year), "Low tail", SignalShape.Get("a1").GetListOfFunctions().First().Eval(self.mH)
+        self.rooVars["a1_{}_{}_{}".format(signal_type, channel, self.year)] = (
+            ROOT.RooRealVar(
+                "a1_{}_{}_{}".format(signal_type, channel, self.year),
+                "Low tail",
+                SignalShape.Get("a1").GetListOfFunctions().First().Eval(self.mH),
+            )
         )
-        self.rooVars["n1_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
-            "n1_{}_{}_{}".format(signal_type, channel, self.year), "Low tail parameter", SignalShape.Get("n1").GetListOfFunctions().First().Eval(self.mH)
+        self.rooVars["n1_{}_{}_{}".format(signal_type, channel, self.year)] = (
+            ROOT.RooRealVar(
+                "n1_{}_{}_{}".format(signal_type, channel, self.year),
+                "Low tail parameter",
+                SignalShape.Get("n1").GetListOfFunctions().First().Eval(self.mH),
+            )
         )
-        self.rooVars["a2_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
-            "a2_{}_{}_{}".format(signal_type, channel, self.year), "High tail", SignalShape.Get("a2").GetListOfFunctions().First().Eval(self.mH),
+        self.rooVars["a2_{}_{}_{}".format(signal_type, channel, self.year)] = (
+            ROOT.RooRealVar(
+                "a2_{}_{}_{}".format(signal_type, channel, self.year),
+                "High tail",
+                SignalShape.Get("a2").GetListOfFunctions().First().Eval(self.mH),
+            )
         )
-        self.rooVars["n2_{}_{}_{}".format(signal_type, channel, self.year)] = ROOT.RooRealVar(
-            "n2_{}_{}_{}".format(signal_type, channel, self.year), "High tail parameter", SignalShape.Get("n2").GetListOfFunctions().First().Eval(self.mH)
+        self.rooVars["n2_{}_{}_{}".format(signal_type, channel, self.year)] = (
+            ROOT.RooRealVar(
+                "n2_{}_{}_{}".format(signal_type, channel, self.year),
+                "High tail parameter",
+                SignalShape.Get("n2").GetListOfFunctions().First().Eval(self.mH),
+            )
         )
         self.signalCBs["signalCB_{}_{}".format(signal_type, channel)] = ROOT.RooDoubleCB(
             "signalCB_{}_{}".format(signal_type, channel),
@@ -727,22 +699,16 @@ class datacardClass:
             .getVal()
         )
         logger.debug("{} rate: {}".format(self.signalCBs["signalCB_{}_{}".format(signal_type, channel)].GetName(), fullRangeSigRate))
-        # logger.debug("==========  print mean and sigma  =========")
-        # self.rooVars["rfv_mean_{}_{}".format(signal_type, self.channel)].Print("v")
-        # self.rooVars["rfv_sigma_{}_{}".format(signal_type, self.channel)].Print("v")
-        # logger.debug("==========  END =========")
 
     def getSignalRates(self, signal_type):
+        """Calculate and return the signal rates for ggH and VBF."""
         logger.debug("Calculating signal rates for {}".format(signal_type))
 
-        # Open the ROOT file for the given signal type
         file_path = "SigEff/2l2q_Efficiency_spin0_{}_{}.root".format(signal_type, self.year)
         accxeff_file = ROOT.TFile(file_path)
         logger.debug("Opened file: {}".format(file_path))
 
-        # Extract acceptance x efficiency for various tagging categories
         categories = ["vbf-tagged", "b-tagged", "untagged"]
-
         accxeff = {
             "{}_accxeff_{}".format(signal_type, cat): accxeff_file.Get(
                 "spin0_{}_{}_{}".format(signal_type, self.channel, cat)
@@ -754,7 +720,6 @@ class datacardClass:
         }
         logger.debug("Acc x Eff for {}: {}".format(signal_type, accxeff))
 
-        # Calculate ratios
         vbf_ratio = accxeff[signal_type + "_accxeff_vbf-tagged"] / (
             accxeff[signal_type + "_accxeff_untagged"]
             + accxeff[signal_type + "_accxeff_b-tagged"]
@@ -767,7 +732,6 @@ class datacardClass:
         )
         logger.debug("VBF ratio: {}, B-tag ratio: {}".format(vbf_ratio, btag_ratio))
 
-        # Retrieve the specific signal rate for this category and signal type
         formatted_name = self.appendName.replace("b_tagged", "b-tagged").replace(
             "vbf_tagged", "vbf-tagged"
         )
@@ -778,31 +742,20 @@ class datacardClass:
             .Eval(self.mH)
         )
 
-        # Adjust rate by the given fraction (sigFraction)
         sig_rate_shape *= self.sigFraction
-
-        # Ensure non-negative rates
         sig_rate_shape = max(sig_rate_shape, 0.0)
         logger.debug("{} Signal rate: {}".format(signal_type, sig_rate_shape))
 
-        # Close the ROOT file
         accxeff_file.Close()
         return sig_rate_shape, vbf_ratio, btag_ratio
 
     def calculate_background_rates(self, process):
-        """
-        Calculate and return background rates for various processes based on the histograms provided in self.background_hists.
-        For now not used. But keep it for future reference or some cross-checking.
-        """
-        # Integral calculations for background histograms
+        """Calculate and return background rates for various processes based on the histograms provided in self.background_hists."""
         bkgRate_Shape = {
             "untagged": self.background_hists[process + "_untagged_template"].Integral(),
             "btagged": self.background_hists[process + "_btagged_template"].Integral(),
             "vbftagged": self.background_hists[process + "_vbftagged_template"].Integral(),
         }
-
-        # return the integral values based on jet type and category
-        #  check which category and jet type is being used then return the integral value
 
         if self.cat == "untagged":
             return bkgRate_Shape["untagged"]
@@ -812,17 +765,13 @@ class datacardClass:
             return bkgRate_Shape["vbftagged"]
 
     def calculate_background_rates_vz(self):
-        """
-        Calculate and return background rates for various processes based on the histograms provided in self.background_hists.
-        """
-        # Integral calculations for background histograms
+        """Calculate and return background rates for vz process based on the histograms provided in self.background_hists."""
         bkgRate_vz_Shape = {
             "untagged": self.background_hists["vz_untagged_template"].Integral(),
             "btagged": self.background_hists["vz_btagged_template"].Integral(),
             "vbftagged": self.background_hists["vz_vbftagged_template"].Integral(),
         }
 
-        # Ratios for normalization
         btagRatio = (
             bkgRate_vz_Shape["btagged"] / bkgRate_vz_Shape["untagged"]
             if bkgRate_vz_Shape["untagged"]
@@ -835,9 +784,10 @@ class datacardClass:
             else 0
         )
 
-        # Determine the correct background rate and formula based on category and jet type
         cat_suffix = (
-            self.cat_tree if self.cat_tree in ["untagged", "btagged", "vbftagged"] else "untagged"
+            self.cat_tree
+            if self.cat_tree in ["untagged", "btagged", "vbftagged"]
+            else "untagged"
         )
         jet_prefix = "resolved" if "resolved" in self.jetType else "merged"
         formula = {
@@ -883,28 +833,18 @@ class datacardClass:
             ),
         )
         getattr(self.workspace, "import")(rfvSigRate_vz, ROOT.RooFit.RecycleConflictNodes())
-        # rfvSigRate_vz.graphVizTree("bkg_vz_norm.dot")
-
         if self.DEBUG:
             logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.Print("v")))
             logger.debug("bkg_vz_norm: {}".format(rfvSigRate_vz.getVal()))
-        # return rfvSigRate_vz
 
     def setup_background_shapes_ReproduceRate_fs(self):
-        """This function sets the histogram templates for the background shapes for the given final state that can be 2e, or 2mu and based on jets category.
-
-        Raises:
-            IOError: If no root file is found or the file is a zombie
-            ValueError: If the histogram is not found in the file
-        """
-        # Open the template file
+        """Set the histogram templates for the background shapes for the given final state."""
         template_file_path = "templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year)
         temp_file_fs = ROOT.TFile(template_file_path, "READ")
 
         if not temp_file_fs or temp_file_fs.IsZombie():
             raise IOError("Could not open the template file: {}".format(template_file_path))
 
-        # Define histogram names based on jet type and category
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
             "vz": "VZ_perInvFb_Bin50GeV",
@@ -917,7 +857,6 @@ class datacardClass:
             "vbftagged": "vbf",
         }
 
-        # Retrieve histograms for each background and category
         for key, suffix in hist_suffixes.items():
             for category, cat_string in categories.items():
                 hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
@@ -926,38 +865,26 @@ class datacardClass:
                 if not hist:
                     raise ValueError("Histogram {} not found in file: {}".format(hist_name, template_file_path))
 
-                # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
                 hist.SetDirectory(ROOT.gROOT)
-
                 logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
-                # Store the histogram in the background_hists dictionary
                 hist_key = "{}_{}_template".format(key, category)
                 self.background_hists[hist_key] = hist
-
                 logger.debug("Stored histogram {} in background_hists".format(hist_key))
 
-        # Log all histograms in background_hists
         for key, hist in self.background_hists.items():
             logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
 
         temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate_2l(self):
-        """This function sets the histogram templates for the background shapes for the inclusive 2l final state and inclusive jet category and year.
-
-        Raises:
-            IOError: If no root file is found or the file is a zombie
-            ValueError: If the histogram is not found in the file
-        """
-        # Open the template file
+        """Set the histogram templates for the background shapes for the inclusive 2l final state and inclusive jet category."""
         template_file_path = "templates1D/Template1D_spin0_2l_{}.root".format(self.year)
         temp_file_fs = ROOT.TFile(template_file_path, "READ")
 
         if not temp_file_fs or temp_file_fs.IsZombie():
             raise IOError("Could not open the template file: {}".format(template_file_path))
 
-        # Define histogram names based on jet type and category
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
             "vz": "VZ_perInvFb_Bin50GeV",
@@ -965,7 +892,6 @@ class datacardClass:
             "zjet": "Zjet_perInvFb_Bin50GeV",
         }
 
-        # Retrieve histograms for each background
         for key, suffix in hist_suffixes.items():
             hist_name = "{}_{}".format(prefix, suffix)
             hist = temp_file_fs.Get(hist_name)
@@ -975,37 +901,30 @@ class datacardClass:
 
             # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
             hist.SetDirectory(ROOT.gROOT)
-
             logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
-            # Store the histogram in the background_hists dictionary
             hist_key = "{}_template".format(key)
             self.background_hists[hist_key] = hist
-
             logger.debug("Stored histogram {} in background_hists".format(hist_key))
 
-        # Log all histograms in background_hists
         for key, hist in self.background_hists.items():
             logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
 
         temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate(self, process):
+        """Smooth the background histograms."""
         categories = ["_untagged", "_btagged", "_vbftagged", ""]
-
-        # for cat in categories:
-        # print("{}{}_template".format(process, cat))
-        # vzTemplateMVV = self.background_hists["{}{}_template".format(process, cat)]
 
         vzTemplateMVV = self.background_hists["{}{}_template".format(process, "")]
 
         hist_smooth_name = "{}_smooth".format(process)
         self.background_hists_smooth["{}{}_smooth".format(process, "")] = ROOT.TH1F(hist_smooth_name, hist_smooth_name, self.bins, self.low_M, self.high_M)
-        self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")]= ROOT.TH1F(hist_smooth_name + "_untagged", hist_smooth_name + "_untagged", self.bins, self.low_M, self.high_M)
+        self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")] = ROOT.TH1F(hist_smooth_name + "_untagged", hist_smooth_name + "_untagged", self.bins, self.low_M, self.high_M)
         self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")] = ROOT.TH1F(hist_smooth_name + "_btagged", hist_smooth_name + "_btagged", self.bins, self.low_M, self.high_M)
         self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")] = ROOT.TH1F(hist_smooth_name + "_vbftagged", hist_smooth_name + "_vbftagged", self.bins, self.low_M, self.high_M)
 
-        # Smooth the histograms
+        # Rebin the histograms. Why?
         for i in range(0, self.bins):
             mVV_tmp = self.background_hists_smooth["{}{}_smooth".format(process, "")].GetBinCenter(i + 1)
             bin_width = self.background_hists_smooth["{}{}_smooth".format(process, "")].GetBinWidth(i + 1)
@@ -1041,7 +960,7 @@ class datacardClass:
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
 
     def setup_background_shapes(self):
-        # Open the template file for the given final state (fs)
+        """Setup the background shapes from the templates."""
         TempFile_fs = ROOT.TFile(
             "templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year), "READ"
         )
@@ -1050,7 +969,6 @@ class datacardClass:
                 "Could not open the template file for final state {}".format(self.fs)
             )
 
-        # Define the histogram names based on jet type and category
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
             "vz": "VZ_perInvFb_Bin50GeV",
@@ -1059,39 +977,28 @@ class datacardClass:
         }
         categories = {"untagged": "", "btagged": "btag", "vbftagged": "vbf"}
 
-        # Retrieve histograms for each background
         for key, suffix in hist_suffixes.items():
             for category, cat_string in categories.items():
                 hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
                 hist = TempFile_fs.Get(hist_name)
-                hist.SetDirectory(
-                    ROOT.gROOT
-                )  # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
+                hist.SetDirectory(ROOT.gROOT) # Detach histogram from file ref: https://root-forum.cern.ch/t/nonetype-feturned-from-function-that-returns-th1f/18287/2?u=ramkrishna
 
-                # print range of histogram
                 logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
                 if not hist:
                     raise ValueError("Histogram {} not found in file".format(hist_name))
                 self.background_hists[key + "_" + category + "_template"] = hist
-
-                # Print integral for sanity check
                 logger.debug("{} integral: {}".format(hist_name, hist.Integral()))
 
-        # Smooth the histograms
         for key, hist in self.background_hists.items():
             hist_smooth = hist.Clone()
-            hist_smooth.Smooth(1)  # Apply simple smoothing; adjust parameters as needed
+            hist_smooth.Smooth(1)
 
-            # Print integral for sanity check
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
             if self.SanityCheckPlot:
                 save_histograms(hist, hist_smooth, "{}/{}_smoothed.png".format(self.outputDir, key))
 
-        # Create RooHistPdf objects
         self.rooHistPdfs = {}
         for key, hist in self.background_hists.items():
-            # get the integral of hist
-            # Create rooDataHist from TH1 histogram
             self.rooVars["data_hist"] = ROOT.RooDataHist(
                 "dh_{}".format(key),
                 "DataHist for {}".format(key),
@@ -1099,7 +1006,6 @@ class datacardClass:
                 hist,
             )
 
-            # Create RooHistPdf from rooDataHist
             self.rooHistPdfs["pdf_{}".format(key)] = ROOT.RooHistPdf(
                 "pdf_{}".format(key),
                 "PDF for {}".format(key),
@@ -1107,15 +1013,8 @@ class datacardClass:
                 self.rooVars["data_hist"],
             )
 
-            # logger.debug("check rooHistPdfs: {}".format("pdf_{}".format(key)))
-            # self.rooHistPdfs["pdf_{}".format(key)].Print("v")
-            # logger.debug("check rooHistPdfs: END")
-
-            # plot and save the rooDataHist and RooHistPdf
             if self.SanityCheckPlot:
-                # compute the integral of the pdf
                 logger.debug("Integral of hist: {:21}: {}".format(key, hist.Integral()))
-
                 fullRangeBkgRate = (self.rooHistPdfs["pdf_{}".format(key)].createIntegral(
                         ROOT.RooArgSet(self.zz2l2q_mass),
                         ROOT.RooFit.Range("fullsignalrange"),
@@ -1127,26 +1026,17 @@ class datacardClass:
                         fullRangeBkgRate,
                     ))
 
-                # plot_and_save(
-                #     self.rooVars["data_hist"],
-                #     self.rooHistPdfs["pdf_{}".format(key)],
-                #     self.zz2l2q_mass,
-                #     key,
-                #     self.outputDir,
-                # )
-
         logger.debug(self.background_hists)
-        # return self.rooHistPdfs
 
     def setup_signal_fractions(self, vbfRatioVBF):
-        # Set the VBF fraction based on condition
+        """Set the VBF fraction based on condition."""
         if self.FracVBF == -1:
             logger.info("FracVBF is set to be floating within [0, 1]")
             self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", vbfRatioVBF, 0.0, 1.0)
-            # Define fraction of events coming from ggH process
             self.rooVars["frac_ggH"] = ROOT.RooFormulaVar("frac_ggH", "(1-@0)", ROOT.RooArgList(self.rooVars["frac_VBF"]))
         else:
             logger.info("Using fixed FracVBF = {}".format(self.FracVBF))
+            # Define fraction of events coming from ggH process
             self.rooVars["frac_VBF"] = ROOT.RooRealVar("frac_VBF", "Fraction of VBF", self.FracVBF, 0.0, 1.0)
             self.rooVars["frac_VBF"].setConstant(True)
             # Define fraction of events coming from ggH process
@@ -1188,42 +1078,18 @@ class datacardClass:
         self.rooVars["arglist_VBF_with_BTAG"].add(self.rooVars["BR"])
 
         logger.debug("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
-        # Calculate signal rates using predefined formulas based on category and jet type
         formula_ggH, formula_VBF = self.get_formulas(ggH_vbf_ratio, vbfRatioVBF, ggH_btag_ratio, VBF_btag_ratio)
         logger.debug("Formula ggH: {}".format(formula_ggH))
         logger.debug("Formula VBF: {}".format(formula_VBF))
-        # Create RooFormulaVars for ggH and VBF signal rates, use appropriate arguments list based on category
+
         if self.cat == "b_tagged" or self.cat == "untagged":
-            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_VBF"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_ggH"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
             rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH_with_BTAG"])
             rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF_with_BTAG"])
         else:
-            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_ggH_with_BTAG"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH_with_BTAG: {}".format(i, self.rooVars["arglist_ggH_with_BTAG"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_VBF"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
-            for i in range(0, len(self.rooVars["arglist_ggH"])):  # 0, 1, 2, 3, 4, 5
-                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
-            logger.debug("formula_ggH: {}".format(formula_ggH))
-            for i in range(0, len(self.rooVars["arglist_ggH"])):
-                logger.debug("{:2}: arglist_ggH: {}".format(i, self.rooVars["arglist_ggH"].at(i).GetName()))
 
-            logger.debug("formula_VBF: {}".format(formula_VBF))
-            for i in range(0, len(self.rooVars["arglist_VBF"])):
-                logger.debug("{:2}: arglist_VBF: {}".format(i, self.rooVars["arglist_VBF"].at(i).GetName()))
             rfvSigRate_ggH = ROOT.RooFormulaVar("ggH_hzz_norm", formula_ggH, self.rooVars["arglist_ggH"])
             rfvSigRate_VBF = ROOT.RooFormulaVar("qqH_hzz_norm", formula_VBF, self.rooVars["arglist_VBF"])
 
-        # # Debugging outputs
         logger.debug("Signal Rate ggH: {}".format(rfvSigRate_ggH.getVal()))
         logger.debug("Signal Rate VBF: {}".format(rfvSigRate_VBF.getVal()))
 
@@ -1231,24 +1097,24 @@ class datacardClass:
         getattr(self.workspace, "import")(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
 
     def get_formulas(self, vbfRatioGGH, vbfRatioVBF, btagRatioGGH, btagRatioVBF):
+        """Get the formula strings based on category and jet type."""
         num_jes_sources = len(self.rooVars["arglist_all_JES"])
         cumulative_jes_effect = self.rooVars["cumulative_jes_effect"]
         cumulative_jes_effect_with_btag = self.rooVars["cumulative_jes_effect_with_btag"]
         logger.debug("Number of JES sources: {}".format(num_jes_sources))
-        # Define the formula strings based on category and jet type
+
         if self.cat == "vbf_tagged":
             formula_ggH = "(1+0.16*({}))*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect"],
                 num_jes_sources,
-                num_jes_sources+1,
-                num_jes_sources+2,
+                num_jes_sources + 1,
+                num_jes_sources + 2,
             )
-            # formula_VBF = "(1+0.12*@0)*@1*@2*@3"
             formula_VBF = "(1+0.12*({}))*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect"],
                 num_jes_sources,
-                num_jes_sources+1,
-                num_jes_sources+2,
+                num_jes_sources + 1,
+                num_jes_sources + 2,
             )
         elif self.jetType == "resolved" and self.cat == "b_tagged":
             formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
@@ -1281,7 +1147,7 @@ class datacardClass:
                 num_jes_sources + 1,
                 num_jes_sources + 2,
                 num_jes_sources + 3,
-                )
+            )
         elif self.jetType == "merged" and self.cat == "b_tagged":
             formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
@@ -1315,13 +1181,12 @@ class datacardClass:
                 num_jes_sources + 3,
             )
         else:
-            # Give error that the category is not recognized
             raise ValueError("Category {} not recognized. So, can't get_formulas()".format(self.cat))
 
         return formula_ggH, formula_VBF
 
     def WriteDatacard(self, file, theInputs, nameWS, theRates, obsEvents, is2D):
-
+        """Write the datacard with the given parameters."""
         numberSig = self.numberOfSigChan(theInputs)
         numberBg = self.numberOfBgChan(theInputs)
 
@@ -1391,6 +1256,7 @@ class datacardClass:
         file.write("------------\n")
 
     def numberOfSigChan(self, inputs):
+        """Count the number of signal channels."""
         counter = 0
         if inputs["ggH"]: counter += 1
         if inputs["qqH"]: counter += 1
@@ -1398,6 +1264,7 @@ class datacardClass:
         return counter
 
     def numberOfBgChan(self, inputs):
+        """Count the number of background channels."""
         counter = 0
         if inputs["vz"]: counter += 1
         if inputs["zjets"]: counter += 1
@@ -1406,9 +1273,7 @@ class datacardClass:
         return counter
 
     def compareOldNewBinnedHistogram(self):
-        # Make a comparison of the smoothed histograms and the original histograms
-        #  plot them on the same canvas with different colors and add the legend
-
+        """Compare the smoothed histograms with the original histograms."""
         process = {"vz", "ttbar", "zjet"}
         categories = {"_untagged", "_btagged", "_vbftagged", ""}
 
@@ -1416,38 +1281,16 @@ class datacardClass:
             for cat in categories:
                 hist = self.background_hists["{}{}_template".format(proc, cat)]
                 hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
-                # save_histograms(hist_smooth, hist, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
                 save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
 
-
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
-        self.clearRooArgSets() #Added this as this datacard is initialized one time and used multiple times.
-        # So, we need to clear the RooArgSets before using them again.
+        """Main function to create the datacards and workspaces."""
+        self.clearRooArgSets()
         self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
         self.initialize_workspace_and_observables(theMH, theInputs)
-
-        # if (
-        #     (self.channel == self.ID_2muMerged and self.cat == "b_tagged" and self.jetType == "merged")
-        #     or
-        #     (self.channel == self.ID_2muMerged and self.cat == "untagged" and self.jetType == "merged")
-        #     or
-        #     (self.channel == self.ID_2muMerged and self.cat == "vbf_tagged" and self.jetType == "merged")
-        #     or
-        #     (self.channel == self.ID_2muResolved and self.cat == "b_tagged" and self.jetType == "resolved")
-        #     or
-        #     (self.channel == self.ID_2muResolved and self.cat == "untagged" and self.jetType == "resolved")
-        #     or
-        #     (self.channel == self.ID_2muResolved and self.cat == "vbf_tagged" and self.jetType == "resolved")
-        #     or
-        #     (self.channel == self.ID_2eMerged and self.cat == "b_tagged" and self.jetType == "merged")
-        # ):
-        #     """ For debugging purpose, break if channel is 2mu_Merged and cat is b_tagged and jetType is merged.
-        #     """
-        #     logger.error("break if channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
-        #     return
-
-        ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
-        systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)  # the second argument is for the systematic unc. coming from XSxBR
+        TString_sig = "sig_resolved"
+        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+            TString_sig = "sig_merged"
 
         ## ------------------------- RATES ----------------------------- ##
         sigRate_ggH_Shape, vbf_ratioGGH, btag_ratioGGH = self.getSignalRates("ggH")
@@ -1463,6 +1306,7 @@ class datacardClass:
             self.compareOldNewBinnedHistogram()
 
         self.setup_background_shapes()
+
         # FIXME: This rate is not used in the legacy code. But, we should switch to this for rate calculation
         # bkgRate_vz_Shape = self.calculate_background_rates("vz")
         # bkgRate_ttbar_Shape = self.calculate_background_rates("ttbar")
@@ -1475,11 +1319,9 @@ class datacardClass:
         bkgRate_zjets_Shape = self.getRateFromSmoothedHist("zjet")
 
         logger.debug("Signal rates: ggH: {:.4f}, qqH: {:.4f}".format(sigRate_ggH_Shape, sigRate_VBF_Shape))
-        # logger.debug("Background rates (smoothed): VZ: {:.4f}".format(bkgRate_vz_Shape))
         logger.debug("Background rates: VZ: {:.4f}, TTbar: {:.4f}, Zjets: {:.4f}\n\n".format(bkgRate_vz_Shape, bkgRate_ttbar_Shape, bkgRate_zjets_Shape))
 
         ## --------------------------- DATACARDS -------------------------- ##
-
         rates = {}
         rates["ggH"] = sigRate_ggH_Shape
         rates["qqH"] = sigRate_VBF_Shape
@@ -1488,48 +1330,21 @@ class datacardClass:
         rates["ttbar"] = bkgRate_ttbar_Shape
         rates["zjets"] = bkgRate_zjets_Shape
 
-        name_ShapeWS = ""
-        name_ShapeWS2 = ""
-        name_ShapeWS = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.input.root".format(self.outputDir, self.mH, self.appendName, self.sqrts)
-        name_ShapeWS2 = "hzz2l2q_{0}_{1:.0f}TeV.input.root".format(self.appendName, self.sqrts)
+        ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
+        systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)
 
         # ================== SIGNAL SHAPE ================== #
-        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year)
+        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year) # INFO: Hardcoded path and filename
         SignalShape = self.open_root_file(SignalShapeFile)
 
         self.get_signal_shape_mean_error(SignalShape)
         self.setup_signal_shape(SignalShape, systematics, "VBF", self.channel)
         self.setup_signal_shape(SignalShape, systematics, "ggH", self.channel)
 
-        # logger.info("==========  print mean and sigma  =========")
-        # self.rooVars["rfv_mean_{}_{}".format("VBF", self.channel)].Print("v")
-        # self.rooVars["rfv_sigma_{}_{}".format("VBF", self.channel)].Print("v")
-        # self.rooVars["rfv_mean_{}_{}".format("ggH", self.channel)].Print("v")
-        # self.rooVars["rfv_sigma_{}_{}".format("ggH", self.channel)].Print("v")
-        # logger.info("==========  END =========")
-
-        # logger.debug("============  SignalCB Shape ggH  ============")
-        # self.signalCBs["signalCB_{}_{}".format("ggH", self.channel)].Print("v")
-
-        # logger.debug("============  SignalCB Shape VBF  ============")
-        # self.signalCBs["signalCB_{}_{}".format("VBF", self.channel)].Print("v")
-
-        ## -------------------------  Get 2D template ----------------------------- ##
-        templateDir = "templates2D"
-        templateSigName = "{}/2l2q_spin0_template_{}.root".format(
-            templateDir, self.year
-        )
-        logger.debug("Using templateSigName: {}".format(templateSigName))
-
-        TString_sig = "sig_resolved"
-        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
-            TString_sig = "sig_merged"
-
         # Opening template ROOT files
-        sigTempFile = ROOT.TFile(templateSigName)
-        if not sigTempFile or sigTempFile.IsZombie():
-            print("Error opening signal template file:", templateSigName)
-            return
+        templateSigName = "templates2D/2l2q_spin0_template_{}.root".format(self.year) # FIXME: hardcoded path
+        logger.debug("Using templateSigName: {}".format(templateSigName))
+        sigTempFile = self.open_root_file(templateSigName)
 
         # Setup discriminant variable
         sigTemplate = sigTempFile.Get(TString_sig)
@@ -1541,62 +1356,127 @@ class datacardClass:
         logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
         sigTempFile.Close()
 
-        ## ------------------------- DATA ----------------------------- ##
-        self.rooDataSet["data_obs"] = self.getData()
-        getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
-        # self.workspace.Print("v")
-
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
         self.setup_nuisances(systematics) # needed for  module "calculate_signal_rates_next"
         self.setup_signal_fractions(vbf_ratioVBF)
-        self.calculate_signal_rates_next(self.rooVars["frac_VBF"], self.rooVars["frac_ggH"], vbf_ratioGGH, vbf_ratioVBF, btag_ratioGGH, btag_ratioVBF)
-
+        self.calculate_signal_rates_next(
+            self.rooVars["frac_VBF"],
+            self.rooVars["frac_ggH"],
+            vbf_ratioGGH,
+            vbf_ratioVBF,
+            btag_ratioGGH,
+            btag_ratioVBF,
+        )
         logger.debug("jetType: {}, cat: {}".format(self.jetType, self.cat))
-        # self.workspace.Print("v")
 
         ## ------------------------- Backgrounds 2D: Write to workspace ----------------------------- ##
-
         morphBkgVarName = "CMS_zz2l2q_bkgMELA_{}".format(self.jetType)
         self.rooVars[morphBkgVarName] = ROOT.RooRealVar(morphBkgVarName, morphBkgVarName, 0, -2, 2)
         self.rooVars[morphBkgVarName].setConstant(False)
         self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
 
         self.get_Zjets_funcList()
-        self.getRooProdPDFofMorphedBackgrounds() # I am trying to add all process inside the function so no need to pass the process
+        self.getRooProdPDFofMorphedBackgrounds()
         self.calculate_background_rates_vz()
+
+        ## ------------------------- DATA ----------------------------- ##
+        self.rooDataSet["data_obs"] = self.getData()
+        getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
+
         if self.DEBUG:
             self.workspace.Print("v")
             logger.error("Exiting the program for DEBUG mode")
             exit()
 
+        ## ------------------------- Name of datacard and workspace files ----------------------------- ##
+        name_ShapeWS = ""
+        name_ShapeWS2 = ""
+        name_ShapeWS = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.input.root".format(self.outputDir, self.mH, self.appendName, self.sqrts)
+        name_ShapeWS2 = "hzz2l2q_{0}_{1:.0f}TeV.input.root".format(self.appendName, self.sqrts)
         self.workspace.writeToFile(name_ShapeWS)
 
         ## Write Datacards
         systematics.setSystematics(rates)
-
         name_Shape = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.txt".format(self.outputDir, self.mH, self.appendName, self.sqrts)
         fo = open(name_Shape, "wb")
         self.WriteDatacard(fo, theInputs, name_ShapeWS2, rates, self.rooDataSet["data_obs"].numEntries(), self.is2D)
-
-        # FIXME: This is a temporary fix to write the systematics to the datacard
-        # FIXME: Why we are just using the ttbar_MuEG_file for systematics?
-        #  Also, this part is not used by the systematicClass.py to write the systematics
-        # ttbar_MuEG_file = ROOT.TFile("CMSdata/alphaMethod_MuEG_Data_2016.root")
-        # channel_plus_cat = "resolvedSR"
-        # if self.channel == "eeqq_Resolved" or self.channel == "mumuqq_Resolved":
-        #     channel_plus_cat = "resolvedSR"
-        # if self.channel == "eeqq_Merged" or self.channel == "mumuqq_Merged":
-        #     channel_plus_cat = "mergedSR"
-        # if self.cat == "b_tagged":
-        #     channel_plus_cat = channel_plus_cat + "btag"
-        # elif self.cat == "vbf_tagged":
-        #     channel_plus_cat = channel_plus_cat + "vbf"
-        # ttbar_MuEG_data = ttbar_MuEG_file.Get("hmass_" + channel_plus_cat + "_Data_emu_Bin50GeV")
-
-        # systematics.WriteSystematics(fo, theInputs, rates, int(ttbar_MuEG_data.Integral("width") / 50))
-        systematics.WriteSystematics(fo, theInputs, rates, 0.0)
+        systematics.WriteSystematics(fo, theInputs, rates, 0.0) # INFO: Why is the last argument 0.0?
         systematics.WriteShapeSystematics(fo, theInputs)
-
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
+
+
+if __name__ == "__main__":
+    import logging
+    import argparse
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    parser = argparse.ArgumentParser(description="Create datacards and workspaces.")
+    parser.add_argument("--year", type=int, required=True, help="Year of the data")
+    parser.add_argument("--channel", type=str, required=True, help="Channel ID")
+    parser.add_argument("--cat", type=str, required=True, help="Category ID")
+    parser.add_argument(
+        "--jetType", type=str, required=True, help="Jet type (resolved or merged)"
+    )
+    parser.add_argument(
+        "--mH", type=float, required=True, help="Mass of the Higgs boson"
+    )
+    parser.add_argument("--is2D", type=int, default=1, help="Is it a 2D analysis?")
+    parser.add_argument(
+        "--outputDir", type=str, required=True, help="Output directory for the files"
+    )
+    parser.add_argument("--fracVBF", type=float, default=-1, help="Fraction of VBF")
+    parser.add_argument(
+        "--sanityCheck", type=bool, default=True, help="Enable sanity check plots"
+    )
+    parser.add_argument("--debug", type=bool, default=False, help="Enable debug mode")
+
+    args = parser.parse_args()
+
+    inputs = {
+        "all": True,
+        "ggH": True,
+        "qqH": True,
+        "vz": True,
+        "zjets": True,
+        "ttbar": True,
+        "decayChannel": args.channel,
+        "lumi": 1.0,
+        "sqrts": 13,
+        "alphaS": 0.118,
+        "cat": args.cat,
+        "model": "SM",
+        "lumiUnc": 0.027,
+        "muonTrigUnc": 0.02,
+        "muonFullUnc": 0.02,
+        "elecTrigUnc": 0.02,
+        "elecFullUnc": 0.02,
+        "zjetsAlphaLow": 0.0,
+        "zjetsAlphaHigh": 0.0,
+        "gghJESLow": 0.0,
+        "gghJESHigh": 0.0,
+    }
+
+    datacard = DatacardClass(args.year, args.debug)
+    datacard.channel = args.channel
+    datacard.cat = args.cat
+    datacard.jetType = args.jetType
+    datacard.makeCardsWorkspaces(
+        args.mH,
+        args.is2D,
+        args.outputDir,
+        inputs,
+        args.cat,
+        args.fracVBF,
+        args.sanityCheck,
+    )
