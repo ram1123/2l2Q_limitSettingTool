@@ -54,6 +54,46 @@ class DatacardClass:
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0  # Fraction of signal to be used
 
+    def printAllRooArgSets(self):
+        """Print all RooArgSets."""
+        logger.error("==============        RooVars        ==============")
+        for key, value in self.rooVars.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        RooDataSet        ==============")
+        for key, value in self.rooDataSet.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        RooDataHist        ==============")
+        for key, value in self.rooDataHist.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        SignalCBs        ==============")
+        for key, value in self.signalCBs.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        RooProdPdf        ==============")
+        for key, value in self.rooProdPdf.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        RooFormulaVars        ==============")
+        for key, value in self.rooFormulaVars.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        RooArgSets        ==============")
+        for key, value in self.rooArgSets.items():
+            print("=========        key: {:35}        =========".format(key))
+            for i in range(value.getSize()):
+                print("{:4}: {}".format(i, value.at(i)))
+
+        logger.error("==============        Background Hists        ==============")
+        for key, value in self.background_hists.items():
+            print("key: {:35}, value: {}".format(key, value))
+
+        logger.error("==============        Background Hists Smooth        ==============")
+        for key, value in self.background_hists_smooth.items():
+            print("key: {:35}, value: {}".format(key, value))
+
     def setup_parameters(self):
         """Setup initial parameters."""
         self.low_M = 0
@@ -1384,11 +1424,6 @@ class DatacardClass:
         self.rooDataSet["data_obs"] = self.getData()
         getattr(self.workspace, "import")(self.rooDataSet["data_obs"], ROOT.RooFit.Rename("data_obs"))
 
-        if self.DEBUG:
-            self.workspace.Print("v")
-            logger.error("Exiting the program for DEBUG mode")
-            exit()
-
         ## ------------------------- Name of datacard and workspace files ----------------------------- ##
         name_ShapeWS = ""
         name_ShapeWS2 = ""
@@ -1406,6 +1441,12 @@ class DatacardClass:
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
 
+        ## ------------------------- Print all RooArgSets ----------------------------- ##
+        self.printAllRooArgSets()
+        if self.DEBUG:
+            self.workspace.Print("v")
+            logger.error("Exiting the program for DEBUG mode")
+            exit()
 
 if __name__ == "__main__":
     import logging
