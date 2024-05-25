@@ -376,7 +376,7 @@ class DatacardClass:
                     )
             logger.debug("Created rooDataHist: {}".format(TemplateName))
 
-        # Get the RooHistPdf for signal templates separately for ggH and VBF
+        # Get the rooHistPdf for signal templates separately for ggH and VBF
         for sample in ["ggH", "VBF"]:
             for tag in ["", "_up", "_dn"]:
                 # continue for up and dn if sigMorph is False
@@ -393,6 +393,8 @@ class DatacardClass:
                     ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
                     self.rooDataHist[TemplateName],
                 )
+
+                self.rooVars[pdfName].graphVizTree("{}.dot".format(pdfName))
 
                 if sample == "ggH":
                     self.rooVars["funcList_ggH"].add(self.rooVars[pdfName])
@@ -510,6 +512,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
                 self.rooDataHist[TemplateName],
             )
+            self.rooDataHist[PdfName].graphVizTree("{}.dot".format(PdfName))
 
             self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
 
@@ -538,6 +541,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass),
                 self.rooDataHist[vzTemplateName],
             )
+            self.rooDataHist[vzTemplatePdfName].graphVizTree("{}.dot".format(vzTemplatePdfName))
 
             for i in range(self.rooArgSets["funcList_zjets"].getSize()):
                 logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
@@ -552,7 +556,7 @@ class DatacardClass:
                 TemplateName,
                 self.zz2l2q_mass,
                 self.rooVars["D"],
-                True,
+                True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
                 self.rooArgSets["funcList_zjets"], # INFO: identical to all background processes
                 self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
                 1.0,
@@ -1052,6 +1056,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass),
                 self.rooVars["data_hist"],
             )
+            self.rooHistPdfs["pdf_{}".format(key)].graphVizTree("{}.dot".format("pdf_{}".format(key)))
 
             if self.SanityCheckPlot:
                 logger.debug("Integral of hist: {:21}: {}".format(key, hist.Integral()))
@@ -1332,10 +1337,11 @@ class DatacardClass:
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
             TString_sig = "sig_merged"
 
-        ## ------------------------- RATES ----------------------------- ##
+        ## ------------------------- RATES: Signal ----------------------------- ##
         sigRate_ggH_Shape, vbf_ratioGGH, btag_ratioGGH = self.getSignalRates("ggH")
         sigRate_VBF_Shape, vbf_ratioVBF, btag_ratioVBF = self.getSignalRates("VBF")
 
+        ## ------------------------- RATES: Background ----------------------------- ##
         self.setup_background_shapes_ReproduceRate_fs()
         self.setup_background_shapes_ReproduceRate_2l()
         self.setup_background_shapes_ReproduceRate("vz")
@@ -1441,26 +1447,38 @@ class DatacardClass:
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
 
+        # ## ------------------------- Save the model using graphVizTree ----------------------------- ##
+        # model_file_path = "{0}/HCG/{1:.0f}/model_{2}_{3:.0f}TeV.dot".format(self.outputDir, self.mH, self.appendName, self.sqrts)
+        # visualize_workspace(self.workspace, model_file_path)
+
         ## ------------------------- Print all RooArgSets ----------------------------- ##
-        self.printAllRooArgSets()
+        # self.printAllRooArgSets()
         if self.DEBUG:
             self.workspace.Print("v")
             logger.error("Exiting the program for DEBUG mode")
             exit()
 
-if __name__ == "__main__":
-    import logging
-    import argparse
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+def visualize_workspace(workspace, output_file):
+    """Generate a .dot file for the workspace visualization using ROOT's Print method."""
+    with open(output_file, "w") as f:
+        workspace.Print("V")  # Print the full structure of the workspace
+        # Manually write the workspace structure to the file
+        f.write("digraph G {\n")
+        # for item in workspace.allFunctions():
+        #     f.write('  "{}" [label="{}"];\n'.format(item.GetName(), item.GetName()))
+        #     for dep in item.getParameters(ROOT.RooArgSet()):
+        #         f.write('  "{}" -> "{}";\n'.format(dep.GetName(), item.GetName()))
+        for item in workspace.allPdfs():
+            f.write('  "{}" [label="{}"];\n'.format(item.GetName(), item.GetName()))
+            for dep in item.getParameters(ROOT.RooArgSet()):
+                f.write('  "{}" -> "{}";\n'.format(dep.GetName(), item.GetName()))
+        f.write("}\n")
+    logger.info("Workspace structure saved to {}".format(output_file))
+
+
+if __name__ == "__main__":
+    import argparse
 
     parser = argparse.ArgumentParser(description="Create datacards and workspaces.")
     parser.add_argument("--year", type=int, required=True, help="Year of the data")
