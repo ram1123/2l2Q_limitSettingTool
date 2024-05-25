@@ -229,22 +229,24 @@ class DatacardClass:
 
         # Combining BTAG with JES nuisances for cumulative effect
         arglist_all_JES_BTAG = ROOT.RooArgList()
-        arglist_all_JES_BTAG.add(BTAG)
+        # arglist_all_JES_BTAG.add(BTAG)
         for nuisance in all_nuisances:
             arglist_all_JES_BTAG.add(nuisance)
+        # arglist_all_JES_BTAG = arglist_all_JES
 
         # Generating the formula string for cumulative effects
         cumulative_jes_effect = "+".join(
             "@{}".format(i) for i in range(len(arglist_all_JES))
         )
         cumulative_jes_effect_with_btag = "+".join(
-            "@{}".format(i + 1) for i in range(len(arglist_all_JES)) # +1 to skip the first BTAG nuisance, so len should be used with without_btag
+            # "@{}".format(i + 1) for i in range(len(arglist_all_JES)) # +1 to skip the first BTAG nuisance, so len should be used with without_btag
+            "@{}".format(i) for i in range(len(arglist_all_JES)) # +1 to skip the first BTAG nuisance, so len should be used with without_btag
         )
 
         self.rooVars["arglist_all_JES"] = arglist_all_JES
         self.rooVars["arglist_all_JES_BTAG"] = arglist_all_JES_BTAG
         self.rooVars["cumulative_jes_effect"] = cumulative_jes_effect
-        self.rooVars["cumulative_jes_effect_with_btag"] = cumulative_jes_effect_with_btag
+        self.rooVars["cumulative_jes_effect_with_btag"] = cumulative_jes_effect
 
         for i in range(arglist_all_JES.getSize()):
             logger.debug("{:4}. JES nuisances: {}".format(i, arglist_all_JES[i]))
@@ -581,14 +583,14 @@ class DatacardClass:
     def get_signal_shape_mean_error(self, SignalShape):
         """Define systematic variables for both electron and muon channels."""
         systematic_vars = [
-            ("mean_e_sig", "CMS_zz2l2q_mean_e_sig", 0.0, -5.0, 5.0),
-            ("sigma_e_sig", "CMS_zz2l2q_sigma_e_sig", 0.0, -5.0, 5.0),
-            ("mean_m_sig", "CMS_zz2l2q_mean_m_sig", 0.0, -5.0, 5.0),
-            ("sigma_m_sig", "CMS_zz2l2q_sigma_m_sig", 0.0, -5.0, 5.0),
-            ("mean_j_sig", "CMS_zz2l2q_mean_j_sig", 0.0, -5.0, 5.0),
-            ("sigma_j_sig", "CMS_zz2l2q_sigma_j_sig", 0.0, -5.0, 5.0),
-            ("mean_J_sig", "CMS_zz2lJ_mean_J_sig", 0.0, -5.0, 5.0),
-            ("sigma_J_sig", "CMS_zz2lJ_sigma_J_sig", 0.0, -5.0, 5.0),
+            ("mean_e_sig", "CMS_zz2l2q_mean_e_sig", 0.0, -10.0, 10.0),
+            ("sigma_e_sig", "CMS_zz2l2q_sigma_e_sig", 0.0, -10.0, 10.0),
+            ("mean_m_sig", "CMS_zz2l2q_mean_m_sig", 0.0, -10.0, 10.0),
+            ("sigma_m_sig", "CMS_zz2l2q_sigma_m_sig", 0.0, -10.0, 10.0),
+            ("mean_j_sig", "CMS_zz2l2q_mean_j_sig", 0.0, -10.0, 10.0),
+            ("sigma_j_sig", "CMS_zz2l2q_sigma_j_sig", 0.0, -10.0, 10.0),
+            ("mean_J_sig", "CMS_zz2lJ_mean_J_sig", 0.0, -10.0, 10.0),
+            ("sigma_J_sig", "CMS_zz2lJ_sigma_J_sig", 0.0, -10.0, 10.0),
         ]
         # Initialize RooRealVar objects for each variable
         for varName, title, init_val, min_val, max_val in systematic_vars:
@@ -1165,65 +1167,65 @@ class DatacardClass:
             formula_ggH = "(1+0.04*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
             formula_VBF = "(1+0.13*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
         elif self.jetType == "resolved" and self.cat == "untagged":
             formula_ggH = "(1-0.03*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioGGH),
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
             formula_VBF = "(1-0.11*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioVBF),
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
         elif self.jetType == "merged" and self.cat == "b_tagged":
             formula_ggH = "(1+0.08*@0)*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
             formula_VBF = "(1+0.07*@0)*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
         elif self.jetType == "merged" and self.cat == "untagged":
             formula_ggH = "(1-0.16*@0*{})*(1-0.1*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioGGH),
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioGGH),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
             formula_VBF = "(1-0.2*@0*{})*(1-0.05*({})*{})*@{}*@{}*@{}".format(
                 str(btagRatioVBF),
                 self.rooVars["cumulative_jes_effect_with_btag"],
                 str(vbfRatioVBF),
+                num_jes_sources,
                 num_jes_sources + 1,
                 num_jes_sources + 2,
-                num_jes_sources + 3,
             )
         else:
             raise ValueError("Category {} not recognized. So, can't get_formulas()".format(self.cat))

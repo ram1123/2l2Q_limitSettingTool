@@ -7,8 +7,9 @@ import os
 import sys
 import logging
 from inputReader import *
-# from datacardClass import datacardClass
-from datacardClass_Improved import datacardClass
+# from datacardClass_legacy import datacardClass
+from datacardClass import DatacardClass as datacardClass
+# from datacardClass_JialinDev import datacardClass
 from utils import *
 import argparse
 from ListOfDatacards import datacardList, datacardList_condor
@@ -1370,7 +1371,7 @@ def main():
         "--MassStartVal",
         dest="MassStartVal",
         type=int,
-        default=500,
+        default=400,
         help="MassStartVal (default:1)",
     )
     mass_settings.add_argument(

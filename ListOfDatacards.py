@@ -1,5 +1,5 @@
 datacardList = [
-    #"hzz2l2q_13TeV_xs.txt",
+    "hzz2l2q_13TeV_xs.txt",
     "hzz2l2q_13TeV_xs_NoNuisance.txt",
 
     # "hzz2l2q_Merged_13TeV_xs.txt",
