@@ -76,7 +76,15 @@ class DirectoryCreator:
         self.start_mass = args.MassStartVal
         self.step_sizes = args.MassStepVal
         self.end_val = args.MassEndVal
-        self.subdir = ["HCG", "figs"]
+        self.subdir = [
+            "HCG",
+            "figs",
+            "figs/impact",
+            "figs/limit",
+            "figs/smooth",
+            "figs/rebin",
+            "figs/dotFiles",
+        ]
         self.dir_name = "datacards_HIG_23_001"
         self.channels = {
             "eeqq_Resolved",

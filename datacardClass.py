@@ -12,6 +12,8 @@ from inputReader import *
 from systematicsClass import *
 from utils import *
 from utils_hist import plot_and_save, save_histograms
+from utils_hist import smooth_histogram, smooth_histogram_with_tkde
+from utils_hist import save_histograms_3
 
 ROOT.gROOT.ProcessLine("struct zz2lJ_massStruct {" "   Double_t zz2lJ_mass;" "};")
 
@@ -39,6 +41,8 @@ class DatacardClass:
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0  # Fraction of signal to be used
         self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
+        self.datacard_lines = []
+        self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjet"]
 
     def clearRooArgSets(self):
         """Clear RooArgSets before using them again as the datacard is initialized one time and used multiple times."""
@@ -53,6 +57,7 @@ class DatacardClass:
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0  # Fraction of signal to be used
+        self.datacard_lines = []
 
     def printAllRooArgSets(self):
         """Print all RooArgSets."""
@@ -396,7 +401,7 @@ class DatacardClass:
                     self.rooDataHist[TemplateName],
                 )
 
-                self.rooVars[pdfName].graphVizTree("{}.dot".format(pdfName))
+                self.rooVars[pdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, pdfName))
 
                 if sample == "ggH":
                     self.rooVars["funcList_ggH"].add(self.rooVars[pdfName])
@@ -514,7 +519,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
                 self.rooDataHist[TemplateName],
             )
-            self.rooDataHist[PdfName].graphVizTree("{}.dot".format(PdfName))
+            self.rooDataHist[PdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, PdfName))
 
             self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
 
@@ -533,7 +538,7 @@ class DatacardClass:
                 vzTemplateName.replace("zjets", "zjet"),
                 vzTemplateName.replace("zjets", "zjet"),
                 ROOT.RooArgList(self.zz2l2q_mass),
-                vzTemplateMVV,
+                vzTemplateMVV,  # INFO: Whether we should use vzTemplateMVV or vzTemplateMVV_smooth
             )
 
             vzTemplatePdfName = "{}Pdf".format(vzTemplateName.replace("zjets", "zjet"))
@@ -543,7 +548,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass),
                 self.rooDataHist[vzTemplateName],
             )
-            self.rooDataHist[vzTemplatePdfName].graphVizTree("{}.dot".format(vzTemplatePdfName))
+            self.rooDataHist[vzTemplatePdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, vzTemplatePdfName))
 
             for i in range(self.rooArgSets["funcList_zjets"].getSize()):
                 logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
@@ -1007,13 +1012,9 @@ class DatacardClass:
 
     def setup_background_shapes(self):
         """Setup the background shapes from the templates."""
-        TempFile_fs = ROOT.TFile(
-            "templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year), "READ"
-        )
+        TempFile_fs = ROOT.TFile("templates1D/Template1D_spin0_{}_{}.root".format(self.fs, self.year), "READ")
         if not TempFile_fs or TempFile_fs.IsZombie():
-            raise FileNotFoundError(
-                "Could not open the template file for final state {}".format(self.fs)
-            )
+            raise FileNotFoundError("Could not open the template file for final state {}".format(self.fs))
 
         prefix = "hmass_{}SR".format(self.jetType)
         hist_suffixes = {
@@ -1035,21 +1036,28 @@ class DatacardClass:
                 self.background_hists[key + "_" + category + "_template"] = hist
                 logger.debug("{} integral: {}".format(hist_name, hist.Integral()))
 
-        for key, hist in self.background_hists.items():
-            hist_smooth = hist.Clone()
-            hist_smooth.Smooth(1)
-
-            logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
-            if self.SanityCheckPlot:
-                save_histograms(hist, hist_smooth, "{}/{}_smoothed.png".format(self.outputDir, key))
+                # Add shape uncertainties
+                # self.add_shape_uncertainties_to_workspace(key + "_" + category, hist, self.rooDataHist[hist_name])
+                # self.add_shape_uncertainties_to_workspace(key + "_" + category, hist)
 
         self.rooHistPdfs = {}
         for key, hist in self.background_hists.items():
+            hist_smooth = hist.Clone()
+            # hist_smooth.Smooth(1000, "R")
+            # hist_smooth.SmoothMarkov(1000)
+            hist_smooth = smooth_histogram(hist)
+            # hist_smooth_KDE = smooth_histogram_with_tkde(hist)
+
+            logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
+            if self.SanityCheckPlot:
+                save_histograms(hist, hist_smooth, "{}/figs/smooth/{}_{}_smoothed.png".format(self.outputDir, self.channel, key), "hist", "Smooth")
+                # save_histograms_3(hist, hist_smooth, hist_smooth_KDE, "{}/figs/smooth/{}_{}_smoothed.png".format(self.outputDir, self.channel, key), "hist", "Smooth", "Smooth_KDE")
+
             self.rooVars["data_hist"] = ROOT.RooDataHist(
                 "dh_{}".format(key),
                 "DataHist for {}".format(key),
                 ROOT.RooArgList(self.zz2l2q_mass),
-                hist,
+                hist_smooth, # INFO: Use smooth histogram here
             )
 
             self.rooHistPdfs["pdf_{}".format(key)] = ROOT.RooHistPdf(
@@ -1058,7 +1066,7 @@ class DatacardClass:
                 ROOT.RooArgSet(self.zz2l2q_mass),
                 self.rooVars["data_hist"],
             )
-            self.rooHistPdfs["pdf_{}".format(key)].graphVizTree("{}.dot".format("pdf_{}".format(key)))
+            self.rooHistPdfs["pdf_{}".format(key)].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, "pdf_{}".format(key)))
 
             if self.SanityCheckPlot:
                 logger.debug("Integral of hist: {:21}: {}".format(key, hist.Integral()))
@@ -1328,7 +1336,88 @@ class DatacardClass:
             for cat in categories:
                 hist = self.background_hists["{}{}_template".format(proc, cat)]
                 hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
-                save_histograms(hist, hist_smooth, "{}/{}_{}_smoothed.png".format(self.outputDir, proc, cat))
+                save_histograms(hist, hist_smooth, "{}/figs/rebin/{}_{}{}_RebinComp.png".format(self.outputDir, self.channel, proc, cat), "hist", "hist_rebin")
+
+    def create_shape_uncertainties(self, hist, threshold=5):
+        """Create shape uncertainties for bins with entries below the threshold."""
+        hist_up = hist.Clone(hist.GetName() + "_up")
+        hist_down = hist.Clone(hist.GetName() + "_down")
+
+        for bin in range(1, hist.GetNbinsX() + 1):
+            content = hist.GetBinContent(bin)
+            error = hist.GetBinError(bin)
+
+            if content < threshold:
+                if content == 0:
+                    hist.SetBinContent(bin, 0.000001)
+                    hist_up.SetBinContent(bin, 0.000001 + ROOT.TMath.Sqrt(0.000001))
+                    hist_down.SetBinContent(bin, 0.0)
+                else:
+                    hist_up.SetBinContent(bin, content + error)
+                    hist_down.SetBinContent(bin, max(content - error, 0.0))
+
+        return hist_up, hist_down
+
+    def add_shape_uncertainties_to_workspace(self, process, hist):
+        """Add shape uncertainties to the workspace."""
+        hist_up, hist_down = self.create_shape_uncertainties(hist)
+
+        TemplateName_up = "{process}_template_up".format(process=process)
+        TemplateName_down = "{process}_template_down".format(process=process)
+
+        # # print the min, max and number of bins in hist
+        # print("hist min: ", hist.GetMinimum())
+        # print("hist max: ", hist.GetMaximum())
+        # print("hist bins: ", hist.GetNbinsX())
+        # print("hist dimension: ", hist.GetDimension())
+
+        rooDataHist_up = ROOT.RooDataHist(TemplateName_up, TemplateName_up, ROOT.RooArgList(self.zz2l2q_mass), hist_up)
+        rooDataHist_down = ROOT.RooDataHist(TemplateName_down, TemplateName_down, ROOT.RooArgList(self.zz2l2q_mass), hist_down)
+
+        pdfName_up = "{process}_PdfUp".format(process=process)
+        pdfName_down = "{process}_PdfDown".format(process=process)
+
+        self.rooVars[pdfName_up] = ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(self.zz2l2q_mass), rooDataHist_up)
+        self.rooVars[pdfName_down] = ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(self.zz2l2q_mass), rooDataHist_down)
+
+        getattr(self.workspace, "import")(self.rooVars[pdfName_up], ROOT.RooFit.RecycleConflictNodes())
+        getattr(self.workspace, "import")(self.rooVars[pdfName_down], ROOT.RooFit.RecycleConflictNodes())
+
+        # Add these uncertainties to the datacard as shape uncertainties
+        self.add_shape_uncertainties_to_datacard(process, pdfName_up, pdfName_down)
+
+    # def add_shape_uncertainties_to_datacard(self, process, pdfName_up, pdfName_down):
+    #     """Add shape uncertainties to the datacard."""
+    #     # with open(self.datacard_path, "a") as f:
+    #     # f.write("{process}_shapeUp shape {pdfName_up}\n".format(process=process, pdfName_up=pdfName_up))
+    #     # f.write("{process}_shapeDown shape {pdfName_down}\n".format(process=process, pdfName_down=pdfName_down))
+
+    #     # keep the lines in a self list and write them all at once later
+    #     self.datacard_lines.append("{process}_shapeUp shape {pdfName_up}\n".format(process=process, pdfName_up=pdfName_up))
+    #     self.datacard_lines.append("{process}_shapeDown shape {pdfName_down}\n".format(process=process, pdfName_down=pdfName_down))
+
+    def add_shape_uncertainties_to_datacard(self, process, pdfName_up, pdfName_down):
+        """Add shape uncertainties to the datacard."""
+        # Determine the position of the process in the channelName2D list
+        shape_line_up = "{process} shape".format(process=pdfName_up.replace("Up",""))
+        shape_line_down = "{process} shape".format(process=pdfName_down.replace("Down",""))
+
+        # logger.error(("shape_line_up: ", shape_line_up))
+        # logger.error(("shape_line_down: ", shape_line_down))
+
+        for channel in self.channelName2D:
+            if channel.endswith(process.split("_")[0]):
+                shape_line_up += " 1"
+                shape_line_down += " 1"
+            else:
+                shape_line_up += " -"
+                shape_line_down += " -"
+
+        shape_line_up += "\n"
+        shape_line_down += "\n"
+
+        self.datacard_lines.append(shape_line_up)
+        # self.datacard_lines.append(shape_line_down)
 
     def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
         """Main function to create the datacards and workspaces."""
@@ -1339,9 +1428,35 @@ class DatacardClass:
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
             TString_sig = "sig_merged"
 
+        ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
+        systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)
+
         ## ------------------------- RATES: Signal ----------------------------- ##
         sigRate_ggH_Shape, vbf_ratioGGH, btag_ratioGGH = self.getSignalRates("ggH")
         sigRate_VBF_Shape, vbf_ratioVBF, btag_ratioVBF = self.getSignalRates("VBF")
+
+        # ================== SIGNAL SHAPE ================== #
+        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year) # INFO: Hardcoded path and filename
+        SignalShape = self.open_root_file(SignalShapeFile)
+
+        self.get_signal_shape_mean_error(SignalShape)
+        self.setup_signal_shape(SignalShape, systematics, "VBF", self.channel)
+        self.setup_signal_shape(SignalShape, systematics, "ggH", self.channel)
+
+        # Opening template ROOT files
+        templateSigName = "templates2D/2l2q_spin0_template_{}.root".format(self.year) # FIXME: hardcoded path
+        logger.debug("Using templateSigName: {}".format(templateSigName))
+        sigTempFile = self.open_root_file(templateSigName)
+
+        # Setup discriminant variable
+        sigTemplate = sigTempFile.Get(TString_sig)
+        dBins = sigTemplate.GetYaxis().GetNbins()
+        dLow = sigTemplate.GetYaxis().GetXmin()
+        dHigh = sigTemplate.GetYaxis().GetXmax()
+        self.rooVars["D"] = ROOT.RooRealVar("Dspin0", "Discriminant Variable (Dspin0)", dLow, dHigh)
+        self.rooVars["D"].setBins(dBins)
+        logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
+        sigTempFile.Close()
 
         ## ------------------------- RATES: Background ----------------------------- ##
         self.setup_background_shapes_ReproduceRate_fs()
@@ -1377,32 +1492,6 @@ class DatacardClass:
         rates["vz"] = bkgRate_vz_Shape
         rates["ttbar"] = bkgRate_ttbar_Shape
         rates["zjets"] = bkgRate_zjets_Shape
-
-        ## ------------------------- SYSTEMATICS CLASSES ----------------------------- ##
-        systematics = systematicsClass(self.mH, True, theInputs, self.year, self.DEBUG)
-
-        # ================== SIGNAL SHAPE ================== #
-        SignalShapeFile = "Resolution/2l2q_resolution_{0}_{1}.root".format(self.jetType, self.year) # INFO: Hardcoded path and filename
-        SignalShape = self.open_root_file(SignalShapeFile)
-
-        self.get_signal_shape_mean_error(SignalShape)
-        self.setup_signal_shape(SignalShape, systematics, "VBF", self.channel)
-        self.setup_signal_shape(SignalShape, systematics, "ggH", self.channel)
-
-        # Opening template ROOT files
-        templateSigName = "templates2D/2l2q_spin0_template_{}.root".format(self.year) # FIXME: hardcoded path
-        logger.debug("Using templateSigName: {}".format(templateSigName))
-        sigTempFile = self.open_root_file(templateSigName)
-
-        # Setup discriminant variable
-        sigTemplate = sigTempFile.Get(TString_sig)
-        dBins = sigTemplate.GetYaxis().GetNbins()
-        dLow = sigTemplate.GetYaxis().GetXmin()
-        dHigh = sigTemplate.GetYaxis().GetXmax()
-        self.rooVars["D"] = ROOT.RooRealVar("Dspin0", "Discriminant Variable (Dspin0)", dLow, dHigh)
-        self.rooVars["D"].setBins(dBins)
-        logger.debug("Discriminant variable setup with bins: {}, range: [{}, {}]".format(dBins, dLow, dHigh))
-        sigTempFile.Close()
 
         ## ------------------------- MELA 2D ----------------------------- ##
         self.getRooProdPDFofMorphedSignal(TString_sig, templateSigName)
@@ -1446,6 +1535,18 @@ class DatacardClass:
         self.WriteDatacard(fo, theInputs, name_ShapeWS2, rates, self.rooDataSet["data_obs"].numEntries(), self.is2D)
         systematics.WriteSystematics(fo, theInputs, rates, 0.0) # INFO: Why is the last argument 0.0?
         systematics.WriteShapeSystematics(fo, theInputs)
+        # write the self.datacard_lines
+        # self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
+        # for line in self.datacard_lines:
+        # fo.write(line)
+        # Add the shape uncertainties to the datacard with respective process names like:
+        # ttbar_btagged_shapeDown shape 1 1 1 1 1
+        # keep 1 with respective line in the datacard only
+        # for process in channelName2D:
+        #     for line in self.datacard_lines:
+        #         if process in line:
+        #             fo.write(line)
+
         fo.close()
         logger.debug("appendName is channel + cat: {}".format(self.appendName))
 
@@ -1453,13 +1554,13 @@ class DatacardClass:
         # model_file_path = "{0}/HCG/{1:.0f}/model_{2}_{3:.0f}TeV.dot".format(self.outputDir, self.mH, self.appendName, self.sqrts)
         # visualize_workspace(self.workspace, model_file_path)
 
-        ## ------------------------- Print all RooArgSets ----------------------------- ##
+        ## ------------------------- Print ajjjll RooArgSets ----------------------------- ##
         # self.printAllRooArgSets()
         if self.DEBUG:
             self.workspace.Print("v")
             logger.error("Exiting the program for DEBUG mode")
-            exit()
-
+            # exit()
+        # exit()
 
 def visualize_workspace(workspace, output_file):
     """Generate a .dot file for the workspace visualization using ROOT's Print method."""
