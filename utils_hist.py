@@ -36,6 +36,7 @@ def smooth_histogram(hist, kernel_width=-1):
     if kernel_width < 1:
         kernel_width = hist.GetBinWidth(1)
 
+    kernel_width = kernel_width * 1.0
     nbins = hist.GetNbinsX()
     xmin = hist.GetXaxis().GetXmin()
     xmax = hist.GetXaxis().GetXmax()
@@ -51,7 +52,7 @@ def smooth_histogram(hist, kernel_width=-1):
         #     continue
 
         # continue if there is no entry in the bin below 500 GeV
-        if x < 500 and hist.GetBinContent(bin) == 0:
+        if (x < 500 and hist.GetBinContent(bin) == 0) or (x < 200 and "Resolved" in hist.GetName()):
             continue
         sumw = 0
         sumwy = 0
@@ -333,3 +334,21 @@ def plot_and_save(data_hist, pdf, zz2l2q_mass, key, outputDir):
 
     # Clean up to prevent memory issues
     del canvas, frame
+
+
+def visualize_workspace(workspace, output_file):
+    """Generate a .dot file for the workspace visualization using ROOT's Print method."""
+    with open(output_file, "w") as f:
+        workspace.Print("V")  # Print the full structure of the workspace
+        # Manually write the workspace structure to the file
+        f.write("digraph G {\n")
+        # for item in workspace.allFunctions():
+        #     f.write('  "{}" [label="{}"];\n'.format(item.GetName(), item.GetName()))
+        #     for dep in item.getParameters(ROOT.RooArgSet()):
+        #         f.write('  "{}" -> "{}";\n'.format(dep.GetName(), item.GetName()))
+        for item in workspace.allPdfs():
+            f.write('  "{}" [label="{}"];\n'.format(item.GetName(), item.GetName()))
+            for dep in item.getParameters(ROOT.RooArgSet()):
+                f.write('  "{}" -> "{}";\n'.format(dep.GetName(), item.GetName()))
+        f.write("}\n")
+    logger.info("Workspace structure saved to {}".format(output_file))

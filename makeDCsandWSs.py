@@ -84,6 +84,7 @@ class DirectoryCreator:
             "figs/smooth",
             "figs/rebin",
             "figs/dotFiles",
+            "figs/shape_uncertainties",
         ]
         self.dir_name = "datacards_HIG_23_001"
         self.channels = {
