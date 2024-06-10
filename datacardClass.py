@@ -43,7 +43,18 @@ class DatacardClass:
         self.sigFraction = 1.0  # Fraction of signal to be used
         self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
         self.datacard_lines = []
-        self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjet"]
+        self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
+        self.background_list = ["vz", "ttbar", "zjets"]
+        self.background_map_2DTemplates = {
+            "vz": "Diboson",
+            "ttbar": "TTbar",
+            "zjets": "DY",
+        }
+        self.hist_suffixes = {
+            "vz": "VZ_perInvFb_Bin50GeV",
+            "ttbar": "TTplusWW_perInvFb_Bin50GeV",
+            "zjets": "Zjet_perInvFb_Bin50GeV",
+        }
 
     def clearRooArgSets(self):
         """Clear RooArgSets before using them again as the datacard is initialized one time and used multiple times."""
@@ -122,7 +133,12 @@ class DatacardClass:
         self.high_M = 3500
         self.bins = 27
 
+        # xbin = [-3,-2,-1,-0.2,0.1,0.3,0.5,0.8,1,1.3,1.5,2,3]
+        # tbin = r.RooBinning(len(xbin)-1, array('d', xbin))
 
+        # self.tbins = ROOT.RooBinning(self.low_M, self.high_M)
+        # self.tbins.addUniform(16, self.low_M, 900)
+        # self.tbins.addUniform(4, 900, 3500)
 
         self.ID_2muResolved = "mumuqq_Resolved"
         self.ID_2eResolved = "eeqq_Resolved"
@@ -282,7 +298,7 @@ class DatacardClass:
         logger.debug("cumulative_jes_effect: {}".format(cumulative_jes_effect))
         logger.debug("cumulative_jes_effect_with_btag: {}".format(cumulative_jes_effect_with_btag))
 
-    def initialize_settings(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot):
+    def initialize_settings(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, BinStatUnc, SanityCheckPlot):
         """Initialize settings for the datacard."""
         self.mH = theMH
         self.lumi = theInputs["lumi"]
@@ -294,7 +310,9 @@ class DatacardClass:
         self.bkgMorph = True
         self.cat = theCat
         self.FracVBF = theFracVBF
+        self.BinStatUnc = BinStatUnc
         self.SanityCheckPlot = SanityCheckPlot
+
         logger.debug("Settings initialized for channel: {}".format(self.channel))
 
     def initialize_workspace_and_observables(self, theMH, theInputs):
@@ -493,76 +511,76 @@ class DatacardClass:
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
             logger.debug("added to workspace: {}".format(name))
 
-    def get_Zjets_funcList(self):
+    def get_Backgrounds_funcList(self):
         """Get the function list for Zjets."""
         templatezjetsBkgName = "templates2D/2l2q_spin0_template_{}.root".format(self.year)
-        zjetsTempFile = self.open_root_file(templatezjetsBkgName)
+        bkg2DTemplateFile = self.open_root_file(templatezjetsBkgName)
 
-        # Initialize funcList_zjets as RooArgList
-        if "funcList_zjets" not in self.rooArgSets:
-            self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
+        for bkg_process in self.background_list:
+            # Initialize funcList_zjets as RooArgList
+            if "funcList_{}".format(bkg_process) not in self.rooArgSets:
+                self.rooArgSets["funcList_{}".format(bkg_process)] = ROOT.RooArgList()
 
-        TString_bkg = "DY_resolved"
-        if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
-            TString_bkg = "DY_merged"
+            TString_bkg = "{}_resolved".format(self.background_map_2DTemplates[bkg_process])
+            if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+                TString_bkg = "{}_merged".format(self.background_map_2DTemplates[bkg_process])
 
-        variations = ["", "_Up", "_Down"]
-        for variation in variations:
-            logger.debug("variation: {}".format(variation))
-            if not self.bkgMorph and variation != "":
-                logger.error("Skipping variation: {}".format(variation))
-                continue
+            variations = ["", "_Up", "_Down"]
+            for variation in variations:
+                logger.debug("variation: {}".format(variation))
+                if not self.bkgMorph and variation != "":
+                    logger.error("Skipping variation: {}".format(variation))
+                    continue
 
-            variations_tag_for_hist = "_up" if variation == "_Up" else "_dn" if variation == "_Down" else ""
-            logger.debug("variations: {}, variations_tag_for_hist: {}".format(variation, variations_tag_for_hist))
-            logger.debug("Looking for hist: {}".format(TString_bkg + variations_tag_for_hist))
+                variations_tag_for_hist = "_up" if variation == "_Up" else "_dn" if variation == "_Down" else ""
+                logger.debug("variations: {}, variations_tag_for_hist: {}".format(variation, variations_tag_for_hist))
+                logger.debug("Looking for hist: {}".format(TString_bkg + variations_tag_for_hist))
 
-            zjetsTemplate = zjetsTempFile.Get(TString_bkg + variations_tag_for_hist)
-            if not zjetsTemplate:
-                logger.debug("Failed to get zjets template: {}".format(TString_bkg + variations_tag_for_hist))
-                continue
+                bkgsTemplate = bkg2DTemplateFile.Get(TString_bkg + variations_tag_for_hist)
+                if not bkgsTemplate:
+                    logger.debug("Failed to get {} template: {}".format(bkg_process, TString_bkg + variations_tag_for_hist))
+                    continue
 
-            logger.debug("zjetsTemplate: Name: {} Title: {} NbinsX: {}".format(zjetsTemplate.GetName(), zjetsTemplate.GetTitle(), zjetsTemplate.GetNbinsX()))
+                logger.debug("bkgsTemplate: Name: {} Title: {} NbinsX: {}".format(bkgsTemplate.GetName(), bkgsTemplate.GetTitle(), bkgsTemplate.GetNbinsX()))
 
-            TemplateName = "zjetsTempDataHist_{}{}_{}".format(TString_bkg, variation, self.year)
-            self.rooDataHist[TemplateName] = ROOT.RooDataHist(
-                TemplateName,
-                TemplateName,
-                ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]),
-                zjetsTemplate,
-            )
+                TemplateName = "{}TempDataHist_{}{}_{}".format(bkg_process, TString_bkg, variation, self.year)
+                self.rooDataHist[TemplateName] = ROOT.RooDataHist(
+                    TemplateName,
+                    TemplateName,
+                    ROOT.RooArgList(self.zz2l2q_mass, self.rooVars["D"]),
+                    bkgsTemplate,
+                )
 
-            PdfName = "zjetsTemplatePdf_{}{}_{}".format(TString_bkg, variation, self.year)
-            self.rooDataHist[PdfName] = ROOT.RooHistPdf(
-                PdfName,
-                PdfName,
-                ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
-                self.rooDataHist[TemplateName],
-            )
-            self.rooDataHist[PdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, PdfName))
+                PdfName = "{}TemplatePdf_{}{}_{}".format(bkg_process, TString_bkg, variation, self.year)
+                self.rooDataHist[PdfName] = ROOT.RooHistPdf(
+                    PdfName,
+                    PdfName,
+                    ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]),
+                    self.rooDataHist[TemplateName],
+                )
+                self.rooDataHist[PdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, PdfName))
 
-            self.rooArgSets["funcList_zjets"].add(self.rooDataHist[PdfName])
+                self.rooArgSets["funcList_{}".format(bkg_process)].add(self.rooDataHist[PdfName])
 
-        for i in range(self.rooArgSets["funcList_zjets"].getSize()):
-            logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
+            for i in range(self.rooArgSets["funcList_{}".format(bkg_process)].getSize()):
+                logger.debug("{:2}: funcList_{}: {}".format(i, bkg_process, self.rooArgSets["funcList_{}".format(bkg_process)].at(i).GetName()))
 
     def getRooProdPDFofMorphedBackgrounds(self):
         """Get the RooProdPDF of morphed backgrounds."""
-        background_list = ["vz", "ttbar", "zjets"]
-        for process in background_list:
+        for process in self.background_list:
             vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
-            vzTemplateMVV = self.background_hists["{}_template".format(process.replace("zjets", "zjet"))]
+            vzTemplateMVV = self.background_hists["{}_template".format(process)]
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
             self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
-                vzTemplateName.replace("zjets", "zjet"),
-                vzTemplateName.replace("zjets", "zjet"),
+                vzTemplateName,
+                vzTemplateName,
                 ROOT.RooArgList(self.zz2l2q_mass),
                 vzTemplateMVV,  # INFO: Whether we should use vzTemplateMVV or vzTemplateMVV_smooth
             )
 
-            vzTemplatePdfName = "{}Pdf".format(vzTemplateName.replace("zjets", "zjet"))
+            vzTemplatePdfName = "{}Pdf".format(vzTemplateName)
             self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
                 vzTemplatePdfName,
                 vzTemplatePdfName,
@@ -571,8 +589,8 @@ class DatacardClass:
             )
             self.rooDataHist[vzTemplatePdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, vzTemplatePdfName))
 
-            for i in range(self.rooArgSets["funcList_zjets"].getSize()):
-                logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
+            for i in range(self.rooArgSets["funcList_{}".format(process)].getSize()):
+                logger.debug("{:2}: funcList_{}: {}".format(i, process, self.rooArgSets["funcList_{}".format(process)].at(i).GetName()))
 
             # morphing
             for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
@@ -585,7 +603,7 @@ class DatacardClass:
                 self.zz2l2q_mass,
                 self.rooVars["D"],
                 True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-                self.rooArgSets["funcList_zjets"], # INFO: identical to all background processes
+                self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
                 self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
                 1.0,
                 1,
@@ -606,77 +624,79 @@ class DatacardClass:
 
             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
 
-        # for hist in self.background_hists:
-        #     logger.debug("hist: {}, {}".format(hist, type(self.background_hists[hist])))
-        # categories = {"untagged", "btagged", "vbftagged"}
-        # for process in background_list:
-        #     for category in categories:
-        #         for syst in ["Up", "Down"]:
-        #             vzTemplateName = "{}_{}_{}_{}_{}".format(process, self.appendName, self.year, category, syst)
+        if self.BinStatUnc:
+            for hist in self.background_hists:
+                logger.debug("hist: {}, {}".format(hist, type(self.background_hists[hist])))
+            # categories = {"untagged", "btagged", "vbftagged"}
+            categories = {self.cat_tree}
+            for process in self.background_list:
+                for category in categories:
+                    for syst in ["Up", "Down"]:
+                        vzTemplateName = "{}_{}_{}_{}_{}".format(process, self.appendName, self.year, category, syst)
 
-        #             logger.debug("HIST name: {}".format("{}_{}_template_{}".format(process.replace("zjets", "zjet"), category, syst.lower())))
+                        logger.debug("HIST name: {}".format("{}_{}_template_{}".format(process, category, syst.lower())))
 
-        #             vzTemplateMVV = self.background_hists["{}_{}_template_{}".format(process.replace("zjets", "zjet"), category, syst.lower())]
-        #             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
-        #             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
+                        vzTemplateMVV = self.background_hists["{}_{}_template_{}".format(process, category, syst.lower())]
+                        logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
+                        logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
-        #             self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
-        #                 vzTemplateName.replace("zjets", "zjet"),
-        #                 vzTemplateName.replace("zjets", "zjet"),
-        #                 ROOT.RooArgList(self.zz2l2q_mass),
-        #                 vzTemplateMVV,  # INFO: Whether we should use vzTemplateMVV or vzTemplateMVV_smooth
-        #             )
+                        self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
+                            vzTemplateName,
+                            vzTemplateName,
+                            ROOT.RooArgList(self.zz2l2q_mass),
+                            vzTemplateMVV,  # INFO: Whether we should use vzTemplateMVV or vzTemplateMVV_smooth
+                        )
 
-        #             vzTemplatePdfName = "{}Pdf{}".format(vzTemplateName.replace("zjets", "zjet"), syst)
-        #             self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
-        #                 vzTemplatePdfName,
-        #                 vzTemplatePdfName,
-        #                 ROOT.RooArgSet(self.zz2l2q_mass),
-        #                 self.rooDataHist[vzTemplateName],
-        #             )
-        #             self.rooDataHist[vzTemplatePdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, vzTemplatePdfName))
+                        vzTemplatePdfName = "{}Pdf{}".format(vzTemplateName, syst)
+                        self.rooDataHist[vzTemplatePdfName] = ROOT.RooHistPdf(
+                            vzTemplatePdfName,
+                            vzTemplatePdfName,
+                            ROOT.RooArgSet(self.zz2l2q_mass),
+                            self.rooDataHist[vzTemplateName],
+                        )
+                        self.rooDataHist[vzTemplatePdfName].graphVizTree("{}/figs/dotFiles/{}.dot".format(self.outputDir, vzTemplatePdfName))
 
-        #             for i in range(self.rooArgSets["funcList_zjets"].getSize()):
-        #                 logger.debug("{:2}: funcList_zjets: {}".format(i, self.rooArgSets["funcList_zjets"].at(i).GetName()))
+                        for i in range(self.rooArgSets["funcList_{}".format(process)].getSize()):
+                            logger.debug("{:2}: funcList_{} {}".format(i,  process, self.rooArgSets["funcList_{}".format(process)].at(i).GetName()))
 
-        #             # morphing
-        #             for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
-        #                 logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
+                        # morphing
+                        for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
+                            logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
-        #             TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
-        #             self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-        #                 TemplateName,
-        #                 TemplateName,
-        #                 self.zz2l2q_mass,
-        #                 self.rooVars["D"],
-        #                 True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-        #                 self.rooArgSets["funcList_zjets"], # INFO: identical to all background processes
-        #                 self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
-        #                 1.0,
-        #                 1,
-        #             )
+                        TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
+                        self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                            TemplateName,
+                            TemplateName,
+                            self.zz2l2q_mass,
+                            self.rooVars["D"],
+                            True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
+                            self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                            self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
+                            1.0,
+                            1,
+                        )
 
-        #             name = "bkg2d_{}_{}{}".format(process, self.year, syst)
-        #             self.rooProdPdf[name] = ROOT.RooProdPdf(
-        #                 name,
-        #                 name,
-        #                 ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
-        #                 ROOT.RooFit.Conditional(
-        #                     ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
-        #                     ROOT.RooArgSet(self.rooVars["D"]),
-        #                 ),
-        #             )
+                        name = "bkg2d_{}_{}{}".format(process, self.year, syst)
+                        self.rooProdPdf[name] = ROOT.RooProdPdf(
+                            name,
+                            name,
+                            ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
+                            ROOT.RooFit.Conditional(
+                                ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                                ROOT.RooArgSet(self.rooVars["D"]),
+                            ),
+                        )
 
-        #             self.rooProdPdf[name].SetNameTitle(
-        #                 "bkg_{}_{}_{}{}".format(
-        #                     process, process.replace("zjets", "zjet"), category, syst
-        #                 ),
-        #                 "bkg_{}_{}_{}{}".format(
-        #                     process, process.replace("zjets", "zjet"), category, syst
-        #                 ),
-        #             )
+                        self.rooProdPdf[name].SetNameTitle(
+                            "bkg_{}_{}_{}{}".format(
+                                process, process, category, syst
+                            ),
+                            "bkg_{}_{}_{}{}".format(
+                                process, process, category, syst
+                            ),
+                        )
 
-        #             getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
+                        getattr(self.workspace, "import")(self.rooProdPdf[name], ROOT.RooFit.RecycleConflictNodes())
 
     def get_signal_shape_mean_error(self, SignalShape):
         """Define systematic variables for both electron and muon channels."""
@@ -990,18 +1010,14 @@ class DatacardClass:
             raise IOError("Could not open the template file: {}".format(template_file_path))
 
         prefix = "hmass_{}SR".format(self.jetType)
-        hist_suffixes = {
-            "vz": "VZ_perInvFb_Bin50GeV",
-            "ttbar": "TTplusWW_perInvFb_Bin50GeV",
-            "zjet": "Zjet_perInvFb_Bin50GeV",
-        }
+
         categories = {
             "untagged": "",
             "btagged": "btag",
             "vbftagged": "vbf",
         }
 
-        for key, suffix in hist_suffixes.items():
+        for key, suffix in self.hist_suffixes.items():
             for category, cat_string in categories.items():
                 hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
                 hist = temp_file_fs.Get(hist_name)
@@ -1030,13 +1046,8 @@ class DatacardClass:
             raise IOError("Could not open the template file: {}".format(template_file_path))
 
         prefix = "hmass_{}SR".format(self.jetType)
-        hist_suffixes = {
-            "vz": "VZ_perInvFb_Bin50GeV",
-            "ttbar": "TTplusWW_perInvFb_Bin50GeV",
-            "zjet": "Zjet_perInvFb_Bin50GeV",
-        }
 
-        for key, suffix in hist_suffixes.items():
+        for key, suffix in self.hist_suffixes.items():
             hist_name = "{}_{}".format(prefix, suffix)
             hist = temp_file_fs.Get(hist_name)
 
@@ -1110,14 +1121,9 @@ class DatacardClass:
             raise FileNotFoundError("Could not open the template file for final state {}".format(self.fs))
 
         prefix = "hmass_{}SR".format(self.jetType)
-        hist_suffixes = {
-            "vz": "VZ_perInvFb_Bin50GeV",
-            "ttbar": "TTplusWW_perInvFb_Bin50GeV",
-            "zjet": "Zjet_perInvFb_Bin50GeV",
-        }
         categories = {"untagged": "", "btagged": "btag", "vbftagged": "vbf"}
 
-        for key, suffix in hist_suffixes.items():
+        for key, suffix in self.hist_suffixes.items():
             for category, cat_string in categories.items():
                 hist_name = "{}{}_{}".format(prefix, cat_string, suffix)
                 hist = TempFile_fs.Get(hist_name)
@@ -1130,8 +1136,9 @@ class DatacardClass:
                 logger.debug("{} integral: {}".format(hist_name, hist.Integral()))
 
                 # Add shape uncertainties
-                # self.add_shape_uncertainties_to_workspace(key + "_" + category, hist, self.rooDataHist[hist_name])
-                self.add_shape_uncertainties_to_workspace(key, key + "_" + category, hist)
+                if category == self.cat_tree and self.BinStatUnc:
+                    # self.add_shape_uncertainties_to_workspace(key + "_" + category, hist, self.rooDataHist[hist_name])
+                    self.add_shape_uncertainties_to_workspace(key + "_" + category, hist)
 
         self.rooHistPdfs = {}
         for key, hist in self.background_hists.items():
@@ -1355,8 +1362,8 @@ class DatacardClass:
         file.write("bin ")
 
         channelList = ["ggH", "qqH", "vz", "ttbar", "zjets"]
-        channelName1D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
-        channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
+        channelName1D = self.channelName2D
+        channelName2D = self.channelName2D
 
         for chan in channelList:
             if theInputs[chan]:
@@ -1423,7 +1430,7 @@ class DatacardClass:
 
     def compareOldNewBinnedHistogram(self):
         """Compare the smoothed histograms with the original histograms."""
-        process = {"vz", "ttbar", "zjet"}
+        process = self.background_list
         categories = {"_untagged", "_btagged", "_vbftagged", ""}
 
         for proc in process:
@@ -1453,6 +1460,7 @@ class DatacardClass:
                 else:
                     hist_up.SetBinContent(bin, content + error)
                     hist_down.SetBinContent(bin, max(content - error, 0.0))
+                break;
 
         self.background_hists[process + "_template_up"] = hist_up
         self.background_hists[process + "_template_down"] = hist_down
@@ -1463,7 +1471,7 @@ class DatacardClass:
 
         return hist_up, hist_down
 
-    def add_shape_uncertainties_to_workspace(self, bkg_tag, process, hist):
+    def add_shape_uncertainties_to_workspace(self, process, hist):
         """Add shape uncertainties to the workspace."""
         hist_up, hist_down = self.create_shape_uncertainties(hist, process, threshold=5)
 
@@ -1471,7 +1479,6 @@ class DatacardClass:
         # hist_up.SaveAs("hist_up_{}.root".format(process))
         # hist_down.SaveAs("hist_down_{}.root".format(process))
 
-        TemplateName = "{process}_template".format(process=process)
         TemplateName_up = "{process}_template_up".format(process=process)
         TemplateName_down = "{process}_template_down".format(process=process)
 
@@ -1484,43 +1491,35 @@ class DatacardClass:
         # print("hist bins: ", hist.GetNbinsX())
         # print("hist dimension: ", hist.GetDimension())
 
-        rooDataHist = ROOT.RooDataHist(TemplateName, TemplateName, ROOT.RooArgList(self.zz2l2q_mass), hist)
         rooDataHist_up = ROOT.RooDataHist(TemplateName_up, TemplateName_up, ROOT.RooArgList(self.zz2l2q_mass), hist_up)
         rooDataHist_down = ROOT.RooDataHist(TemplateName_down, TemplateName_down, ROOT.RooArgList(self.zz2l2q_mass), hist_down)
 
         # RooHistPdf::vz_untagged_PdfDown[ pdfObs=(zz2lJ_mass) ] = 0.000188115
         # RooHistPdf::bkg_vz_vz_untagged_PdfDown[ pdfObs=(zz2lJ_mass) ] = 0.000188115
-        # self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjet"]
+        # self.channelName2D = self.channelName2D
 
         tmptag = process.split("_")[0]
         # wptag = "bkg_"+tmptag
         # pdfName_up = "{wptag}_{process}_PdfUp".format(wptag=wptag, process=process)
         # pdfName_down = "{wptag}_{process}_PdfDown".format(wptag=wptag, process=process)
 
-        pdfName = "bkg_{bkg_tag}".format(bkg_tag=bkg_tag.replace("zjet","zjets"), process=process)
-        pdfName_up = "bkg_{bkg_tag}_{process}Up".format(bkg_tag=bkg_tag.replace("zjet","zjets"), process=process)
-        pdfName_down = "bkg_{bkg_tag}_{process}Down".format(bkg_tag=bkg_tag.replace("zjet","zjets"), process=process)
+        pdfName_up = "{process}Up".format( process=process)
+        pdfName_down = "{process}Down".format( process=process)
 
-        self.rooVars[pdfName] = ROOT.RooHistPdf(pdfName, pdfName, ROOT.RooArgSet(self.zz2l2q_mass), rooDataHist)
         self.rooVars[pdfName_up] = ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(self.zz2l2q_mass), rooDataHist_up)
         self.rooVars[pdfName_down] = ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(self.zz2l2q_mass), rooDataHist_down)
 
-
-        getattr(self.workspace, "import")(self.rooVars[pdfName], ROOT.RooFit.RecycleConflictNodes())
-        getattr(self.workspace, "import")(self.rooVars[pdfName_up], ROOT.RooFit.RecycleConflictNodes())
-        getattr(self.workspace, "import")(self.rooVars[pdfName_down], ROOT.RooFit.RecycleConflictNodes())
+        # getattr(self.workspace, "import")(self.rooVars[pdfName_up], ROOT.RooFit.RecycleConflictNodes())
+        # getattr(self.workspace, "import")(self.rooVars[pdfName_down], ROOT.RooFit.RecycleConflictNodes())
 
         # Add these uncertainties to the datacard as shape uncertainties
-        self.add_shape_uncertainties_to_datacard(process, bkg_tag, pdfName_up, pdfName_down)
+        self.add_shape_uncertainties_to_datacard(process, pdfName_up, pdfName_down)
 
-    def add_shape_uncertainties_to_datacard(self, process, bkg_tag, pdfName_up, pdfName_down):
+    def add_shape_uncertainties_to_datacard(self, process, pdfName_up, pdfName_down):
         """Add shape uncertainties to the datacard."""
         # Determine the position of the process in the channelName2D list
-
-        # split process name usign "_" and take all parts after first two
-        # tmptag = process.replace("bkg_{}_".format(bkg_tag), "")
-        shape_line_up = "{process} shape".format(process=pdfName_up.replace("Up","").replace("bkg_{}_".format(bkg_tag.replace("zjet","zjets")), ""))
-        shape_line_down = "{process} shape".format(process=pdfName_down.replace("Down","").replace("bkg_{}_".format(bkg_tag.replace("zjet","zjets")), ""))
+        shape_line_up = "{process} shape".format(process=pdfName_up.replace("Up",""))
+        shape_line_down = "{process} shape".format(process=pdfName_down.replace("Down",""))
 
         # logger.error(("shape_line_up: ", shape_line_up))
         # logger.error(("shape_line_down: ", shape_line_down))
@@ -1539,10 +1538,10 @@ class DatacardClass:
         self.datacard_lines.append(shape_line_up)
         # self.datacard_lines.append(shape_line_down)
 
-    def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot=True):
+    def makeCardsWorkspaces(self, theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, BinStatUnc = True, SanityCheckPlot=True):
         """Main function to create the datacards and workspaces."""
         self.clearRooArgSets()
-        self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, SanityCheckPlot)
+        self.initialize_settings(theMH, theis2D, theOutputDir, theInputs, theCat, theFracVBF, BinStatUnc, SanityCheckPlot)
         self.initialize_workspace_and_observables(theMH, theInputs)
         TString_sig = "sig_resolved"
         if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
@@ -1583,7 +1582,7 @@ class DatacardClass:
         self.setup_background_shapes_ReproduceRate_2l()
         self.setup_background_shapes_ReproduceRate("vz")
         self.setup_background_shapes_ReproduceRate("ttbar")
-        self.setup_background_shapes_ReproduceRate("zjet")
+        self.setup_background_shapes_ReproduceRate("zjets")
 
         if self.SanityCheckPlot:
             self.compareOldNewBinnedHistogram()
@@ -1593,13 +1592,13 @@ class DatacardClass:
         # FIXME: This rate is not used in the legacy code. But, we should switch to this for rate calculation
         # bkgRate_vz_Shape = self.calculate_background_rates("vz")
         # bkgRate_ttbar_Shape = self.calculate_background_rates("ttbar")
-        # bkgRate_zjets_Shape = self.calculate_background_rates("zjet")
+        # bkgRate_zjets_Shape = self.calculate_background_rates("zjets")
 
         # obtain rate using the new histogram based on the number of bins and range used in self.bins and self.low_M, self.high_M
         # this is obtained from the 1D histograms present in the templates1D directory
         bkgRate_vz_Shape = self.getRateFromSmoothedHist("vz")
         bkgRate_ttbar_Shape = self.getRateFromSmoothedHist("ttbar")
-        bkgRate_zjets_Shape = self.getRateFromSmoothedHist("zjet")
+        bkgRate_zjets_Shape = self.getRateFromSmoothedHist("zjets")
 
         logger.debug("Signal rates: ggH: {:.4f}, qqH: {:.4f}".format(sigRate_ggH_Shape, sigRate_VBF_Shape))
         logger.debug("Background rates: VZ: {:.4f}, TTbar: {:.4f}, Zjets: {:.4f}\n\n".format(bkgRate_vz_Shape, bkgRate_ttbar_Shape, bkgRate_zjets_Shape))
@@ -1633,7 +1632,7 @@ class DatacardClass:
         self.rooVars[morphBkgVarName].setConstant(False)
         self.rooArgSets["morphVarListBkg"] = ROOT.RooArgList(self.rooVars[morphBkgVarName])
 
-        self.get_Zjets_funcList()
+        self.get_Backgrounds_funcList()
         self.getRooProdPDFofMorphedBackgrounds()
         self.calculate_background_rates_vz()
 
@@ -1697,7 +1696,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--debug", type=bool, default=False, help="Enable debug mode")
 
-    parser.add_argument("--StatUnc", type=bool, default=False, help="Enable statistical uncertainty")
+    parser.add_argument("--BinStatUnc", type=bool, default=False, help="Enable statistical uncertainty")
 
     args = parser.parse_args()
 

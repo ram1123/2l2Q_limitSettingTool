@@ -76,6 +76,7 @@ class DirectoryCreator:
         self.start_mass = args.MassStartVal
         self.step_sizes = args.MassStepVal
         self.end_val = args.MassEndVal
+        self.BinStatUnc = args.BinStatUnc
         self.subdir = [
             "HCG",
             "figs",
@@ -223,6 +224,7 @@ class DirectoryCreator:
                     theInputs,
                     cat,
                     self.frac_vbf,
+                    self.BinStatUnc,
                     self.SanityCheckPlotUsingWorkspaces,
                 )
 
@@ -1002,39 +1004,56 @@ class DirectoryCreator:
             FitType = ""
 
             # if pre- and post-fit plots are needed use additional options `--plots --saveShapes` and `--saveWithUncertainties` respectively
-            blindString = " -t -1 --expectSignal 0 "  # b-only fit diagnostics
+            blindString = " --expectSignal 0 "  # b-only fit diagnostics
             FitType = "BkgOnlyHypothesis"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(
                 datacard=datacard, mH=current_mass, name=OutNameAppend + "_" + FitType
             )
             command += blindString
+
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+            command += Stat
+
+            # freeze the nuisance JES and JER
+            freeze = " "
+            if self.freezeParameters != "":
+                freeze += " --freezeParameters {}".format(self.freezeParameters)
+            command += freeze
+
+            if self.combineVerbose != 0:
+                command += " -v {}".format(self.combineVerbose)
+
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += self.CombineCondor.format(
-                name=OutNameAppend + "_FitDiagnostics",
-                FitType=FitType,
-                JobFlavour="tomorrow",
-                Additional="",
-            )
+            # command += self.CombineCondor.format(
+            #     name=OutNameAppend + "_FitDiagnostics",
+            #     FitType=FitType,
+            #     JobFlavour="tomorrow",
+            #     Additional="",
+            # )
             RunCommand(command, self.dry_run)
 
-            blindString = " -t -1 --expectSignal 1 "  # s+b fit diagnostics
-            FitType = "SBHypothesis"
-            command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(
-                datacard=datacard, mH=current_mass, name=OutNameAppend + "_" + FitType
-            )
-            command += blindString
+            # blindString = " -t -1 --expectSignal 1 "  # s+b fit diagnostics
+            # FitType = "SBHypothesis"
+            # command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(
+                # datacard=datacard, mH=current_mass, name=OutNameAppend + "_" + FitType
+            # )
+            # command += blindString
             # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
 
             # always run the FitDiagnostics using condor
-            command += self.CombineCondor.format(
-                name=OutNameAppend + "_FitDiagnostics",
-                FitType=FitType,
-                JobFlavour="tomorrow",
-                Additional="",
-            )
-            RunCommand(command, self.dry_run)
+            # command += self.CombineCondor.format(
+            #     name=OutNameAppend + "_FitDiagnostics",
+            #     FitType=FitType,
+            #     JobFlavour="tomorrow",
+            #     Additional="",
+            # )
+            # # RunCommand(command, self.dry_run)
         os.chdir(cwd)
 
     def PrePostFitPlots(self, current_mass, current_mass_directory, cwd):
@@ -1419,6 +1438,14 @@ def main():
     )
 
     # Fit Settings
+    fit_settings.add_argument(
+        "--BinStatUnc",
+        dest="BinStatUnc",
+        type=int,
+        default=1,
+        choices=[0, 1],
+        help="BinStatUnc (default:True)",
+    )
     fit_settings.add_argument(
         "-allDatacard",
         "--allDatacard",
