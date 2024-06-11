@@ -7,6 +7,7 @@ import sys
 from decimal import *
 from subprocess import *
 from array import array
+import numpy as np
 
 from inputReader import *
 from systematicsClass import *
@@ -37,6 +38,8 @@ class DatacardClass:
         self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
         self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
         self.rooArgSets = {}  # Dictionary to store RooArgSet objects
+        self.background_hists_From1DTemplate = {}
+        self.background_hists_From2DTemplate = {}
         self.background_hists = {}
         self.background_hists_smooth = {}
         self.workspace = ROOT.RooWorkspace("w", "workspace")
@@ -114,28 +117,27 @@ class DatacardClass:
     def setup_parameters(self):
         """Setup initial parameters."""
         # self.low_M = 150
-        # self.high_M = 4000
-        # self.bins = int((self.high_M - self.low_M) / 200)
-        """
-        temp_bin1 = np.linspace(150,900,16)
-        temp_bin2 = np.array([1000,1200,1600,3500])
-        bin = np.concatenate((temp_bin1,temp_bin2))
-        self.massZZ_bins['merged'] = bh.axis.Variable(ak.from_numpy(bin).to_list())
+        # self.high_M = 3500
+        # self.bins = int((self.high_M - self.low_M) / 10)
+        uniform_bins = np.linspace(150, 3500, int((3500 - 150)/10), dtype=int)
 
-        #resolved
-        temp_bin1 = np.linspace(150,1200,22)
-        temp_bin2 = np.array([1300,1400,1500,1600,3500])
-        bin = np.concatenate((temp_bin1,temp_bin2))
-        self.massZZ_bins['resolved'] = bh.axis.Variable(ak.from_numpy(bin).to_list())
-        """
 
-        self.low_M = 150
-        self.high_M = 3500
-        self.bins = 27
+        # Resolved bin edges
+        temp_bin1_resolved = np.linspace(150, 1200, 22)
+        temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, 3500])
+        # self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
+        self.binning_resolved = uniform_bins
+        self.rooBinning_resolved = ROOT.RooBinning(len(self.binning_resolved) - 1, array('d', self.binning_resolved))
+
+        # Merged bin edges
+        temp_bin1_merged = np.linspace(150, 900, 16)
+        temp_bin2_merged = np.array([1000, 1200, 1600, 3500])
+        # self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
+        self.binning_merged = uniform_bins
+        self.rooBinning_merged = ROOT.RooBinning(len(self.binning_merged) - 1, array('d', self.binning_merged))
 
         # xbin = [-3,-2,-1,-0.2,0.1,0.3,0.5,0.8,1,1.3,1.5,2,3]
         # tbin = r.RooBinning(len(xbin)-1, array('d', xbin))
-
         # self.tbins = ROOT.RooBinning(self.low_M, self.high_M)
         # self.tbins.addUniform(16, self.low_M, 900)
         # self.tbins.addUniform(4, 900, 3500)
@@ -178,15 +180,17 @@ class DatacardClass:
         logger.info("Setting up observables")
         self.mzz_name = "zz2l2q_mass"
         self.zz2l2q_mass = ROOT.RooRealVar(
-            self.mzz_name, self.mzz_name, self.low_M, self.high_M
+            self.mzz_name, self.mzz_name, self.variableBinning[0], self.variableBinning[-1]
         )
-        self.zz2l2q_mass.setBins(self.bins)
+        # self.zz2l2q_mass.setBins(self.bins)
+        self.zz2l2q_mass.setBinning(self.rooBinning_resolved, "resolved")
 
         if self.jetType == "merged":
             self.zz2l2q_mass.SetName("zz2lJ_mass")
             self.zz2l2q_mass.SetTitle("zz2lJ_mass")
+            self.zz2l2q_mass.setBinning(self.rooBinning_merged, "merged")
 
-        self.zz2l2q_mass.setRange("fullrange", self.low_M, self.high_M)
+        self.zz2l2q_mass.setRange("fullrange", self.variableBinning[0], self.variableBinning[-1])
         self.zz2l2q_mass.setRange("fullsignalrange", self.mH - 0.25 * self.mH, self.mH + 0.25 * self.mH)
         self.rooVars["zz2l2q_mass"] = self.zz2l2q_mass
 
@@ -323,6 +327,7 @@ class DatacardClass:
         self.set_channels(theInputs)  # Set the channels: ggH, qqH, vz, zjets, ttbar
         self.set_jet_type()  # Set the jet type: resolved or merged
         self.theInputs = theInputs  # Set the inputs coming from txt file
+        self.variableBinning = self.binning_resolved if self.jetType == "resolved" else self.binning_merged
 
         logger.error("channel: {}, cat: {}, jetType: {}".format(self.channel, self.cat, self.jetType))
 
@@ -569,7 +574,7 @@ class DatacardClass:
         """Get the RooProdPDF of morphed backgrounds."""
         for process in self.background_list:
             vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
-            vzTemplateMVV = self.background_hists["{}_template".format(process)]
+            vzTemplateMVV = self.background_hists_From1DTemplate["{}_template".format(process)]
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
@@ -604,6 +609,7 @@ class DatacardClass:
                 self.rooVars["D"],
                 True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
                 self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
                 self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
                 1.0,
                 1,
@@ -671,6 +677,7 @@ class DatacardClass:
                             self.rooVars["D"],
                             True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
                             self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                            # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
                             self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
                             1.0,
                             1,
@@ -931,9 +938,9 @@ class DatacardClass:
     def calculate_background_rates_vz(self):
         """Calculate and return background rates for vz process based on the histograms provided in self.background_hists."""
         bkgRate_vz_Shape = {
-            "untagged": self.background_hists["vz_untagged_template"].Integral(),
-            "btagged": self.background_hists["vz_btagged_template"].Integral(),
-            "vbftagged": self.background_hists["vz_vbftagged_template"].Integral(),
+            "untagged": self.background_hists_From1DTemplate["vz_untagged_template"].Integral(),
+            "btagged": self.background_hists_From1DTemplate["vz_btagged_template"].Integral(),
+            "vbftagged": self.background_hists_From1DTemplate["vz_vbftagged_template"].Integral(),
         }
 
         btagRatio = (
@@ -1029,10 +1036,10 @@ class DatacardClass:
                 logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
                 hist_key = "{}_{}_template".format(key, category)
-                self.background_hists[hist_key] = hist
-                logger.debug("Stored histogram {} in background_hists".format(hist_key))
+                self.background_hists_From1DTemplate[hist_key] = hist
+                logger.debug("Stored histogram {} in background_hists_From1DTemplate".format(hist_key))
 
-        for key, hist in self.background_hists.items():
+        for key, hist in self.background_hists_From1DTemplate.items():
             logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
 
         temp_file_fs.Close()
@@ -1059,28 +1066,32 @@ class DatacardClass:
             logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
 
             hist_key = "{}_template".format(key)
-            self.background_hists[hist_key] = hist
-            logger.debug("Stored histogram {} in background_hists".format(hist_key))
+            self.background_hists_From1DTemplate[hist_key] = hist
+            logger.debug("Stored histogram {} in background_hists_From1DTemplate".format(hist_key))
 
-        for key, hist in self.background_hists.items():
+        for key, hist in self.background_hists_From1DTemplate.items():
             logger.debug("Background histogram - key: {}, hist: {}".format(key, hist))
 
         temp_file_fs.Close()
 
     def setup_background_shapes_ReproduceRate(self, process):
-        """Smooth the background histograms."""
+        """Obtain the rate of the background process.
+
+        It takes histogram from the 1D templates and rebin them to match the range and bins specified.
+
+        """
         categories = ["_untagged", "_btagged", "_vbftagged", ""]
 
-        vzTemplateMVV = self.background_hists["{}{}_template".format(process, "")]
+        vzTemplateMVV = self.background_hists_From1DTemplate["{}{}_template".format(process, "")]
 
         hist_smooth_name = "{}_smooth".format(process)
-        self.background_hists_smooth["{}{}_smooth".format(process, "")] = ROOT.TH1F(hist_smooth_name, hist_smooth_name, self.bins, self.low_M, self.high_M)
-        self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")] = ROOT.TH1F(hist_smooth_name + "_untagged", hist_smooth_name + "_untagged", self.bins, self.low_M, self.high_M)
-        self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")] = ROOT.TH1F(hist_smooth_name + "_btagged", hist_smooth_name + "_btagged", self.bins, self.low_M, self.high_M)
-        self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")] = ROOT.TH1F(hist_smooth_name + "_vbftagged", hist_smooth_name + "_vbftagged", self.bins, self.low_M, self.high_M)
+        self.background_hists_smooth["{}{}_smooth".format(process, "")] = ROOT.TH1F(hist_smooth_name, hist_smooth_name, len(self.variableBinning) -1, array('d', self.variableBinning))
+        self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")] = ROOT.TH1F(hist_smooth_name + "_untagged", hist_smooth_name + "_untagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")] = ROOT.TH1F(hist_smooth_name + "_btagged", hist_smooth_name + "_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")] = ROOT.TH1F(hist_smooth_name + "_vbftagged", hist_smooth_name + "_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
 
         # Rebin the histograms. Why?
-        for i in range(0, self.bins):
+        for i in range(0, len(self.variableBinning)):
             mVV_tmp = self.background_hists_smooth["{}{}_smooth".format(process, "")].GetBinCenter(i + 1)
             bin_width = self.background_hists_smooth["{}{}_smooth".format(process, "")].GetBinWidth(i + 1)
 
@@ -1091,17 +1102,17 @@ class DatacardClass:
 
                 if mVV_tmp >= mVV_tmp_low and mVV_tmp < mVV_tmp_up:
                     # Below the histogram is scaled by the ratio of the bin widths to factor out the different binning
-                    self.background_hists_smooth["{}{}_smooth".format(process, "")].SetBinContent(i + 1, self.background_hists["{}{}_template".format(process, "")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
-                    self.background_hists_smooth["{}{}_smooth".format(process, "")].SetBinError(i + 1, self.background_hists["{}{}_template".format(process, "")].GetBinError(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "")].SetBinContent(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "")].SetBinError(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "")].GetBinError(j + 1) * bin_width / bin_width_tmp)
 
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")].SetBinContent(i + 1, self.background_hists["{}{}_template".format(process, "_untagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")].SetBinError(i + 1, self.background_hists["{}{}_template".format(process, "_untagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")].SetBinContent(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_untagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_untagged")].SetBinError(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_untagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
 
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")].SetBinContent(i + 1, self.background_hists["{}{}_template".format(process, "_btagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")].SetBinError(i + 1, self.background_hists["{}{}_template".format(process, "_btagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")].SetBinContent(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_btagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_btagged")].SetBinError(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_btagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
 
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")].SetBinContent(i + 1, self.background_hists["{}{}_template".format(process, "_vbftagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
-                    self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")].SetBinError(i + 1, self.background_hists["{}{}_template".format(process, "_vbftagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")].SetBinContent(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_vbftagged")].GetBinContent(j + 1) * bin_width / bin_width_tmp)
+                    self.background_hists_smooth["{}{}_smooth".format(process, "_vbftagged")].SetBinError(i + 1, self.background_hists_From1DTemplate["{}{}_template".format(process, "_vbftagged")].GetBinError(j + 1) * bin_width / bin_width_tmp)
 
                     break
                     #
@@ -1132,7 +1143,7 @@ class DatacardClass:
                 logger.debug("Range of histogram {}: {} to {}".format(hist_name, hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
                 if not hist:
                     raise ValueError("Histogram {} not found in file".format(hist_name))
-                self.background_hists[key + "_" + category + "_template"] = hist
+                self.background_hists_From1DTemplate[key + "_" + category + "_template"] = hist
                 logger.debug("{} integral: {}".format(hist_name, hist.Integral()))
 
                 # Add shape uncertainties
@@ -1141,7 +1152,7 @@ class DatacardClass:
                     self.add_shape_uncertainties_to_workspace(key + "_" + category, hist)
 
         self.rooHistPdfs = {}
-        for key, hist in self.background_hists.items():
+        for key, hist in self.background_hists_From1DTemplate.items():
             hist_smooth = hist.Clone()
             # hist_smooth.Smooth(1000, "R")
             # hist_smooth.SmoothMarkov(1000)
@@ -1182,7 +1193,7 @@ class DatacardClass:
                         fullRangeBkgRate,
                     ))
 
-        logger.debug(self.background_hists)
+        logger.debug(self.background_hists_From1DTemplate)
 
     def setup_signal_fractions(self, vbfRatioVBF):
         """Set the VBF fraction based on condition."""
@@ -1358,7 +1369,7 @@ class DatacardClass:
         file.write("observation {0} \n".format(obsEvents))
 
         file.write("------------\n")
-        file.write("## mass window [{0},{1}] \n".format(self.low_M, self.high_M))
+        file.write("## mass window [{0},{1}] \n".format(self.variableBinning[0], self.variableBinning[1]))
         file.write("bin ")
 
         channelList = ["ggH", "qqH", "vz", "ttbar", "zjets"]
@@ -1435,7 +1446,7 @@ class DatacardClass:
 
         for proc in process:
             for cat in categories:
-                hist = self.background_hists["{}{}_template".format(proc, cat)]
+                hist = self.background_hists_From1DTemplate["{}{}_template".format(proc, cat)]
                 hist_smooth = self.background_hists_smooth["{}{}_smooth".format(proc, cat)]
                 save_histograms(hist, hist_smooth, "{}/figs/rebin/{}_{}{}_RebinComp.png".format(self.outputDir, self.channel, proc, cat), "hist", "hist_rebin")
 
