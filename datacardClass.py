@@ -578,6 +578,10 @@ class DatacardClass:
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
+            TString_bkg = "{}_resolved".format(self.background_map_2DTemplates[process])
+            if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+                TString_bkg = "{}_merged".format(self.background_map_2DTemplates[process])
+
             self.rooDataHist[vzTemplateName] = ROOT.RooDataHist(
                 vzTemplateName,
                 vzTemplateName,
@@ -601,19 +605,19 @@ class DatacardClass:
             for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
                 logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
-            TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
-            self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-                TemplateName,
-                TemplateName,
-                self.zz2l2q_mass,
-                self.rooVars["D"],
-                True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-                self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
-                # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
-                self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
-                1.0,
-                1,
-            )
+            # TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
+            # self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+            #     TemplateName,
+            #     TemplateName,
+            #     self.zz2l2q_mass,
+            #     self.rooVars["D"],
+            #     True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
+            #     self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+            #     # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
+            #     self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
+            #     1.0,
+            #     1,
+            # )
 
             name = "bkg2d_{}_{}".format(process, self.year)
             self.rooProdPdf[name] = ROOT.RooProdPdf(
@@ -621,7 +625,8 @@ class DatacardClass:
                 name,
                 ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
                 ROOT.RooFit.Conditional(
-                    ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                    # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                    ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "", self.year)]),
                     ROOT.RooArgSet(self.rooVars["D"]),
                 ),
             )
@@ -636,6 +641,9 @@ class DatacardClass:
             # categories = {"untagged", "btagged", "vbftagged"}
             categories = {self.cat_tree}
             for process in self.background_list:
+                TString_bkg = "{}_resolved".format(self.background_map_2DTemplates[process])
+                if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
+                    TString_bkg = "{}_merged".format(self.background_map_2DTemplates[process])
                 for category in categories:
                     for syst in ["Up", "Down"]:
                         vzTemplateName = "{}_{}_{}_{}_{}".format(process, self.appendName, self.year, category, syst)
@@ -669,19 +677,22 @@ class DatacardClass:
                         for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
                             logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
-                        TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
-                        self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-                            TemplateName,
-                            TemplateName,
-                            self.zz2l2q_mass,
-                            self.rooVars["D"],
-                            True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-                            self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
-                            # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
-                            self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
-                            1.0,
-                            1,
-                        )
+                        # TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
+                        # self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                        #     TemplateName,
+                        #     TemplateName,
+                        #     self.zz2l2q_mass,
+                        #     self.rooVars["D"],
+                        #     True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
+                        #     self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                        #     # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
+                        #     self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
+                        #     1.0,
+                        #     1,
+                        # )
+
+                        for hist in self.rooDataHist:
+                            logger.debug("hist: {}".format(hist))
 
                         name = "bkg2d_{}_{}{}".format(process, self.year, syst)
                         self.rooProdPdf[name] = ROOT.RooProdPdf(
@@ -689,7 +700,8 @@ class DatacardClass:
                             name,
                             ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
                             ROOT.RooFit.Conditional(
-                                ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                                # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
+                                ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "_"+syst, self.year)]),
                                 ROOT.RooArgSet(self.rooVars["D"]),
                             ),
                         )
