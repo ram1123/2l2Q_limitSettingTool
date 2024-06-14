@@ -92,6 +92,7 @@ class DirectoryCreator:
         self.dry_run = args.dry_run
         self.ifParallel = args.parallel
         self.SanityCheckPlotUsingWorkspaces = args.SanityCheckPlotUsingWorkspaces
+        self.split_2016 = args.split2016
 
 
         self.CombineCondor = " --job-mode condor --sub-opts='+JobFlavour=\"{JobFlavour}\"{Additional}' --task-name {name}_{FitType}"
@@ -264,7 +265,8 @@ class DirectoryCreator:
         os.chdir(current_mass_directory)
         logger.debug("Current directory: {}".format(os.getcwd()))
         AllCardsCombination = 'combineCards.py -s '
-        for year in ['2016', '2017', '2018']:
+        yearlists  = ['2016', '2017', '2018'] if not self.split_2016 else ['2016preAPV', '2016postAPV','2017', '2018']
+        for year in yearlists:
             # AllCardsCombination = AllCardsCombination +' Era{year}=../../../{cards_{year}{additionalString}}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name)
             AllCardsCombination = AllCardsCombination +' Era{year}=../../../{Run2_Cards}/HCG/{mH}/{datacard}'.format(mH = current_mass, year = year, datacard = self.DATA_CARD_FILENAME, additionalString = "" if self.append_name == "" else "_"+self.append_name, Run2_Cards = (self.dir_name).replace("datacards_HIG_23_001/","").replace("run2",year))
         AllCardsCombination = AllCardsCombination +' > {datacard}'.format(datacard = "hzz2l2q_13TeV_xs_NoNuisance.txt")
@@ -912,6 +914,8 @@ def set_years_new(args_year):
         array: array having years
     """
     year_mapping = {
+        '2016preapv': ['2016preAPV'],
+        '2016postapv': ['2016postAPV'],
         '2016': [2016],
         '2017': [2017],
         '2018': [2018],
@@ -970,6 +974,7 @@ def main():
     advanced_settings.add_argument("-date", "--date", dest="date", type=str, default='', help="If this option is given, then it will append date string to the output file name. This is helpful if I want to use the combine output from different date")
     advanced_settings.add_argument("-tag", "--tag", dest="tag", type=str, default='', help="This option add additional string in the combine output root file as well as condor/combine log file")
     advanced_settings.add_argument("-sanityCheck", "--sanity-check", action="store_true", dest="SanityCheckPlotUsingWorkspaces", default=False, help="If this option is given, then it will plot the sanity check plots using workspaces")
+    advanced_settings.add_argument("-split2016", "--split2016", action="store_true", default=False, help="when combine run2 datacards set this option to True to split 2016 to 2016preAPV and 2016postAPV")
 
 
     # Step Control

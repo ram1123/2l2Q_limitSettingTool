@@ -128,7 +128,7 @@ class systematicsClass:
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Build_lumi_Corr16_17_18(self,theFile,theInputs):
-        if(str(self.year) == '2016'):
+        if(str(self.year).find('2016')!=-1):
             theFile.write("lumi_13TeV_correlated_16_17_18 lnN ")
 
             systLine={'ggH':"{0} ".format('1.006')}
@@ -498,7 +498,7 @@ class systematicsClass:
 
         if theInputs['useLumiUnc']:
             self.Build_lumi_Uncorrelated(theFile,theInputs)
-            if str(self.year) != '2016': self.Build_lumi_Corr17_18(theFile,theInputs)
+            if str(self.year).find("2016") == -1 : self.Build_lumi_Corr17_18(theFile,theInputs)
             self.Build_lumi_Corr16_17_18(theFile,theInputs)
 
         if theInputs['usePdf_gg']:

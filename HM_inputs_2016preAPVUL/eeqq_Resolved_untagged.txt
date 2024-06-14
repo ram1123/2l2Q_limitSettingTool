@@ -1,0 +1,145 @@
+## SM ##
+model SM
+
+## decay chan ##
+decay eeqq_Resolved
+cat untagged
+
+## lumi ##
+lumi 16.81
+systematic lumiUnc 1.01
+
+## sqrtS ##
+sqrts 13
+
+## Channels to include in cards ##
+channels ggH qqH vz ttbar zjets
+
+### background functions ###
+systematic zjetAlphaLow   0.97
+systematic zjetAlphaHigh  1.03
+
+zjetsShape p0_zjets 6.61881
+zjetsShape l0_zjets 0.00315882
+zjetsShape p1_zjets 10.6343
+zjetsShape l1_zjets 0.00698471
+
+zjetsShape p0_alt_zjets 6.63989
+zjetsShape l0_alt_zjets 0.00316417
+zjetsShape p1_alt_zjets 10.6372 
+zjetsShape l1_alt_zjets 0.00698978
+
+zjetsShape p0p0_cov_zjets 0.409841
+zjetsShape p0l0_cov_zjets 0.000236246
+zjetsShape p0p1_cov_zjets 0.055469   
+zjetsShape p0l1_cov_zjets 0.00017965
+zjetsShape l0l0_cov_zjets 1.40907e-07 
+zjetsShape l0p1_cov_zjets 2.90713e-05
+zjetsShape l0l1_cov_zjets 9.74445e-08
+zjetsShape p1p1_cov_zjets 0.0137896
+zjetsShape p1l1_cov_zjets 3.55819e-05
+zjetsShape l1l1_cov_zjets 9.97859e-08
+
+### channel dependent systematics ###
+systematic param CMS_zz2l2q_mean_e_err   0.003
+systematic param CMS_zz2l2q_sigma_e_err  0.2
+systematic param CMS_zz2l2q_mean_j_err   0.01
+systematic param CMS_zz2l2q_sigma_j_err  0.10
+
+## Electron systematics ##
+systematic elec_full vz 1.028763854/0.971586861
+systematic elec_full qqH 1.035538330/0.965071510
+systematic elec_full ggH 1.033984308/0.966558892
+systematic elec_full zv 1.028763854/0.971586861
+systematic elec_full ttbar 1.025913494/0.974373548
+systematic elec_trig 0.0075
+
+##Split JEC systematic ##
+systematic splitjec ggH Abs 1.0078002275066356/0.990818482205731
+systematic splitjec ggH Abs_year 1.0083419099723743/0.9906559774660094
+systematic splitjec ggH BBEC1 1.0030875900547098/0.9962623909864038
+systematic splitjec ggH BBEC1 1.0030875900547098/0.9962623909864038
+systematic splitjec ggH EC2 1.0/1.0
+systematic splitjec ggH EC2_year 1.0/1.0
+systematic splitjec ggH FlavQCD 1.0121066031092574/0.9869048263907697
+systematic splitjec ggH HF 1.0/1.0
+systematic splitjec ggH HF_year 1.0/1.0
+systematic splitjec ggH RelBal 1.0042928335409782/0.9961134283083256
+systematic splitjec ggH RelSample_year 1.007028329992958/0.9927956232056768
+
+systematic splitjec qqH Abs 1.0171595647797536/0.9823611177682979
+systematic splitjec qqH Abs_year 1.0178306092124814/0.9795810765469971
+systematic splitjec qqH BBEC1 1.0073814887600057/0.9922350572784355
+systematic splitjec qqH BBEC1 1.0073814887600057/0.9922350572784355
+systematic splitjec qqH EC2 1.0/1.0
+systematic splitjec qqH EC2_year 1.0/1.0
+systematic splitjec qqH FlavQCD 1.0177347457220918/0.9791017590950486
+systematic splitjec qqH HF 1.0/1.0
+systematic splitjec qqH HF_year 1.0/1.0
+systematic splitjec qqH RelBal 1.009778076019748/0.9882087906820687
+systematic splitjec qqH RelSample_year 1.0156257489335188/0.9832238891818051
+
+systematic splitjec ttbar Abs 1.0136785539814364/0.9882057366180473
+systematic splitjec ttbar Abs_year 1.010468281108242/0.9886942564030986
+systematic splitjec ttbar BBEC1 1.0033498499546374/0.9951845906902087
+systematic splitjec ttbar BBEC1 1.0033498499546374/0.9951845906902087
+systematic splitjec ttbar EC2 1.0/1.0
+systematic splitjec ttbar EC2_year 1.0/1.0
+systematic splitjec ttbar FlavQCD 1.0186335403726707/0.9792728034056808
+systematic splitjec ttbar HF 1.0/1.0
+systematic splitjec ttbar HF_year 1.0/1.0
+systematic splitjec ttbar RelBal 1.0042571009840184/0.9935794542536116
+systematic splitjec ttbar RelSample_year 1.0090027217530881/0.9877870053737177
+
+systematic splitjec vz Abs 1.0075332616496742/0.9914044383412574
+systematic splitjec vz Abs_year 1.0078506561645788/0.9919161560285525
+systematic splitjec vz Abs_year 1.0078506561645788/0.9919161560285525
+systematic splitjec vz BBEC1 1.002286535995129/0.9972470883911336
+systematic splitjec vz EC2 1.0/1.0
+systematic splitjec vz EC2_year 1.0/1.0
+systematic splitjec vz FlavQCD 1.0144058245132204/0.9846938114547032
+systematic splitjec vz HF 1.0/1.0
+systematic splitjec vz HF_year 1.0/1.0
+systematic splitjec vz RelBal 1.0030832610019302/0.9971693591221774
+systematic splitjec vz RelSample_year 1.0061276573693825/0.9939112072650956
+
+##deepjet SFs systematic ##
+systematic deepjetsfbc ggH 1.0133399047847074/0.9866600952152926
+systematic deepjetsfbc qqH 1.019314555115327/0.9806854448846729
+systematic deepjetsfbc ttbar 1.0144567964688065/0.9855432035311935
+systematic deepjetsfbc vz 1.0114163012091526/0.9885836987908473
+
+systematic deepjetsflight ggH 1.0133399047847074/0.9866600952152926
+systematic deepjetsflight qqH 1.019314555115327/0.9806854448846729
+systematic deepjetsflight ttbar 1.0144567964688065/0.9855432035311935
+systematic deepjetsflight vz 1.0114163012091526/0.9885836987908473
+
+systematic deepjetsfcorrelatedbc ggH 1.0092977403104157/0.9907022596895847
+systematic deepjetsfcorrelatedbc qqH 1.013808092992099/0.9861919070079015
+systematic deepjetsfcorrelatedbc ttbar 1.0087383786415645/0.9912616213584353
+systematic deepjetsfcorrelatedbc vz 1.0100313789237896/0.9899686210762108
+
+systematic deepjetsfcorrelatedlight ggH 1.0092977403104157/0.9907022596895847
+systematic deepjetsfcorrelatedlight qqH 1.013808092992099/0.9861919070079015
+systematic deepjetsfcorrelatedlight ttbar 1.0087383786415645/0.9912616213584353
+systematic deepjetsfcorrelatedlight vz 1.0100313789237896/0.9899686210762108
+
+##### Add Systematic to Cards ####
+
+##### allowed True/True ####
+systematic deepjetsf True
+systematic deepjetsfcorrelated True
+systematic CMS_scale_j_split True
+systematic CMS_scale_J_split False
+systematic luminosity True
+systematic pdf_hzz2l2q_accept True
+systematic QCDscale_ggH True
+systematic QCDscale_vz True
+systematic BRhiggs_hzz2l2q True
+systematic CMS_eff True
+systematic CMS_hzz2l2q_Zjets True
+systematic CMS_zz2l2q_mean True
+systematic CMS_zz2l2q_sigma True
+
+systematic CMS_zz2l2q_bkgMELA True
+systematic CMS_zz2l2q_sigMELA True
