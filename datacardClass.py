@@ -116,31 +116,25 @@ class DatacardClass:
 
     def setup_parameters(self):
         """Setup initial parameters."""
-        # self.low_M = 150
-        # self.high_M = 3500
-        # self.bins = int((self.high_M - self.low_M) / 10)
-        uniform_bins = np.linspace(150, 3500, int((3500 - 150)/10), dtype=int)
-
+        self.low_M = 150
+        self.high_M = 3500
+        uniform_bins = np.linspace(self.low_M, self.high_M, int((self.high_M - self.low_M)/10), dtype=int)
 
         # Resolved bin edges
-        temp_bin1_resolved = np.linspace(150, 1200, 22)
-        temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, 3500])
+        temp_bin1_resolved = np.linspace(self.low_M, 1200, 22)
+        temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, self.high_M])
+        # FIXME: Uniform bins or not?
         # self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
         self.binning_resolved = uniform_bins
         self.rooBinning_resolved = ROOT.RooBinning(len(self.binning_resolved) - 1, array('d', self.binning_resolved))
 
         # Merged bin edges
-        temp_bin1_merged = np.linspace(150, 900, 16)
-        temp_bin2_merged = np.array([1000, 1200, 1600, 3500])
+        temp_bin1_merged = np.linspace(self.low_M, 900, 16)
+        temp_bin2_merged = np.array([1000, 1200, 1600, self.high_M])
+        # FIXME: Uniform bins or not?
         # self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
         self.binning_merged = uniform_bins
         self.rooBinning_merged = ROOT.RooBinning(len(self.binning_merged) - 1, array('d', self.binning_merged))
-
-        # xbin = [-3,-2,-1,-0.2,0.1,0.3,0.5,0.8,1,1.3,1.5,2,3]
-        # tbin = r.RooBinning(len(xbin)-1, array('d', xbin))
-        # self.tbins = ROOT.RooBinning(self.low_M, self.high_M)
-        # self.tbins.addUniform(16, self.low_M, 900)
-        # self.tbins.addUniform(4, 900, 3500)
 
         self.ID_2muResolved = "mumuqq_Resolved"
         self.ID_2eResolved = "eeqq_Resolved"
@@ -400,6 +394,13 @@ class DatacardClass:
 
         datasetName = "data_obs"
         self.rooDataSet["data_obs"] = ROOT.RooDataSet(datasetName, datasetName, data_obs_tree, ROOT.RooArgSet(self.zz2l2q_mass, self.rooVars["D"]))
+        # logger.debug("data_obs: {}".format(self.rooDataSet["data_obs"]))
+        # self.rooDataSet["data_obs"].Print("v")
+        # exit()
+        # FIXME: Check if the data_obs is filled correctly??? Not sure if the way "D" is added fine? As I think D is empty
+        #               1. Possible check is to print the data_obs_tree and see if it has the correct values
+        #               2. Check if the "D" has some values in it or not
+        #               3. Also, compare these values from the legacy code
 
         logger.debug("data_obs: {}".format(self.rooDataSet["data_obs"]))
         return self.rooDataSet["data_obs"]
@@ -486,6 +487,7 @@ class DatacardClass:
             elif sample == "VBF":
                 tag_temp = "qqH"
 
+            pdfName = "sigTemplatePdf_{}_{}{}_{}".format(sample, TString_sig, "", self.year)
             TemplateName = "sigTemplateMorphPdf_" + sample + "_" + TString_sig + "_" + str(self.year)
             name = "sigCB2d_{}_{}".format(tag_temp, self.year)
             logger.debug("======  parameters entered in rooProdPdf  ======")
@@ -495,7 +497,8 @@ class DatacardClass:
                 name,
                 ROOT.RooArgSet(self.signalCBs["signalCB_{}_{}".format(sample, self.channel)]),
                 ROOT.RooFit.Conditional(
-                    ROOT.RooArgSet(self.rooVars[TemplateName]),
+                    # ROOT.RooArgSet(self.rooVars[TemplateName]), # Uncomment to use FastVerticalInterpHistPdf2D
+                    ROOT.RooArgSet(self.rooVars[pdfName]), # Uncomment to just use RooHistPdf not FastVerticalInterpHistPdf2D
                     ROOT.RooArgSet(self.rooVars["D"]),
                 ),
             )
@@ -575,6 +578,8 @@ class DatacardClass:
         for process in self.background_list:
             vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
             vzTemplateMVV = self.background_hists_From1DTemplate["{}_template".format(process)]
+            # category = self.cat_tree
+            # vzTemplateMVV = self.background_hists["{}_{}_template".format(process, category)]
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
@@ -605,19 +610,19 @@ class DatacardClass:
             for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
                 logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
-            # TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
-            # self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-            #     TemplateName,
-            #     TemplateName,
-            #     self.zz2l2q_mass,
-            #     self.rooVars["D"],
-            #     True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-            #     self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
-            #     # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
-            #     self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
-            #     1.0,
-            #     1,
-            # )
+            TemplateName = "bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)
+            self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                TemplateName,
+                TemplateName,
+                self.zz2l2q_mass,
+                self.rooVars["D"],
+                True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
+                self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
+                self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
+                1.0,
+                1,
+            )
 
             name = "bkg2d_{}_{}".format(process, self.year)
             self.rooProdPdf[name] = ROOT.RooProdPdf(
@@ -625,8 +630,8 @@ class DatacardClass:
                 name,
                 ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
                 ROOT.RooFit.Conditional(
-                    # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
-                    ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "", self.year)]),
+                    # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]), # Uncomment to use FastVerticalInterpHistPdf2D
+                    ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "", self.year)]), # Uncomment to use HistPdf not the FastVerticalInterpHistPdf2D
                     ROOT.RooArgSet(self.rooVars["D"]),
                 ),
             )
@@ -638,6 +643,18 @@ class DatacardClass:
         if self.BinStatUnc:
             for hist in self.background_hists:
                 logger.debug("hist: {}, {}".format(hist, type(self.background_hists[hist])))
+                # logger.error("\tName: {}".format(self.background_hists[hist].GetName()))
+
+            # # from the list self.background_hists get new list that contains only the histograms with the name "*_Bin*_up"
+            # # up_hists = [hist for hist in self.background_hists if "Bin" in hist and "up" in hist]
+            # up_hists = []
+            # for hist in self.background_hists:
+            #     if "Bin" in hist and "up" in hist:
+            #         up_hists.append(self.background_hists[hist])
+            # logger.debug("=====================================")
+            # for hist in up_hists:
+            #     logger.debug("hist: {}, {}".format(hist, type(up_hists[hist])))
+            # # exit()
             # categories = {"untagged", "btagged", "vbftagged"}
             categories = {self.cat_tree}
             for process in self.background_list:
@@ -645,6 +662,42 @@ class DatacardClass:
                 if self.channel in ["mumuqq_Merged", "eeqq_Merged"]:
                     TString_bkg = "{}_merged".format(self.background_map_2DTemplates[process])
                 for category in categories:
+                #     # Plot nominal, up and down histograms on one canvas for each category
+                #     # temp_nom = self.background_hists_From1DTemplate["{}_template".format(process)]
+                #     temp_nom = self.background_hists["{}_{}_template".format(process, category)]
+                #     temp_up = self.background_hists["{}_{}_template_{}".format(process, category, "up")]
+                #     temp_down = self.background_hists["{}_{}_template_{}".format(process, category, "down")]
+
+                #     # Create a canvas
+                #     c = ROOT.TCanvas("c", "c", 800, 800)
+                #     c.cd()
+                #     # Draw the histograms
+                #     temp_nom.SetLineColor(ROOT.kBlack)
+                #     temp_nom.SetMarkerColor(ROOT.kBlack)
+                #     temp_nom.SetMarkerStyle(1)
+                #     temp_nom.SetMarkerSize(1.5)
+                #     temp_nom.Draw("hist")
+                #     temp_up.SetLineColor(ROOT.kRed)
+                #     temp_up.SetMarkerColor(ROOT.kRed)
+                #     temp_up.SetMarkerStyle(1)
+                #     temp_up.SetMarkerSize(0.5)
+                #     temp_up.Draw("hist same")
+                #     temp_down.SetLineColor(ROOT.kBlue)
+                #     temp_down.SetMarkerColor(ROOT.kBlue)
+                #     temp_down.SetMarkerStyle(2)
+                #     temp_down.SetMarkerSize(0.5)
+                #     temp_down.Draw("hist same")
+                #     # Draw the legend
+                #     leg = ROOT.TLegend(0.7, 0.7, 0.9, 0.9)
+                #     leg.AddEntry(temp_nom, "Nominal", "l")
+                #     leg.AddEntry(temp_up, "Up", "l")
+                #     leg.AddEntry(temp_down, "Down", "l")
+                #     leg.Draw()
+                #     # Save the canvas
+                #     c.SaveAs("{}/figs/{}_{}_{}_{}.pdf".format(self.outputDir, process, category, self.channel, self.year))
+                #     # exit()
+
+
                     for syst in ["Up", "Down"]:
                         vzTemplateName = "{}_{}_{}_{}_{}".format(process, self.appendName, self.year, category, syst)
 
@@ -677,19 +730,19 @@ class DatacardClass:
                         for i in range(self.rooArgSets["morphVarListBkg"].getSize()):
                             logger.debug("{:2}: morphVarListBkg: {}".format(i, self.rooArgSets["morphVarListBkg"].at(i).GetName()))
 
-                        # TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
-                        # self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
-                        #     TemplateName,
-                        #     TemplateName,
-                        #     self.zz2l2q_mass,
-                        #     self.rooVars["D"],
-                        #     True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
-                        #     self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
-                        #     # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
-                        #     self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
-                        #     1.0,
-                        #     1,
-                        # )
+                        TemplateName = "bkgTemplateMorphPdf_{}_{}_{}{}".format(process, self.jetType, self.year, syst)
+                        self.rooVars[TemplateName] = ROOT.FastVerticalInterpHistPdf2D(
+                            TemplateName,
+                            TemplateName,
+                            self.zz2l2q_mass,
+                            self.rooVars["D"],
+                            True, # If conditional = true, the pdf is separately normalized integrating on (y) for each specific (x) bin
+                            self.rooArgSets["funcList_{}".format(process)], # INFO: identical to all background processes
+                            # self.rooArgSets["funcList_{}".format("zjets")], # INFO: identical to all background processes
+                            self.rooArgSets["morphVarListBkg"], # INFO: identical to all background processes
+                            1.0,
+                            1,
+                        )
 
                         for hist in self.rooDataHist:
                             logger.debug("hist: {}".format(hist))
@@ -700,8 +753,8 @@ class DatacardClass:
                             name,
                             ROOT.RooArgSet(self.rooDataHist[vzTemplatePdfName]),
                             ROOT.RooFit.Conditional(
-                                # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]),
-                                ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "_"+syst, self.year)]),
+                                # ROOT.RooArgSet(self.rooVars["bkgTemplateMorphPdf_{}_{}_{}".format(process, self.jetType, self.year)]), # Uncomment to use FastVerticalInterpHistPdf2D
+                                ROOT.RooArgSet(self.rooDataHist["{}TemplatePdf_{}{}_{}".format(process, TString_bkg, "_"+syst, self.year)]), # Uncomment to use HistPdf not the FastVerticalInterpHistPdf2D
                                 ROOT.RooArgSet(self.rooVars["D"]),
                             ),
                         )
@@ -1467,16 +1520,24 @@ class DatacardClass:
         hist_up = hist.Clone(hist.GetName() + "_up")
         hist_down = hist.Clone(hist.GetName() + "_down")
 
-        # detatch from root file
+        # # detatch from root file
         hist_up.SetDirectory(ROOT.gROOT)
         hist_down.SetDirectory(ROOT.gROOT)
 
-        for bin in range(1, hist.GetNbinsX() + 1):
+        self.background_hists[process + "_template"] = hist
+        for bin in range(4, hist.GetNbinsX() + 1): #FIXME: Remove hardcoded value
+            # hist_up = hist.Clone(hist.GetName() + "_up")
+            # hist_down = hist.Clone(hist.GetName() + "_down")
+
+            # # # detatch from root file
+            # hist_up.SetDirectory(ROOT.gROOT)
+            # hist_down.SetDirectory(ROOT.gROOT)
+
             content = hist.GetBinContent(bin)
             error = hist.GetBinError(bin)
 
             if content < threshold:
-                if content == 0:
+                if content == 0 or content < 0:
                     hist.SetBinContent(bin, 0.000001)
                     hist_up.SetBinContent(bin, 0.000001 + ROOT.TMath.Sqrt(0.000001))
                     hist_down.SetBinContent(bin, 0.0)
@@ -1484,6 +1545,10 @@ class DatacardClass:
                     hist_up.SetBinContent(bin, content + error)
                     hist_down.SetBinContent(bin, max(content - error, 0.0))
                 break;
+                # self.background_hists[process + "_template_Bin" + str(bin) + "_up"] = hist_up
+                # self.background_hists[process + "_template_Bin" + str(bin) + "_down"] = hist_down
+                # if self.SanityCheckPlot:
+                #     save_histograms_3(hist, hist_up, hist_down, "{}/figs/shape_uncertainties/{}_{}_shape_uncertainties.png".format(self.outputDir, process, self.channel), "hist", "hist_up", "hist_dn")
 
         self.background_hists[process + "_template_up"] = hist_up
         self.background_hists[process + "_template_down"] = hist_down

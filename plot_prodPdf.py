@@ -3,7 +3,7 @@ import ROOT
 # no pop up plots
 ROOT.gROOT.SetBatch(True)
 
-datacardPath = "/afs/cern.ch/user/r/rasharma/work/h2l2Q/EL7_Container/Limit_Extraction_FW/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2018_WithStat/HCG/1000"
+datacardPath = "/afs/cern.ch/user/r/rasharma/work/h2l2Q/EL7_Container/Limit_Extraction_FW/CMSSW_11_3_4/src/2l2Q_limitSettingTool/datacards_HIG_23_001/cards_2018_test/HCG/1000"
 WorkspaceName = "hzz2l2q_mumuqq_Merged_b_tagged_13TeV.input.root"
 
 # Open the ROOT file and get the workspace
@@ -28,9 +28,10 @@ colors = [ROOT.kRed, ROOT.kBlue, ROOT.kGreen]
 lineStyle = [1, 1, 2]
 
 # PDFs list to plot
-pdf_names = ["bkg_zjets", "bkg_zjets_zjets_btaggedDown", "bkg_zjets_zjets_btaggedUp"]
-# pdf_names = ["bkg_vz", "bkg_vz_vz_btaggedDown", "bkg_vz_vz_btaggedUp"]
+# pdf_names = ["bkg_zjets", "bkg_zjets_zjets_btaggedDown", "bkg_zjets_zjets_btaggedUp"]
+pdf_names = ["bkg_vz", "bkg_vz_vz_btaggedDown", "bkg_vz_vz_btaggedUp"]
 # pdf_names = ["bkg_ttbar", "bkg_ttbar_ttbar_btaggedDown", "bkg_ttbar_ttbar_btaggedUp"]
+# pdf_names = ["bkg_zjets", "bkg_vz", "bkg_ttbar"]
 
 leg = ROOT.TLegend(0.5, 0.5, 0.9, 0.9)  # Create a legend
 
@@ -60,14 +61,17 @@ for i, pdf_name in enumerate(pdf_names):
 
 
 # reset y-range to -0.1 to 0.7
-frame.SetMinimum(-0.1)
+frame.SetMinimum(0.0000001)
 frame.SetMaximum(0.7)
 
 
 # Draw the frame and the legend
 frame.Draw()
-leg.Draw()
+# leg.Draw()
 
+# set logY
+
+canvas.SetLogy()
 
 # Show the canvas
 canvas.Draw()
