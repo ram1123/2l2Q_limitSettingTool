@@ -1738,7 +1738,7 @@ class DatacardClass:
         ## Write Datacards
         systematics.setSystematics(rates)
         name_Shape = "{0}/HCG/{1:.0f}/hzz2l2q_{2}_{3:.0f}TeV.txt".format(self.outputDir, self.mH, self.appendName, self.sqrts)
-        fo = open(name_Shape, "wb")
+        fo = open(name_Shape, "w")
         self.WriteDatacard(fo, theInputs, name_ShapeWS2, rates, self.rooDataSet["data_obs"].numEntries(), self.is2D)
         systematics.WriteSystematics(fo, theInputs, rates, 0.0) # INFO: Why is the last argument 0.0?
         systematics.WriteShapeSystematics(fo, theInputs)

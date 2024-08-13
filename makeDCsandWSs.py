@@ -1090,12 +1090,11 @@ class DirectoryCreator:
                 RunCommand(command, self.dry_run)
 
             if self.blind:
-                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=-5,5 ".format(
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} -t -1 --saveToys  --setParameters r=1 ".format(
                     datacard=datacard.replace(".txt", ".root"),
                     mH=current_mass,
                     name=OutNameAppend + "_" + self.FitType,
                 )
-                command += self.blindString
                 RunCommand(command, self.dry_run)
 
             command = "combineTool.py -M FastScan -w {datacard}:w ".format(
@@ -1107,9 +1106,6 @@ class DirectoryCreator:
                 )
 
             command += " --parallel 8 "
-
-            if self.blind:
-                command += "  --setParameters r=1 "
 
             Stat = " "
             if self.setParameterRanges != "":

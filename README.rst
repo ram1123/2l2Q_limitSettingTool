@@ -15,18 +15,18 @@ Setup Higgs combine tool
 
    cmssw-el7
    export SCRAM_ARCH=slc7_amd64_gcc900
-   cmsrel CMSSW_11_3_4
-   cd CMSSW_11_3_4/src
+   cmsrel CMSSW_14_1_0_pre4
+   cd CMSSW_14_1_0_pre4/src
    cmsenv
    git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
    cd HiggsAnalysis/CombinedLimit
    cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
    git fetch origin
-   git checkout v9.2.1
+   git checkout v10.0.1
    scramv1 b clean; scramv1 b # always make a clean build
-   cd $CMSSW_BASE/src
-   bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
-   scramv1 b -j 8
+..    cd $CMSSW_BASE/src
+..    bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
+..    scramv1 b -j 8
 
 
 **Step-2:** Get the custom tool for datacard creation and limit computation
@@ -34,7 +34,7 @@ Setup Higgs combine tool
 .. code:: bash
 
    cd $CMSSW_BASE/src
-   git clone git@github.com:ram1123/2l2Q_limitSettingTool.git -b improve/datacardClass
+   git clone git@github.com:ram1123/2l2Q_limitSettingTool.git -b debug_stat_Unc
 
 Usage
 =====
