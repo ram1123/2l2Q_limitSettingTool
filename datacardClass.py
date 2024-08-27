@@ -30,22 +30,9 @@ class DatacardClass:
         self.DEBUG = DEBUG
         self.loadIncludes()
         self.setup_parameters()
-        # Extend the lifecycle of all RooFit objects by storing them as attributes of self
-        self.rooVars = {}
-        self.rooDataSet = {}
-        self.rooDataHist = {}
-        self.signalCBs = {}  # Dictionary to store signalCB objects
-        self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
-        self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
-        self.rooArgSets = {}  # Dictionary to store RooArgSet objects
-        self.background_hists_From1DTemplate = {}
-        self.background_hists_From2DTemplate = {}
-        self.background_hists = {}
-        self.background_hists_smooth = {}
+        self.initialize_roofit_objects()
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0  # Fraction of signal to be used
-        self.rooArgSets["funcList_zjets"] = ROOT.RooArgList()
-        self.datacard_lines = []
         self.channelName2D = ["ggH_hzz", "qqH_hzz", "bkg_vz", "bkg_ttbar", "bkg_zjets"]
         self.background_list = ["vz", "ttbar", "zjets"]
         self.background_map_2DTemplates = {
@@ -58,9 +45,18 @@ class DatacardClass:
             "ttbar": "TTplusWW_perInvFb_Bin50GeV",
             "zjets": "Zjet_perInvFb_Bin50GeV",
         }
+        self.datacard_lines = []
 
-    def clearRooArgSets(self):
-        """Clear RooArgSets before using them again as the datacard is initialized one time and used multiple times."""
+    def loadIncludes(self):
+        """Load necessary ROOT libraries and include paths."""
+        ROOT.gSystem.AddIncludePath("-I$ROOFITSYS/include/")
+        ROOT.gSystem.AddIncludePath("-Iinclude/")
+        ROOT.gROOT.ProcessLine(".L include/tdrstyle.cc")
+        ROOT.gSystem.Load("libRooFit")
+        ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit.so")
+
+    def initialize_roofit_objects(self):
+        # Extend the lifecycle of all RooFit objects by storing them as attributes of self
         self.rooVars = {}
         self.rooDataSet = {}
         self.rooDataHist = {}
@@ -68,14 +64,20 @@ class DatacardClass:
         self.rooProdPdf = {}  # Dictionary to store rooProdPdf objects
         self.rooFormulaVars = {}  # Dictionary to store RooFormulaVar objects
         self.rooArgSets = {}  # Dictionary to store RooArgSet objects
+        self.background_hists_From1DTemplate = {}
+        self.background_hists_From2DTemplate = {}
         self.background_hists = {}
         self.background_hists_smooth = {}
+
+    def clearRooArgSets(self):
+        """Clear RooArgSets before using them again as the datacard is initialized one time and used multiple times."""
+        self.initialize_roofit_objects()
         self.workspace = ROOT.RooWorkspace("w", "workspace")
         self.sigFraction = 1.0  # Fraction of signal to be used
         self.datacard_lines = []
 
     def printAllRooArgSets(self):
-        """Print all RooArgSets."""
+        """Print all RooArgSets and related RooFit objects."""
         logger.error("==============        RooVars        ==============")
         for key, value in self.rooVars.items():
             print("key: {:35}, value: {}".format(key, value))
@@ -140,14 +142,6 @@ class DatacardClass:
         self.ID_2eResolved = "eeqq_Resolved"
         self.ID_2muMerged = "mumuqq_Merged"
         self.ID_2eMerged = "eeqq_Merged"
-
-    def loadIncludes(self):
-        """Load necessary ROOT libraries and include paths."""
-        ROOT.gSystem.AddIncludePath("-I$ROOFITSYS/include/")
-        ROOT.gSystem.AddIncludePath("-Iinclude/")
-        ROOT.gROOT.ProcessLine(".L include/tdrstyle.cc")
-        ROOT.gSystem.Load("libRooFit")
-        ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit.so")
 
     def open_root_file(self, file_path):
         """Open a ROOT file and return the file object."""
@@ -335,12 +329,13 @@ class DatacardClass:
 
     def getRateFromSmoothedHist(self, process):
         """Get the rate for the given process from the smoothed histograms."""
-        rate = 0.0
-        for key, hist in self.background_hists_smooth.items():
-            logger.debug("key: {}, hist: {}".format(key, hist))
-        logger.debug("Hist name from rate is obtained: {}_{}_smooth".format(process, self.cat_tree))
-        rate = self.background_hists_smooth["{}_{}_smooth".format(process, self.cat_tree)].Integral()
-        return rate
+        hist_key = "{}_{}_smooth".format(process, self.cat_tree)
+        rate = self.background_hists_smooth.get(hist_key, None)
+        if rate is not None:
+            return rate.Integral()
+        else:
+            logger.error("Histogram key not found: {}".format(hist_key))
+            return 0.0
 
     def get_tree_name(self):
         """Return the tree name based on the channel and category."""
@@ -503,7 +498,6 @@ class DatacardClass:
                 ),
             )
 
-        sample_list = ["ggH", "VBF"]
         for sample in sample_list:
             if sample == "ggH":
                 tag_temp = "ggH"
