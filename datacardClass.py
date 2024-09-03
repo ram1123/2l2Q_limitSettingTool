@@ -126,16 +126,16 @@ class DatacardClass:
         temp_bin1_resolved = np.linspace(self.low_M, 1200, 22)
         temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, self.high_M])
         # FIXME: Uniform bins or not?
-        # self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
-        self.binning_resolved = uniform_bins
+        self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
+        # self.binning_resolved = uniform_bins
         self.rooBinning_resolved = ROOT.RooBinning(len(self.binning_resolved) - 1, array('d', self.binning_resolved))
 
         # Merged bin edges
         temp_bin1_merged = np.linspace(self.low_M, 900, 16)
         temp_bin2_merged = np.array([1000, 1200, 1600, self.high_M])
         # FIXME: Uniform bins or not?
-        # self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
-        self.binning_merged = uniform_bins
+        self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
+        # self.binning_merged = uniform_bins
         self.rooBinning_merged = ROOT.RooBinning(len(self.binning_merged) - 1, array('d', self.binning_merged))
 
         self.ID_2muResolved = "mumuqq_Resolved"
@@ -571,9 +571,8 @@ class DatacardClass:
         """Get the RooProdPDF of morphed backgrounds."""
         for process in self.background_list:
             vzTemplateName = "{}_{}_{}".format(process, self.appendName, self.year)
-            vzTemplateMVV = self.background_hists_From1DTemplate["{}_template".format(process)]
-            # category = self.cat_tree
-            # vzTemplateMVV = self.background_hists["{}_{}_template".format(process, category)]
+            category = self.cat_tree
+            vzTemplateMVV = self.background_hists["{}_{}_template".format(process, category)]
             logger.debug("vzTemplateName: {}, \n\tvzTemplateMVV: {}".format(vzTemplateName, vzTemplateMVV))
             logger.debug("TYPE: {}".format(type(vzTemplateMVV)))
 
@@ -1215,7 +1214,7 @@ class DatacardClass:
             hist_smooth = hist.Clone()
             # hist_smooth.Smooth(1000, "R")
             # hist_smooth.SmoothMarkov(1000)
-            hist_smooth = smooth_histogram(hist)
+            # hist_smooth = smooth_histogram(hist)
             # hist_smooth_KDE = smooth_histogram_with_tkde(hist)
 
             logger.debug("Smoothed {} integral: {}".format(key, hist.Integral()))
