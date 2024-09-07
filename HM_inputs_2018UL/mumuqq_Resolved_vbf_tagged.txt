@@ -46,7 +46,11 @@ systematic param CMS_zz2l2q_mean_j_err   0.01
 systematic param CMS_zz2l2q_sigma_j_err  0.10
 
 ## Muon systematics ##
-systematic muon_full 0.04
+systematic muon_full vz 1.002831850/0.997172169
+systematic muon_full qqH 1.002601223/0.997402195
+systematic muon_full ggH 1.002597417/0.997405957
+systematic muon_full ttbar 1.002859983/0.997144047
+systematic muon_full zv 1.002831850/0.997172169
 systematic muon_trig 0.0075
 
 ##Split JEC systematic ##
@@ -101,6 +105,8 @@ systematic splitjec vz RelSample_year 1.0288801571709234/0.9787819253438114
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
+systematic deepjetsf False
+systematic deepjetsfcorrelated False
 systematic CMS_scale_j_split True
 systematic CMS_scale_J_split False
 systematic luminosity True
