@@ -34,6 +34,9 @@ For Impact Plots
     python makeDCsandWSs.py -y run2 -s ri -f -1 -setParameterRanges r=-5,5:CMS_scale_J_Abs_2018=-10,10:CMS_zz2l2q_sigMELA_merged=-10,10:BTAG_resolved=-10,10:BTAG_merged=-5,5  -AdditionalFitOptions " --setRobustFitStrategy 0 --cminFallbackAlgo Minuit,1:10  --cminDefaultMinimizerTolerance 0.001  --setRobustFitTolerance 0.001 " -signalStrength 1 -ss 2 -c -p
     python makeDCsandWSs.py -y run2 -s ri -f -1 -setParameterRanges r=-5,5:CMS_scale_J_Abs_2018=-10,10:CMS_zz2l2q_sigMELA_merged=-10,10:BTAG_resolved=-10,10:BTAG_merged=-5,5  -AdditionalFitOptions " --setRobustFitStrategy 0 --cminFallbackAlgo Minuit,1:10  --cminDefaultMinimizerTolerance 0.001  --setRobustFitTolerance 0.001 " -signalStrength 1 -ss 3 -c -p
 
+    #jialin's record (fixed one sited constrain issue)
+    python makeDCsandWSs.py -y 2018 -s ri -ss 1 -c -p -setParameterRanges r=0,2:CMS_scale_J_Abs_2018=-10,10:CMS_zz2l2q_sigMELA_merged=-10,10:CMS_zz2lJ_sigma_J_sig=-10,10:CMS_zz2lJ_mean_J_sig=-10,10:CMS_zz2l2q_sigma_j_sig=-10,10:CMS_zz2l2q_mean_m_sig=-10,10:CMS_zz2l2q_mean_e_sig=-10,10:BTAG_resolved=-20,20:frac_VBF=0,1:BTAG_merged=-20,20 -a deepjet -mi 400 -mf 3050 -AdditionalFitOptions "--setRobustFitStrategy 0 --cminFallbackAlgo Minuit,1:10  --cminDefaultMinimizerTolerance 0.001  --setRobustFitTolerance 0.001" --X-rtd FAST_VERTICAL_MORPH -signalStrength 1
+    
     # Investigate the command with signal strength = 0
     python makeDCsandWSs.py -y 2018 -s ri -f -1 -setParameterRanges r=-5,5:CMS_scale_J_Abs_2018=-10,10:CMS_zz2l2q_sigMELA_merged=-10,10:BTAG_resolved=-10,10:BTAG_merged=-5,5   -mi 2000 -mf 2050   -AdditionalFitOptions " --setRobustFitStrategy 0 --cminFallbackAlgo Minuit,1:10  --cminDefaultMinimizerTolerance 0.001  --setRobustFitTolerance 0.001 " -signalStrength 1 -ss 1
 

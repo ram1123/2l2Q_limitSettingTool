@@ -70,8 +70,8 @@ class systematicsClass:
         self.rateBkg_ttbar = rates['ttbar']
         self.rateBkg_zjets = rates['zjets']
 
-        self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
-        self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
+        #self.muSelError = 1 + math.sqrt( self.sel_muonfull*self.sel_muonfull + self.sel_muontrig*self.sel_muontrig )
+        #self.eSelError = 1 + math.sqrt( self.sel_elefull*self.sel_elefull + self.sel_eletrig*self.sel_eletrig )
 
     def Write_Systematics_Line(self,systLine,theFile,theInputs):
         if self.DEBUG: print("~~~~~~~~~~~~~~~~~")
@@ -128,7 +128,7 @@ class systematicsClass:
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Build_lumi_Corr16_17_18(self,theFile,theInputs):
-        if(str(self.year) == '2016'):
+        if(str(self.year).find('2016')!=-1):
             theFile.write("lumi_13TeV_correlated_16_17_18 lnN ")
 
             systLine={'ggH':"{0} ".format('1.006')}
@@ -283,22 +283,22 @@ class systematicsClass:
         #systLine={'ggH':"{0:.3f} ".format(self.eSelError)}
         #systLine['qqH']   = "{0:.3f} ".format(self.eSelError)
         #systLine['vz']  = "{0:.3f} ".format(self.eSelError)
-        systLine={'ggH':"0.990549/1.00949 "}
-        systLine['qqH']   = "0.990549/1.00949 "
-        systLine['vz']  = "0.990549/1.00949 "
+        systLine={'ggH':"{} ".format(theInputs['elecFullUnc']['ggH'])}
+        systLine['qqH']   = "{} ".format(theInputs['elecFullUnc']['qqH'])
+        systLine['vz']  = "{} ".format(theInputs['elecFullUnc']['vz'])
         systLine['zjets']= "- "
-        systLine['ttbar']= "- "
+        systLine['ttbar']= "{} ".format(theInputs['elecFullUnc']['ttbar'])
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
     def Write_eff_m(self,theFile,theInputs):
 
         theFile.write("CMS_eff_m lnN ")
-        systLine={'ggH':"{0:.3f} ".format(self.muSelError)}
-        systLine['qqH']  = "{0:.3f} ".format(self.muSelError)
+        systLine={'ggH':"{} ".format(theInputs['muonFullUnc']['ggH'])}
+        systLine['qqH']  = "{} ".format(theInputs['muonFullUnc']['qqH'])
         systLine['zjets']= "- "
-        systLine['ttbar']= "- "
-        systLine['vz']  = "{0:.3f} ".format(self.muSelError)
+        systLine['ttbar']= "{} ".format(theInputs['muonFullUnc']['ttbar'])
+        systLine['vz']  = "{} ".format(theInputs['muonFullUnc']['vz'])
 
         self.Write_Systematics_Line(systLine,theFile,theInputs)
 
@@ -472,11 +472,33 @@ class systematicsClass:
 
             self.Write_Systematics_Line(systLine,theFile,theinputs)
 
+    def Write_Ak4_deepjet_Split_JEC(self,theFile,theinputs):
+        ##add these split JEC uncertainty for ak4
+        for flav in ['bc','light']:
+            theFile.write('CMS_scale_deepjet{}_{} lnN '.format(flav,self.year))
+            systLine={'ggH':"{} ".format(theinputs['deepjetsf{}'.format(flav)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['deepjetsf{}'.format(flav)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+            theFile.write('CMS_scale_deepjetcorrelated{} lnN '.format(flav))
+            systLine={'ggH':"{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['ggH'])}
+            systLine['qqH'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['qqH'])
+            systLine['zjets'] = "- "
+            systLine['ttbar'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['ttbar'])
+            systLine['vz'] = "{} ".format(theinputs['deepjetsfcorrelated{}'.format(flav)]['vz'])
+
+            self.Write_Systematics_Line(systLine,theFile,theinputs)
+
+
     def WriteSystematics(self,theFile,theInputs, rates, Nemu):
 
         if theInputs['useLumiUnc']:
             self.Build_lumi_Uncorrelated(theFile,theInputs)
-            if str(self.year) != '2016': self.Build_lumi_Corr17_18(theFile,theInputs)
+            if str(self.year).find("2016") == -1 : self.Build_lumi_Corr17_18(theFile,theInputs)
             self.Build_lumi_Corr16_17_18(theFile,theInputs)
 
         if theInputs['usePdf_gg']:
@@ -506,7 +528,8 @@ class systematicsClass:
             self.Write_Ak4_Split_JEC(theFile,theInputs)
         if theInputs['useAk8SplitJEC']:
             self.Write_Ak8_Split_JEC(theFile,theInputs)
-
+        if theInputs['usedeepjetsf']:
+            self.Write_Ak4_deepjet_Split_JEC(theFile,theInputs)
 
     ## Higgs BR
         if theInputs['useBRhiggs_hzz2l2q'] and not self.isForXSxBR :
