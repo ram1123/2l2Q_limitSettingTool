@@ -89,7 +89,7 @@ def compare_pdfs_and_functions(pdfs1, pdfs2, functions1, functions2):
 
         # If both evaluated values are present, compute the difference
         if eval_value1 and eval_value2:
-            diff = eval_value2[0] - eval_value1[0]
+            diff = abs(eval_value2[0] - eval_value1[0])
         else:
             diff = "N/A"
 
@@ -97,9 +97,9 @@ def compare_pdfs_and_functions(pdfs1, pdfs2, functions1, functions2):
             f"PDF: {pdf_name}",
             params1,
             params2,
-            f"{eval_value1[0]:.5f}" if eval_value1 else "Missing",
-            f"{eval_value2[0]:.5f}" if eval_value2 else "Missing",
-            f"{diff:.5f}" if isinstance(diff, (float, int)) else diff
+            f"{eval_value1[0]:.3f}" if eval_value1 else "Missing",
+            f"{eval_value2[0]:.3f}" if eval_value2 else "Missing",
+            f"{diff:.3f}" if isinstance(diff, (float, int)) else diff
         ])
 
     # Compare Functions
@@ -114,7 +114,7 @@ def compare_pdfs_and_functions(pdfs1, pdfs2, functions1, functions2):
 
         # If both evaluated values are present, compute the difference
         if eval_value1 and eval_value2:
-            diff = eval_value2[0] - eval_value1[0]
+            diff = abs(eval_value2[0] - eval_value1[0])
         else:
             diff = "N/A"
 
@@ -122,9 +122,9 @@ def compare_pdfs_and_functions(pdfs1, pdfs2, functions1, functions2):
             f"Function: {func_name}",
             params1,
             params2,
-            f"{eval_value1[0]:.5f}" if eval_value1 else "Missing",
-            f"{eval_value2[0]:.5f}" if eval_value2 else "Missing",
-            f"{diff:.5f}" if isinstance(diff, (float, int)) else diff
+            f"{eval_value1[0]:.3f}" if eval_value1 else "Missing",
+            f"{eval_value2[0]:.3f}" if eval_value2 else "Missing",
+            f"{diff:.3f}" if isinstance(diff, (float, int)) else diff
         ])
 
     # Convert the comparison data into a DataFrame

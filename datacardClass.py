@@ -469,6 +469,16 @@ class datacardClass:
         bkgRate_vz_Shape_btagged = vz_smooth_fs_btagged.Integral()
         bkgRate_vz_Shape_vbftagged = vz_smooth_fs_vbftagged.Integral()
 
+        logger.debug("Input root file: {}".format(TempFile_fs))
+        logger.debug("===> Input Hist: {}".format(vzTemplateMVV_fs_untagged.GetName()))
+        logger.debug("bkgRate_vz_Shape_untagged = {}".format(bkgRate_vz_Shape_untagged))
+        logger.debug("bkgRate_vz_Shape_btagged = {}".format(bkgRate_vz_Shape_btagged))
+        logger.debug("bkgRate_vz_Shape_vbftagged = {}".format(bkgRate_vz_Shape_vbftagged))
+
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_untagged.GetName(), vz_smooth_fs_untagged.Integral()))
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_btagged.GetName(), vz_smooth_fs_btagged.Integral()))
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_vbftagged.GetName(), vz_smooth_fs_vbftagged.Integral()))
+
         btagRatio = bkgRate_vz_Shape_btagged/bkgRate_vz_Shape_untagged
         vbfRatio = bkgRate_vz_Shape_vbftagged/(bkgRate_vz_Shape_untagged+bkgRate_vz_Shape_btagged)
 
