@@ -411,8 +411,8 @@ class datacardClass:
 
         #if option contains "R" smoothing is applied only to the bins defined in the X axis range (default is to smooth all bins) Bin contents are replaced by their smooth values. Errors (if any) are not modified. the smoothing procedure is repeated ntimes (default=1)
         #https://root.cern.ch/doc/v622/classTH1.html#a0d08651c37b622f4bcc0e1a0affefb33 information about smooth function
-        vz_smooth.Smooth(300,'r')
-        ttbar_smooth.Smooth(4000,'r')
+        # vz_smooth.Smooth(300,'r')
+        # ttbar_smooth.Smooth(4000,'r')
 
         ## vz shape and ttbar+ww shape
         vzTempDataHistMVV = ROOT.RooDataHist(vzTemplateName,vzTemplateName,RooArgList(zz2l2q_mass),vz_smooth)
