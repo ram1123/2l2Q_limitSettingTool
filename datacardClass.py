@@ -2,6 +2,7 @@
 import ROOT
 ROOT.gROOT.SetBatch(True)
 from array import array
+import numpy as np
 
 import sys
 from subprocess import *
@@ -115,15 +116,34 @@ class datacardClass:
         #  self.low_M = 700
         # self.high_M = self.mH + 0.25*self.mH
         self.high_M = 4000
-        bins = int((self.high_M-self.low_M)/10)
+        uniform_bins = np.linspace(self.low_M, self.high_M, int((self.high_M - self.low_M)/10), dtype=int)
+
+        # Resolved bin edges
+        temp_bin1_resolved = np.linspace(self.low_M, 1200, 22)
+        temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, self.high_M])
+        # FIXME: Uniform bins or not?
+        self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
+        # self.binning_resolved = uniform_bins
+        self.rooBinning_resolved = ROOT.RooBinning(len(self.binning_resolved) - 1, array('d', self.binning_resolved))
+
+        # Merged bin edges
+        temp_bin1_merged = np.linspace(self.low_M, 900, 16)
+        temp_bin2_merged = np.array([1000, 1200, 1600, self.high_M])
+        # FIXME: Uniform bins or not?
+        self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
+        # self.binning_merged = uniform_bins
+        self.rooBinning_merged = ROOT.RooBinning(len(self.binning_merged) - 1, array('d', self.binning_merged))
+
+        self.variableBinning = self.binning_resolved if self.jetType == "resolved" else self.binning_merged
 
         mzz_name = "zz2l2q_mass"
         zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
-        zz2l2q_mass.setBins(bins)
+        zz2l2q_mass.setBinning(self.rooBinning_resolved, "resolved")
 
         if(self.jetType=="merged") :
           zz2l2q_mass.SetName("zz2lJ_mass")
           zz2l2q_mass.SetTitle("zz2lJ_mass")
+          zz2l2q_mass.setBinning(self.rooBinning_merged, "merged")
 
         # FIXME: Check the ranges?
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
@@ -336,13 +356,13 @@ class datacardClass:
         logger.debug("ttbarTemplateMVV_fs_vbftagged.Integral() = {}".format(ttbarTemplateMVV_fs_vbftagged.Integral()))
 
         #smooth the templates
-        vz_smooth_fs_untagged = TH1F("vz_"+fs+"_untagged","vz_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        vz_smooth_fs_btagged = TH1F("vz_"+fs+"_btagged","vz_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        vz_smooth_fs_vbftagged = TH1F("vz_"+fs+"_vbftagged","vz_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        vz_smooth_fs_untagged = TH1F("vz_"+fs+"_untagged","vz_"+fs+"_untagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
+        vz_smooth_fs_btagged = TH1F("vz_"+fs+"_btagged","vz_"+fs+"_btagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
+        vz_smooth_fs_vbftagged = TH1F("vz_"+fs+"_vbftagged","vz_"+fs+"_vbftagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
 
-        ttbar_smooth_fs_untagged = TH1F("ttbar_"+fs+"_untagged","ttbar_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        ttbar_smooth_fs_btagged = TH1F("ttbar_"+fs+"_btagged","ttbar_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+fs+"_vbftagged","ttbar_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        ttbar_smooth_fs_untagged = TH1F("ttbar_"+fs+"_untagged","ttbar_"+fs+"_untagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
+        ttbar_smooth_fs_btagged = TH1F("ttbar_"+fs+"_btagged","ttbar_"+fs+"_btagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
+        ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+fs+"_vbftagged","ttbar_"+fs+"_vbftagged",  len(self.variableBinning) -1, array('d', self.variableBinning))
 
         # shape from 2e+2mu
         TempFile = TFile("templates1D/Template1D_spin0_2l_{}.root".format(self.year),"READ")
@@ -352,67 +372,71 @@ class datacardClass:
         ttbarTemplateMVV = TempFile.Get(ttbarpluswwTemplateMVV_Name)
 
         vzTemplateName="vz_"+self.appendName+"_"+str(self.year)
-        vz_smooth = TH1F(vzTemplateName,vzTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        vz_smooth = TH1F(vzTemplateName,vzTemplateName,  len(self.variableBinning) -1, array('d', self.variableBinning))
         ttbarTemplateName="ttbar_"+self.appendName+"_"+str(self.year)
-        ttbar_smooth = TH1F(ttbarTemplateName,ttbarTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        ttbar_smooth = TH1F(ttbarTemplateName,ttbarTemplateName,  len(self.variableBinning) -1, array('d', self.variableBinning))
 
         #smooth the templates
-        for i in range(0,int(self.high_M-self.low_M)/10) :
+        for i in range(0, len(self.variableBinning) -1) :
 
           mVV_tmp = vz_smooth.GetBinCenter(i+1)
+          bin_width = vz_smooth.GetBinWidth(i+1)
 
           for j in range(0,vzTemplateMVV.GetXaxis().GetNbins()) :
 
             mVV_tmp_low = vzTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
             mVV_tmp_up  = vzTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
+            bin_width_tmp = vzTemplateMVV.GetXaxis().GetBinWidth(j+1)
 
             if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
 
-              vz_smooth.SetBinContent(i+1,vzTemplateMVV.GetBinContent(j+1)*10.0/50.0)
-              vz_smooth.SetBinError(i+1,vzTemplateMVV.GetBinError(j+1)*10.0/50.0)
+              vz_smooth.SetBinContent(i+1,vzTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
+              vz_smooth.SetBinError(i+1,vzTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
 
               ########
 
-              vz_smooth_fs_untagged.SetBinContent(i+1,vzTemplateMVV_fs_untagged.GetBinContent(j+1)*10.0/50.0)
-              vz_smooth_fs_untagged.SetBinError(i+1,vzTemplateMVV_fs_untagged.GetBinError(j+1)*10.0/50.0)
+              vz_smooth_fs_untagged.SetBinContent(i+1,vzTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+              vz_smooth_fs_untagged.SetBinError(i+1,vzTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-              vz_smooth_fs_btagged.SetBinContent(i+1,vzTemplateMVV_fs_btagged.GetBinContent(j+1)*10.0/50.0)
-              vz_smooth_fs_btagged.SetBinError(i+1,vzTemplateMVV_fs_btagged.GetBinError(j+1)*10.0/50.0)
+              vz_smooth_fs_btagged.SetBinContent(i+1,vzTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+              vz_smooth_fs_btagged.SetBinError(i+1,vzTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-              vz_smooth_fs_vbftagged.SetBinContent(i+1,vzTemplateMVV_fs_vbftagged.GetBinContent(j+1)*10.0/50.0)
-              vz_smooth_fs_vbftagged.SetBinError(i+1,vzTemplateMVV_fs_vbftagged.GetBinError(j+1)*10.0/50.0)
+              vz_smooth_fs_vbftagged.SetBinContent(i+1,vzTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+              vz_smooth_fs_vbftagged.SetBinError(i+1,vzTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
               break # FIXME: is this break correct?
 
         ####### TTbar
-        for i in range(0,int(self.high_M-self.low_M)/10) :
+        for i in range(0, len(self.variableBinning) -1) :
 
          mVV_tmp = ttbar_smooth.GetBinCenter(i+1)
+         bin_width = ttbar_smooth.GetBinWidth(i+1)
 
          for j in range(0,ttbarTemplateMVV.GetXaxis().GetNbins()) :
 
            mVV_tmp_low = ttbarTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
            mVV_tmp_up  = ttbarTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
+           bin_width_tmp = ttbarTemplateMVV.GetXaxis().GetBinWidth(j+1)
 
            if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-             ttbar_smooth.SetBinContent(i+1,ttbarTemplateMVV.GetBinContent(j+1)*10.0/50.0)
-             ttbar_smooth.SetBinError(i+1,ttbarTemplateMVV.GetBinError(j+1)*10.0/50.0)
+             ttbar_smooth.SetBinContent(i+1,ttbarTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             ttbar_smooth.SetBinError(i+1,ttbarTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             ttbar_smooth_fs_untagged.SetBinContent(i+1,ttbarTemplateMVV_fs_untagged.GetBinContent(j+1)*10.0/50.0)
-             ttbar_smooth_fs_untagged.SetBinError(i+1,ttbarTemplateMVV_fs_untagged.GetBinError(j+1)*10.0/50.0)
+             ttbar_smooth_fs_untagged.SetBinContent(i+1,ttbarTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             ttbar_smooth_fs_untagged.SetBinError(i+1,ttbarTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             ttbar_smooth_fs_btagged.SetBinContent(i+1,ttbarTemplateMVV_fs_btagged.GetBinContent(j+1)*10.0/50.0)
-             ttbar_smooth_fs_btagged.SetBinError(i+1,ttbarTemplateMVV_fs_btagged.GetBinError(j+1)*10.0/50.0)
+             ttbar_smooth_fs_btagged.SetBinContent(i+1,ttbarTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             ttbar_smooth_fs_btagged.SetBinError(i+1,ttbarTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             ttbar_smooth_fs_vbftagged.SetBinContent(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinContent(j+1)*10.0/50.0)
-             ttbar_smooth_fs_vbftagged.SetBinError(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinError(j+1)*10.0/50.0)
+             ttbar_smooth_fs_vbftagged.SetBinContent(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             ttbar_smooth_fs_vbftagged.SetBinError(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
              break
 
         #if option contains "R" smoothing is applied only to the bins defined in the X axis range (default is to smooth all bins) Bin contents are replaced by their smooth values. Errors (if any) are not modified. the smoothing procedure is repeated ntimes (default=1)
         #https://root.cern.ch/doc/v622/classTH1.html#a0d08651c37b622f4bcc0e1a0affefb33 information about smooth function
-        vz_smooth.Smooth(300,'r')
-        ttbar_smooth.Smooth(4000,'r')
+        # vz_smooth.Smooth(300,'r')
+        # ttbar_smooth.Smooth(4000,'r')
 
         ## vz shape and ttbar+ww shape
         vzTempDataHistMVV = ROOT.RooDataHist(vzTemplateName,vzTemplateName,RooArgList(zz2l2q_mass),vz_smooth)
@@ -469,6 +493,16 @@ class datacardClass:
         bkgRate_vz_Shape_btagged = vz_smooth_fs_btagged.Integral()
         bkgRate_vz_Shape_vbftagged = vz_smooth_fs_vbftagged.Integral()
 
+        logger.debug("Input root file: {}".format(TempFile_fs))
+        logger.debug("===> Input Hist: {}".format(vzTemplateMVV_fs_untagged.GetName()))
+        logger.debug("bkgRate_vz_Shape_untagged = {}".format(bkgRate_vz_Shape_untagged))
+        logger.debug("bkgRate_vz_Shape_btagged = {}".format(bkgRate_vz_Shape_btagged))
+        logger.debug("bkgRate_vz_Shape_vbftagged = {}".format(bkgRate_vz_Shape_vbftagged))
+
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_untagged.GetName(), vz_smooth_fs_untagged.Integral()))
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_btagged.GetName(), vz_smooth_fs_btagged.Integral()))
+        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_vbftagged.GetName(), vz_smooth_fs_vbftagged.Integral()))
+
         btagRatio = bkgRate_vz_Shape_btagged/bkgRate_vz_Shape_untagged
         vbfRatio = bkgRate_vz_Shape_vbftagged/(bkgRate_vz_Shape_untagged+bkgRate_vz_Shape_btagged)
 
@@ -519,6 +553,7 @@ class datacardClass:
            channel_plus_cat = channel_plus_cat+"vbf"
 
         # use emu data to get data-to-mc correction factor
+        # INFO: We are not correcting the normalisation of ttbar, as its modelling is better.
         ttbar_MuEG_mc = ttbar_MuEG_file.Get("hmass_"+channel_plus_cat+"_TTplusWW_emu_Bin50GeV")
         ttbar_MuEG_data = ttbar_MuEG_file.Get("hmass_"+channel_plus_cat+"_Data_emu_Bin50GeV")
         ttbar_MuEG_WZ3LNu = ttbar_MuEG_file.Get("hmass_"+channel_plus_cat+"_WZ3LNu_emu_Bin50GeV")
