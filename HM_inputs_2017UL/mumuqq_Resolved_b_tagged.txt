@@ -45,7 +45,11 @@ systematic param CMS_zz2l2q_mean_j_err   0.01
 systematic param CMS_zz2l2q_sigma_j_err  0.10
 
 ## Muon systematics ##
-systematic muon_full 0.04
+systematic muon_full vz 1.005115530/0.994897527
+systematic muon_full qqH 1.005153996/0.994859281
+systematic muon_full ggH 1.005123034/0.994890048
+systematic muon_full ttbar 1.004838325/0.995173386
+systematic muon_full zv 1.005115530/0.994897527
 systematic muon_trig 0.0075
 
 ##Split JEC systematic ##
@@ -97,9 +101,32 @@ systematic splitjec vz HF_year 1.0/1.0
 systematic splitjec vz RelBal 1.0042227241480899/0.9965628989492291
 systematic splitjec vz RelSample_year 1.0058921732298929/0.994991652754591
 
+##deepjet SFs systematic ##
+systematic deepjetsfbc ggH 1.0132225089558464/0.9867774910441536
+systematic deepjetsfbc qqH 1.019972108004405/0.9800278919955949
+systematic deepjetsfbc ttbar 1.0144410939473818/0.9855589060526181
+systematic deepjetsfbc vz 1.0114946978035197/0.9885053021964803
+
+systematic deepjetsflight ggH 1.0132225089558464/0.9867774910441536
+systematic deepjetsflight qqH 1.019972108004405/0.9800278919955949
+systematic deepjetsflight ttbar 1.0144410939473818/0.9855589060526181
+systematic deepjetsflight vz 1.0114946978035197/0.9885053021964803
+
+systematic deepjetsfcorrelatedbc ggH 1.0090912445173073/0.9909087554826927
+systematic deepjetsfcorrelatedbc qqH 1.014268285532821/0.9857317144671792
+systematic deepjetsfcorrelatedbc ttbar 1.008724115296011/0.9912758847039891
+systematic deepjetsfcorrelatedbc vz 1.0081782067042016/0.9918217932957981
+
+systematic deepjetsfcorrelatedlight ggH 1.0090912445173073/0.9909087554826927
+systematic deepjetsfcorrelatedlight qqH 1.014268285532821/0.9857317144671792
+systematic deepjetsfcorrelatedlight ttbar 1.008724115296011/0.9912758847039891
+systematic deepjetsfcorrelatedlight vz 1.0081782067042016/0.9918217932957981
+
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
+systematic deepjetsf True
+systematic deepjetsfcorrelated True
 systematic CMS_scale_j_split True
 systematic CMS_scale_J_split False
 systematic luminosity True
