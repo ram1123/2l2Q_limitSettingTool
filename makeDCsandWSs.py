@@ -466,7 +466,10 @@ class DirectoryCreator:
                         if self.year == 'run2':
                             command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                         else:
-                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+                            #command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+
+                            #adding bin by bin stat uncertainty cause of huge computation time, so requesting for 4 cpus. changed by jialin
+                            command += self.CombineCondor.format(name = AppendOutName+"_ImpactS1", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                     else:
                         command +=  " | tee {name}.log".format(name = AppendOutName)
 

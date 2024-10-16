@@ -550,10 +550,10 @@ class systematicsClass:
 
         self.Write_CMS_hzz2l2q_vz(theFile,theInputs)
 
-        if theInputs['useCMS_zz2l2q_bkgMELA']:
-            self.Write_CMS_zz2l2q_bkgMELA(theFile,theInputs)
-        if theInputs['useCMS_zz2l2q_sigMELA']:
-            self.Write_CMS_zz2l2q_sigMELA(theFile,theInputs)
+        #if theInputs['useCMS_zz2l2q_bkgMELA']:
+        #    self.Write_CMS_zz2l2q_bkgMELA(theFile,theInputs)
+        #if theInputs['useCMS_zz2l2q_sigMELA']:
+        #    self.Write_CMS_zz2l2q_sigMELA(theFile,theInputs)
 
         # self.Write_CMS_hzz2l2q_JES(theFile,theInputs) # Now we use split JEC
         #changed by Jialin

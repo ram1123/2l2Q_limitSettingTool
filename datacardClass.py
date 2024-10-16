@@ -2,6 +2,7 @@
 import ROOT
 ROOT.gROOT.SetBatch(True)
 from array import array
+import numpy as np
 
 import sys
 from subprocess import *
@@ -12,6 +13,7 @@ from ROOT import *
 from systematicsClass import *
 from inputReader import *
 from utils import *
+from utils_hist import save_histograms_3
 
 
 gROOT.ProcessLine(
@@ -54,8 +56,10 @@ class datacardClass:
         self.channel = theInputs['decayChannel']
         self.is2D = theis2D
         self.outputDir = theOutputDir
-        self.sigMorph = True #theInputs['useCMS_zz2l2q_sigMELA']
-        self.bkgMorph = True #theInputs['useCMS_zz2l2q_bkgMELA']
+        #self.sigMorph = True #theInputs['useCMS_zz2l2q_sigMELA']
+        #self.bkgMorph = True #theInputs['useCMS_zz2l2q_bkgMELA']
+        self.sigMorph = False #theInputs['useCMS_zz2l2q_sigMELA']
+        self.bkgMorph = False #theInputs['useCMS_zz2l2q_bkgMELA']
         self.cat = theCat
         self.FracVBF = theFracVBF
         self.SanityCheckPlot = SanityCheckPlot
@@ -109,25 +113,47 @@ class datacardClass:
 
         # low and high M is 25 % of the mass self.mH
         # self.low_M = self.mH - 0.25*self.mH
-        self.low_M = 0
+        self.low_M = 150
         #if(self.channel=="eeqq_Merged" or self.channel=="mumuqq_Merged") : # if merge selected, start from 600GeV
         #if(self.jetType=="merged") :
         #  self.low_M = 700
         # self.high_M = self.mH + 0.25*self.mH
-        self.high_M = 4000
+        self.high_M = 3500
         bins = int((self.high_M-self.low_M)/10)
 
+        # Resolved bin edges
+        temp_bin1_resolved = np.linspace(self.low_M, 1200, 22)
+        temp_bin2_resolved = np.array([1300, 1400, 1500, 1600, self.high_M])
+        self.binning_resolved = np.concatenate((temp_bin1_resolved, temp_bin2_resolved))
+        self.rooBinning_resolved = ROOT.RooBinning(len(self.binning_resolved) - 1, array('d', self.binning_resolved))
+
+        # Merged bin edges
+        temp_bin1_merged = np.linspace(self.low_M, 900, 16)
+        temp_bin2_merged = np.array([1000, 1200, 1600, self.high_M])
+        self.binning_merged = np.concatenate((temp_bin1_merged, temp_bin2_merged))
+        self.rooBinning_merged = ROOT.RooBinning(len(self.binning_merged) - 1, array('d', self.binning_merged))
+
+        #test with costum binning copy from Ram's code
+        self.variableBinning = self.binning_resolved if self.jetType == "resolved" else self.binning_merged
+
         mzz_name = "zz2l2q_mass"
-        zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
-        zz2l2q_mass.setBins(bins)
+        #test with costum binning copy from Ram's code
+        zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.variableBinning[0],self.variableBinning[-1])
+        zz2l2q_mass.setBinning(self.rooBinning_resolved, "resolved")
+
+
+        #zz2l2q_mass = ROOT.RooRealVar(mzz_name,mzz_name,self.low_M,self.high_M)
+        #zz2l2q_mass.setBins(bins)
 
         if(self.jetType=="merged") :
           zz2l2q_mass.SetName("zz2lJ_mass")
           zz2l2q_mass.SetTitle("zz2lJ_mass")
+          zz2l2q_mass.setBinning(self.rooBinning_merged, "merged")
 
         # FIXME: Check the ranges?
         zz2l2q_mass.setRange("fullrange",self.low_M,self.high_M)
-        zz2l2q_mass.setRange("fullsignalrange",300,4000)
+        #zz2l2q_mass.setRange("fullsignalrange",150,4000)
+        zz2l2q_mass.setRange("fullsignalrange",self.mH - 0.25 * self.mH, self.mH + 0.25 * self.mH) #copy from Ram's code
 
         ## -------------------------- SIGNAL SHAPE ----------------------------------- ##
 
@@ -378,6 +404,122 @@ class datacardClass:
         zjetTemplateName="zjet_"+self.appendName+"_"+str(self.year) #add zjet template
         zjet_smooth = TH1F(zjetTemplateName,zjetTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M) #add zjet template
 
+        ##############################################################################
+        ############-----------------Bin by Bin Unc. test-----------------############
+        ##############################################################################
+        # test shape uncertainty for zjet
+        # check the type of the histogram
+        #print("zjetTemplateMVV.ClassName() = {}".format(zjetTemplateMVV.ClassName()))
+        this_zjets_process = "zjets"+"_"+self.cat_tree
+        #hist_up, hist_down = self.create_shape_uncertainties(zjetTemplateMVV, this_process, threshold=0.1)
+        zjets_shape_uncertainty = self.create_shape_uncertainties_test(zjetTemplateMVV, this_zjets_process)
+        #self.N_zjets_shape_uncertainty = len(zjets_shape_uncertainty['up'].keys())
+        self.N_zjets_shape_uncertainty = zjets_shape_uncertainty['up'].keys()
+
+        this_vz_process = "vz"+"_"+self.cat_tree
+        vz_shape_uncertainty = self.create_shape_uncertainties_test(vzTemplateMVV, this_vz_process)
+        self.N_vz_shape_uncertainty = vz_shape_uncertainty['up'].keys()
+
+        this_ttbar_process = "ttbar"+"_"+self.cat_tree
+        ttbar_shape_uncertainty = self.create_shape_uncertainties_test(ttbarTemplateMVV, this_ttbar_process)
+        self.N_ttbar_shape_uncertainty = ttbar_shape_uncertainty['up'].keys()
+
+        #check the returned histograms
+        if self.SanityCheckPlot:
+            #for bin_idx in range(1, self.N_zjets_shape_uncertainty+1):
+            for bin_idx in zjets_shape_uncertainty['up'].keys():
+                #save_histograms_3(zjetTemplateMVV, (zjets_shape_uncertainty['up'])[bin_idx-1], (zjets_shape_uncertainty['down'])[bin_idx-1], "{}/figs/shape_uncertainties/{}_{}_shape_uncertainties_{}_test.png".format(self.outputDir, this_zjets_process, self.channel,bin_idx), "hist", "hist_up", "hist_dn")
+                save_histograms_3(zjetTemplateMVV, zjets_shape_uncertainty['up'][bin_idx], zjets_shape_uncertainty['down'][bin_idx], "{}/figs/shape_uncertainties/{}_{}_shape_uncertainties_{}_test.png".format(self.outputDir, this_zjets_process, self.channel,bin_idx), "hist", "hist_up", "hist_dn")
+
+        #convert to RooDataHist and RooHistPdf
+        zjets_rooDataHist_up = {}#[]
+        zjets_rooDataHist_down = {}#[]
+        zjets_rooHistPdf_up = {}#[]
+        zjets_rooHistPdf_down = {} #[]
+
+        #for i in range(len(zjets_shape_uncertainty['up'])):
+        for i in zjets_shape_uncertainty['up'].keys():
+            zjets_TemplateName_up = "{}_{}_bin{}Up".format(zjetTemplateName,self.cat_tree,i)# i+1)
+            zjets_TemplateName_down = "{}_{}_bin{}Down".format(zjetTemplateName,self.cat_tree,i)# i+1)
+            
+            #RooDataHist
+            #zjets_rooDataHist_up.append(ROOT.RooDataHist(zjets_TemplateName_up, zjets_TemplateName_up, ROOT.RooArgList(zz2l2q_mass), (zjets_shape_uncertainty['up'])[i]))
+            #zjets_rooDataHist_down.append(ROOT.RooDataHist(zjets_TemplateName_down, zjets_TemplateName_down, ROOT.RooArgList(zz2l2q_mass), (zjets_shape_uncertainty['down'])[i]))
+            zjets_rooDataHist_up[i]=ROOT.RooDataHist(zjets_TemplateName_up, zjets_TemplateName_up, ROOT.RooArgList(zz2l2q_mass), zjets_shape_uncertainty['up'][i])
+            zjets_rooDataHist_down[i]=ROOT.RooDataHist(zjets_TemplateName_down, zjets_TemplateName_down, ROOT.RooArgList(zz2l2q_mass), zjets_shape_uncertainty['down'][i])
+
+            #RooHistPdf
+            pdfName_up =  "bkg_zjets_{process}_bin{bin}Up".format( process=this_zjets_process, bin=i)#i+1)
+            pdfName_down =  "bkg_zjets_{process}_bin{bin}Down".format( process=this_zjets_process, bin=i)#=i+1)
+
+            #zjets_rooHistPdf_up.append(ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(zz2l2q_mass), zjets_rooDataHist_up[i]))
+            #zjets_rooHistPdf_down.append(ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(zz2l2q_mass), zjets_rooDataHist_down[i]))
+            zjets_rooHistPdf_up[i]=ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(zz2l2q_mass), zjets_rooDataHist_up[i])
+            zjets_rooHistPdf_down[i]=ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(zz2l2q_mass), zjets_rooDataHist_down[i])
+
+        vz_rooDataHist_up = {}
+        vz_rooDataHist_down = {}
+        vz_rooHistPdf_up = {}
+        vz_rooHistPdf_down = {}
+
+        #for i in range(self.N_vz_shape_uncertainty):
+        for i in vz_shape_uncertainty['up'].keys():
+            vz_TemplateName_up = "{}_{}_bin{}Up".format(vzTemplateName,self.cat_tree,i)
+            vz_TemplateName_down = "{}_{}_bin{}Down".format(vzTemplateName,self.cat_tree,i)
+            
+            #RooDataHist
+            vz_rooDataHist_up[i]=ROOT.RooDataHist(vz_TemplateName_up, vz_TemplateName_up, ROOT.RooArgList(zz2l2q_mass), (vz_shape_uncertainty['up'])[i])
+            vz_rooDataHist_down[i]=ROOT.RooDataHist(vz_TemplateName_down, vz_TemplateName_down, ROOT.RooArgList(zz2l2q_mass), (vz_shape_uncertainty['down'])[i])
+
+            #RooHistPdf
+            pdfName_up =  "bkg_vz_{process}_bin{bin}Up".format( process=this_vz_process, bin=i)
+            pdfName_down =  "bkg_vz_{process}_bin{bin}Down".format( process=this_vz_process, bin=i)
+
+            vz_rooHistPdf_up[i]=ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(zz2l2q_mass), vz_rooDataHist_up[i])
+            vz_rooHistPdf_down[i]=ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(zz2l2q_mass), vz_rooDataHist_down[i])
+
+        ttbar_rooDataHist_up = {}
+        ttbar_rooDataHist_down = {}
+        ttbar_rooHistPdf_up = {}
+        ttbar_rooHistPdf_down = {}
+
+        #for i in range(self.N_ttbar_shape_uncertainty):
+        for i in ttbar_shape_uncertainty['up'].keys():
+            ttbar_TemplateName_up = "{}_{}_bin{}Up".format(ttbarTemplateName,self.cat_tree,i)
+            ttbar_TemplateName_down = "{}_{}_bin{}Down".format(ttbarTemplateName,self.cat_tree,i)
+            
+            #RooDataHist
+            ttbar_rooDataHist_up[i]=ROOT.RooDataHist(ttbar_TemplateName_up, ttbar_TemplateName_up, ROOT.RooArgList(zz2l2q_mass), (ttbar_shape_uncertainty['up'])[i])
+            ttbar_rooDataHist_down[i]=ROOT.RooDataHist(ttbar_TemplateName_down, ttbar_TemplateName_down, ROOT.RooArgList(zz2l2q_mass), (ttbar_shape_uncertainty['down'])[i])
+
+            #RooHistPdf
+            pdfName_up =  "bkg_ttbar_{process}_bin{bin}Up".format( process=this_ttbar_process, bin=i)
+            pdfName_down =  "bkg_ttbar_{process}_bin{bin}Down".format( process=this_ttbar_process, bin=i)
+
+            ttbar_rooHistPdf_up[i]=ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(zz2l2q_mass), ttbar_rooDataHist_up[i])
+            ttbar_rooHistPdf_down[i]=ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(zz2l2q_mass), ttbar_rooDataHist_down[i])
+
+        #convert to RooDataHist
+        #TemplateName_up = "{}_template_up".format(this_process)
+        #TemplateName_down = "{}_template_down".format(this_process)
+        #TemplateName_up = "{}_{}Up".format(zjetTemplateName,self.cat_tree)
+        #TemplateName_down = "{}_{}Down".format(zjetTemplateName,self.cat_tree)
+#
+        #rooDataHist_up = ROOT.RooDataHist(TemplateName_up, TemplateName_up, ROOT.RooArgList(zz2l2q_mass), hist_up)
+        #rooDataHist_down = ROOT.RooDataHist(TemplateName_down, TemplateName_down, ROOT.RooArgList(zz2l2q_mass), hist_down)
+#
+        ##conver to RooHistPdf
+        #pdfName_up =  "bkg_zjets_{process}Up".format( process=this_process)
+        #pdfName_down =  "bkg_zjets_{process}Down".format( process=this_process)
+        #rooHistPdf_up = ROOT.RooHistPdf(pdfName_up, pdfName_up, ROOT.RooArgSet(zz2l2q_mass), rooDataHist_up)
+        #rooHistPdf_down = ROOT.RooHistPdf(pdfName_down, pdfName_down, ROOT.RooArgSet(zz2l2q_mass), rooDataHist_down)
+
+        # add shape uncertainties to the datacards
+        #self.add_shape_uncertainties_to_datacard(this_process, pdfName_up, pdfName_down)
+        ##############################################################################
+        ##############################################################################
+        ##############################################################################
+
         #smooth the templates
         for i in range(0,int(self.high_M-self.low_M)/10) :
 
@@ -470,6 +612,7 @@ class datacardClass:
 
         ## zjet shape
         zjetTempDataHistMVV = ROOT.RooDataHist(zjetTemplateName,zjetTemplateName,RooArgList(zz2l2q_mass),zjet_smooth)
+        #zjetTempDataHistMVV = ROOT.RooDataHist(zjetTemplateName,zjetTemplateName,RooArgList(zz2l2q_mass),zjetTemplateMVV)
         bkg_zjet = ROOT.RooHistPdf(zjetTemplateName+"Pdf",zjetTemplateName+"Pdf",RooArgSet(zz2l2q_mass),zjetTempDataHistMVV)
 
         #JES TAG nuisances #FIXME: check if this is correct
@@ -813,7 +956,7 @@ class datacardClass:
         if self.DEBUG: print('Debug rfvSigRate_zjets from TF1 ',bkgRate_zjets_Shape,' from Rfv ',rfvSigRate_zjets.getVal())
 
         ##### the final number for zjets rate into datacard
-        bkgRate_zjets_Shape = BrZll_zjets_Shape
+        #bkgRate_zjets_Shape = BrZll_zjets_Shape
         bkgRate_zjets_Shape = bkgRate_zjet_Shape
         if self.DEBUG: print('Debug bkgRate_zjets_Shape ',bkgRate_zjets_Shape)
 
@@ -1007,22 +1150,79 @@ class datacardClass:
             funcList_vz.add(bkgTemplatePdf_vz_Up)
             funcList_vz.add(bkgTemplatePdf_vz_Down)
             alphaMorphBkg.setConstant(False)
-            morphVarListBkg.add(alphaMorphBkg)
+            morphVarListBkg.add(alphaMorphBkg) # change to by jialin
         else:
             funcList_zjets.add(bkgTemplatePdf_zjets)
+            funcList_ttbar.add(bkgTemplatePdf_ttbar)
+            funcList_vz.add(bkgTemplatePdf_vz)
             alphaMorphBkg.setConstant(True)
 
         TemplateName = "bkgTemplateMorphPdf_zjets_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_zjets = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+        ##############################################################################
+        ############-----------------Bin by Bin Unc. test-----------------############
+        ##############################################################################
+        #bin by bin shape
+        bkgTemplateMorphPdf_zjets_up = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Up",TemplateName+"Up",zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_zjets_down = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Down",TemplateName+"Down",zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+
         TemplateName = "bkgTemplateMorphPdf_ttbar_"+self.jetType+"_"+str(self.year)
-        bkgTemplateMorphPdf_ttbar = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_ttbar = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_ttbar,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_ttbar_up = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Up",TemplateName+"Up",zz2l2q_mass,D,true,funcList_ttbar,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_ttbar_down = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Down",TemplateName+"Down",zz2l2q_mass,D,true,funcList_ttbar,morphVarListBkg,1.0,1)
+
         TemplateName = "bkgTemplateMorphPdf_vz_"+self.jetType+"_"+str(self.year)
-        bkgTemplateMorphPdf_vz = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_vz = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_vz,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_vz_up = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Up",TemplateName+"Up",zz2l2q_mass,D,true,funcList_vz,morphVarListBkg,1.0,1)
+        bkgTemplateMorphPdf_vz_down = ROOT.FastVerticalInterpHistPdf2D(TemplateName+"Down",TemplateName+"Down",zz2l2q_mass,D,true,funcList_vz,morphVarListBkg,1.0,1)
 
         #### bkg 2D : mzz + Djet;
         name = "bkg2d_zjets"+"_"+str(self.year)
         #bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjets),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) )
         bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjet),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) ) #change to bkg_zjet
+
+        #bin by bin shape
+        bkg2d_zjets_up = {} #[]
+        bkg2d_zjets_down = {}
+
+        #for i in range(0,len(zjets_rooHistPdf_up)):
+        for i in zjets_shape_uncertainty['up'].keys():
+            this_pdfName_up = "bkg_zjets_{process}_bin{bin}Up".format( process=this_zjets_process, bin=i)#i+1)
+            this_pdfName_down = "bkg_zjets_{process}_bin{bin}Down".format( process=this_zjets_process, bin=i)#i+1)
+            this_rooHistPdf_up = zjets_rooHistPdf_up[i]
+            this_rooHistPdf_down = zjets_rooHistPdf_down[i]
+            bkg2d_zjets_up[i]= ROOT.RooProdPdf(this_pdfName_up,this_pdfName_up,ROOT.RooArgSet(this_rooHistPdf_up),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets_up),ROOT.RooArgSet(D) ) ) 
+            bkg2d_zjets_down[i]= ROOT.RooProdPdf(this_pdfName_down,this_pdfName_down,ROOT.RooArgSet(this_rooHistPdf_down),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets_down),ROOT.RooArgSet(D) ) )   
+
+        bkg2d_vz_up = {}
+        bkg2d_vz_down = {}
+
+        for i in vz_shape_uncertainty['up'].keys():
+            this_pdfName_up = "bkg_vz_{process}_bin{bin}Up".format( process=this_vz_process, bin=i)
+            this_pdfName_down = "bkg_vz_{process}_bin{bin}Down".format( process=this_vz_process, bin=i)
+            this_rooHistPdf_up = vz_rooHistPdf_up[i]
+            this_rooHistPdf_down = vz_rooHistPdf_down[i]
+            bkg2d_vz_up[i]=ROOT.RooProdPdf(this_pdfName_up,this_pdfName_up,ROOT.RooArgSet(this_rooHistPdf_up),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_vz_up),ROOT.RooArgSet(D) ) ) 
+            bkg2d_vz_down[i]=ROOT.RooProdPdf(this_pdfName_down,this_pdfName_down,ROOT.RooArgSet(this_rooHistPdf_down),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_vz_down),ROOT.RooArgSet(D) ) )     
+
+        bkg2d_ttbar_up = {}
+        bkg2d_ttbar_down = {}
+
+        for i in ttbar_shape_uncertainty['up'].keys():
+            this_pdfName_up = "bkg_ttbar_{process}_bin{bin}Up".format( process=this_ttbar_process, bin=i)
+            this_pdfName_down = "bkg_ttbar_{process}_bin{bin}Down".format( process=this_ttbar_process, bin=i)
+            this_rooHistPdf_up = ttbar_rooHistPdf_up[i]
+            this_rooHistPdf_down = ttbar_rooHistPdf_down[i]
+            bkg2d_ttbar_up[i]=ROOT.RooProdPdf(this_pdfName_up,this_pdfName_up,ROOT.RooArgSet(this_rooHistPdf_up),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_ttbar_up),ROOT.RooArgSet(D) ) ) 
+            bkg2d_ttbar_down[i]=ROOT.RooProdPdf(this_pdfName_down,this_pdfName_down,ROOT.RooArgSet(this_rooHistPdf_down),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_ttbar_down),ROOT.RooArgSet(D) ) )  
+
+        ##############################################################################
+        ##############################################################################
+        ##############################################################################
+
+
+        #bkg2d_zjets_up = ROOT.RooProdPdf(pdfName_up,pdfName_up,ROOT.RooArgSet(rooHistPdf_up),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets_up),ROOT.RooArgSet(D) ) )
+        #bkg2d_zjets_down = ROOT.RooProdPdf(pdfName_down,pdfName_down,ROOT.RooArgSet(rooHistPdf_down),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets_down),ROOT.RooArgSet(D) ) )
         name = "bkg2d_ttbar"+"_"+str(self.year)
         bkg2d_ttbar = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_ttbar),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_ttbar),ROOT.RooArgSet(D) ) )
         name = "bkg2d_vz"+"_"+str(self.year)
@@ -1363,6 +1563,13 @@ class datacardClass:
                     #getattr(w,'import')(bkg_zjets, ROOT.RooFit.RecycleConflictNodes())
                     getattr(w,'import')(bkg_zjet, ROOT.RooFit.RecycleConflictNodes()) #changed to zjet
 
+                    #bin by bin shape uncertainty
+                    #rooHistPdf_up.SetNameTitle("bkg_zjets_up","bkg_zjets_up")
+                    #rooHistPdf_down.SetNameTitle("bkg_zjets_down","bkg_zjets_down")
+                    getattr(w,'import')(rooHistPdf_up, ROOT.RooFit.RecycleConflictNodes())
+                    getattr(w,'import')(rooHistPdf_down, ROOT.RooFit.RecycleConflictNodes())
+                    
+
         if (self.is2D == 1):
                     bkg2d_vz.SetNameTitle("bkg_vz","bkg_vz")
                     bkg2d_ttbar.SetNameTitle("bkg_ttbar","bkg_ttbar")
@@ -1370,6 +1577,22 @@ class datacardClass:
                     getattr(w,'import')(bkg2d_vz,ROOT.RooFit.RecycleConflictNodes())
                     getattr(w,'import')(bkg2d_ttbar,ROOT.RooFit.RecycleConflictNodes())
                     getattr(w,'import')(bkg2d_zjets,ROOT.RooFit.RecycleConflictNodes())
+                    #bin by bin shape uncertainty
+                    #for i in range(0, len(bkg2d_zjets_up)):
+                    for i in bkg2d_zjets_up.keys():
+                       getattr(w,'import')(bkg2d_zjets_up[i], ROOT.RooFit.RecycleConflictNodes())
+                       getattr(w,'import')(bkg2d_zjets_down[i], ROOT.RooFit.RecycleConflictNodes())
+
+                    for i in bkg2d_ttbar_up.keys():
+                       getattr(w,'import')(bkg2d_ttbar_up[i], ROOT.RooFit.RecycleConflictNodes())
+                       getattr(w,'import')(bkg2d_ttbar_down[i], ROOT.RooFit.RecycleConflictNodes())
+#
+                    for i in bkg2d_vz_up.keys():
+                       getattr(w,'import')(bkg2d_vz_up[i], ROOT.RooFit.RecycleConflictNodes())
+                       getattr(w,'import')(bkg2d_vz_down[i], ROOT.RooFit.RecycleConflictNodes())
+
+                    #getattr(w,'import')(bkg2d_zjets_up, ROOT.RooFit.RecycleConflictNodes())
+                    #getattr(w,'import')(bkg2d_zjets_down, ROOT.RooFit.RecycleConflictNodes())
 
         getattr(w,'import')(rfvSigRate_ggH, ROOT.RooFit.RecycleConflictNodes())
         getattr(w,'import')(rfvSigRate_VBF, ROOT.RooFit.RecycleConflictNodes())
@@ -1407,7 +1630,102 @@ class datacardClass:
         systematics.WriteShapeSystematics(fo,theInputs)
         fo.close()
 
+    # bin by bin shape uncertainty
+    def create_shape_uncertainties_test(self, hist, process, threshold=10):
+       '''
+       the input is the histogram, the process name and the threshold. where histogram is stored the mean value of the bin content and the error.
+       In this function, we will create some histograms for the shape uncertainties(up and down).
+       the number of histogram is as the number of bins in the input histogram.
+       Each histogram will stand for the up and down shape uncertainty for a specific bin. and remain the same for the other bins.
+       '''
 
+       # Output dictionary to store the resulting histograms
+       uncertainties = {'up': {}, 'down': {}}
+   
+       # Loop over each bin in the histogram
+       for bin_idx in range(1, hist.GetNbinsX() + 1):
+           bin_content = hist.GetBinContent(bin_idx)
+           bin_error = hist.GetBinError(bin_idx)
+   
+           # Apply threshold check
+           #if bin_content < threshold:
+            #   continue
+
+           # Modify the bin content for the up and down histograms at the specific bin with applying threshold check
+           # if the number of events are larger than the threshold, means the statistical uncertainty is ignorable
+           if bin_content >= threshold:
+              continue
+           elif bin_content < 0.1:
+              # Create deep copies of the original histogram using Clone for up and down variations
+              hist_up = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_up")
+              hist_down = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_down")
+  
+              hist_up.SetBinContent(bin_idx, 0.000001+ROOT.TMath.Sqrt(0.000001))
+              hist_down.SetBinContent(bin_idx, 0.0)
+           else:
+              # Create deep copies of the original histogram using Clone for up and down variations
+              hist_up = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_up")
+              hist_down = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_down")
+
+              hist_up.SetBinContent(bin_idx, bin_content + bin_error)
+              hist_down.SetBinContent(bin_idx, max(bin_content - bin_error,0.0))
+           #if bin_content <= threshold:
+           #    hist_up.SetBinContent(bin_idx, 0.000001+ROOT.TMath.Sqrt(0.000001))
+           #    hist_down.SetBinContent(bin_idx, 0.0)
+           #else:
+           #    hist_up.SetBinContent(bin_idx, bin_content + bin_error)
+           #    hist_down.SetBinContent(bin_idx, bin_content - bin_error)
+
+           #if self.SanityCheckPlot:
+           #    save_histograms_3(hist, hist_up, hist_down, "{}/figs/shape_uncertainties/{}_{}_shape_uncertainties_{}_test.png".format(self.outputDir, process, self.channel,bin_idx), "hist", "hist_up", "hist_dn")
+   
+           # Store the modified histograms in the output dictionary
+           #uncertainties['up'].append(hist_up)
+           #uncertainties['down'].append(hist_down)
+           uncertainties['up'][bin_idx] = hist_up
+           uncertainties['down'][bin_idx] = hist_down
+
+   
+       return uncertainties
+
+
+    def create_shape_uncertainties(self, hist, process, threshold=3):
+       '''
+       the input is the histogram, the process name and the threshold. where histogram is stored the mean value of the bin content and the error.
+       In this function, we will create some histograms for the shape uncertainties(up and down).
+       the number of histogram is as the number of bins in the input histogram.
+       Each histogram will stand for the up and down shape uncertainty for a specific bin. and remain the same for the other bins.
+       '''
+       
+       #check the type of hist
+       print("hist.ClassName() = ", hist.ClassName())
+       hist_up = hist.Clone(hist.GetName()+"_up")
+       hist_down = hist.Clone(hist.GetName()+"_down")
+
+       # detatch from root file
+       hist_up.SetDirectory(ROOT.gROOT)
+       hist_down.SetDirectory(ROOT.gROOT)
+
+       for bin in range(1, hist.GetNbinsX()+1):
+          content = hist.GetBinContent(bin)
+          error = hist.GetBinError(bin)
+
+          if content <= threshold:
+             hist.SetBinContent(bin, 0.000001)
+             hist_up.SetBinContent(bin, 0.000001 + ROOT.TMath.Sqrt(0.000001))
+             hist_down.SetBinContent(bin, 0.0)
+          else:
+              hist_up.SetBinContent(bin, content + error)
+              hist_down.SetBinContent(bin, max(content - error,0.0))
+
+       if self.SanityCheckPlot:
+        save_histograms_3(hist, hist_up, hist_down, "{}/figs/shape_uncertainties/{}_{}_shape_uncertainties.png".format(self.outputDir, process, self.channel), "hist", "hist_up", "hist_dn")
+          
+       
+       return hist_up, hist_down
+  
+       pass
+    
     def WriteDatacard(self,file,theInputs,nameWS,theRates,obsEvents,is2D):
 
         numberSig = self.numberOfSigChan(theInputs)
@@ -1418,7 +1736,8 @@ class datacardClass:
         file.write("kmax *\n")
 
         file.write("------------\n")
-        file.write("shapes * * {0} w:$PROCESS \n".format(nameWS))
+        #file.write("shapes * * {0} w:$PROCESS \n".format(nameWS))
+        file.write("shapes * * {0} w:$PROCESS w:$PROCESS_$SYSTEMATIC \n".format(nameWS))
         file.write("------------\n")
 
         file.write("bin {0} \n".format(self.appendName))
@@ -1478,6 +1797,50 @@ class datacardClass:
                 file.write("{0:.4f} ".format(theRates[chan]))
         file.write("\n")
         file.write("------------\n")
+
+        # add bin by bin shape uncertainties
+        for i in self.N_zjets_shape_uncertainty:
+           this_bin = i
+           this_shape_line = "{0} shape".format("zjets"+"_"+self.cat_tree+"_bin"+str(this_bin))
+           for channame in channelName1D:
+              if channame.endswith("zjets"):
+                 this_shape_line += " 1"
+              else:
+                 this_shape_line += " -"
+           this_shape_line += "\n"
+           file.write(this_shape_line)
+
+        for i in self.N_ttbar_shape_uncertainty:
+           this_bin = i
+           this_shape_line = "{0} shape".format("ttbar"+"_"+self.cat_tree+"_bin"+str(this_bin))
+           for channame in channelName1D:
+              if channame.endswith("ttbar"):
+                 this_shape_line += " 1"
+              else:
+                 this_shape_line += " -"
+           this_shape_line += "\n"
+           file.write(this_shape_line)
+
+        for i in self.N_vz_shape_uncertainty:
+           this_bin = i
+           this_shape_line = "{0} shape".format("vz"+"_"+self.cat_tree+"_bin"+str(this_bin))
+           for channame in channelName1D:
+              if channame.endswith("vz"):
+                this_shape_line += " 1"
+              else:
+                this_shape_line += " -"
+           this_shape_line += "\n"
+           file.write(this_shape_line)
+        #shape_line = "{} shape".format("zjets"+"_"+self.cat_tree)
+#
+        #for channame in channelName1D:
+        #   if channame.endswith("zjets"):
+        #      shape_line += " 1"
+        #   else:
+        #      shape_line += " -"
+        #
+        #shape_line += "\n"
+        #file.write(shape_line)
 
 
 
