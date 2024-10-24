@@ -114,7 +114,8 @@ class DirectoryCreator:
                 if self.signalStrength != -1.0:
                     self.blindString += " --expectSignal {} ".format(self.signalStrength)
             if args.step == 'fs':
-                self.blindString = " -t -1  "
+                # self.blindString = " -t -1  "
+                self.blindString = " -t -1  --expectSignal {} ".format(self.signalStrength)
         else:
             self.blindString = " "
 
@@ -689,17 +690,17 @@ class DirectoryCreator:
             FitType = "BkgOnlyHypothesis"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
-            # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
+            command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy  --saveShapes --saveOverallShapes --ignoreCovWarning" # --saveWithUncertainties
 
             # always run the FitDiagnostics using condor
             command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
-            RunCommand(command, self.dry_run)
+            # RunCommand(command, self.dry_run)
 
             blindString = " -t -1 --expectSignal 1 "   # s+b fit diagnostics
             FitType = "SBHypothesis"
             command = "combineTool.py -M FitDiagnostics  -m {mH}  -d {datacard} --rMin -10   -n .{name}".format(datacard=datacard, mH=current_mass, name = OutNameAppend+"_"+FitType)
             command += blindString
-            # command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy --saveWithUncertainties  --saveShapes --saveOverallShapes --ignoreCovWarning"
+            command += " --plots  --saveNLL --saveNormalizations --savePredictionsPerToy  --saveShapes --saveOverallShapes --ignoreCovWarning" # --saveWithUncertainties
 
             # always run the FitDiagnostics using condor
             command += self.CombineCondor.format(name = OutNameAppend+"_FitDiagnostics", FitType = FitType, JobFlavour = "tomorrow", Additional = "")
@@ -731,24 +732,26 @@ class DirectoryCreator:
                 command = "text2workspace.py {datacard}.txt  -m {mH} -o {datacard}.root".format( datacard = datacard.replace(".txt", ""), mH = current_mass)
                 RunCommand(command, self.dry_run)
 
+            Stat = " "
+            if self.setParameterRanges != "":
+                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
+            if self.AdditionalFitOptions != "":
+                Stat += " {}".format(self.AdditionalFitOptions)
+
             if self.blind:
-                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  --setParameters r=1 --setParameterRanges r=-5,5 ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command = "combine -M GenerateOnly -d {datacard} -m {mH} -n .{name} --saveToys  ".format(datacard=datacard.replace(".txt",".root"), mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command += Stat
                 command += self.blindString
                 RunCommand(command, self.dry_run)
 
             command = "combineTool.py -M FastScan -w {datacard}:w ".format(datacard=datacard.replace(".txt",".root"))
             if self.blind:
                 command += " -d higgsCombine.{name}.GenerateOnly.mH{mH}.123456.root:toys/toy_asimov -o ../../figs/fastScan_{name} ".format(mH=current_mass, name = OutNameAppend+"_"+self.FitType)
+                command += self.blindString
 
             command += " --parallel 8 "
 
-            if self.blind: command += "  --setParameters r=1 "
 
-            Stat = " "
-            if self.setParameterRanges != "":
-                Stat += " --setParameterRanges {}".format(self.setParameterRanges)
-            if self.AdditionalFitOptions != "":
-                Stat += " {}".format(self.AdditionalFitOptions)
 
             command += Stat
 
@@ -760,16 +763,6 @@ class DirectoryCreator:
 
             if self.ifCondor:
                 command += self.CombineCondor.format(name = OutNameAppend+"_FastScan", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
-            # additionalArguments = "   "
-            # additionalArguments = " --robustHesse 1"
-            # additionalArguments = " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
-
-            # additionalArguments += " --setParameters r=1 --setParameterRanges r=0,10 "
-
-            # fitting options
-            # additionalArguments += " --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.01 --setRobustFitTolerance 0.01 "
-
-            # additionalArguments += " --cminFallbackAlgo Minuit,1:10 --setRobustFitStrategy 2"
 
             RunCommand(command, self.dry_run)
 
