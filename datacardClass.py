@@ -378,9 +378,9 @@ class datacardClass:
         ttbar_smooth_fs_btagged = TH1F("ttbar_"+fs+"_btagged","ttbar_"+fs+"_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
         ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+fs+"_vbftagged","ttbar_"+fs+"_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
 
-        zjet_smooth_fs_untagged = TH1F("zjet_"+fs+"_untagged","zjet_"+fs+"_untagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        zjet_smooth_fs_btagged = TH1F("zjet_"+fs+"_btagged","zjet_"+fs+"_btagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
-        zjet_smooth_fs_vbftagged = TH1F("zjet_"+fs+"_vbftagged","zjet_"+fs+"_vbftagged", int(self.high_M-self.low_M)/10,self.low_M,self.high_M)
+        zjet_smooth_fs_untagged = TH1F("zjet_"+fs+"_untagged","zjet_"+fs+"_untagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        zjet_smooth_fs_btagged = TH1F("zjet_"+fs+"_btagged","zjet_"+fs+"_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        zjet_smooth_fs_vbftagged = TH1F("zjet_"+fs+"_vbftagged","zjet_"+fs+"_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
 
         # shape from 2e+2mu
         TempFile = TFile("templates1D/Template1D_spin0_2l_{}.root".format(self.year),"READ")
@@ -396,7 +396,7 @@ class datacardClass:
         ttbar_smooth = TH1F(ttbarTemplateName,ttbarTemplateName, len(self.variableBinning) -1, array('d', self.variableBinning))
 
         zjetTemplateName="zjet_"+self.appendName+"_"+str(self.year) #add zjet template
-        zjet_smooth = TH1F(zjetTemplateName,zjetTemplateName, int(self.high_M-self.low_M)/10,self.low_M,self.high_M) #add zjet template
+        zjet_smooth = TH1F(zjetTemplateName,zjetTemplateName, len(self.variableBinning) -1, array('d', self.variableBinning)) #add zjet template
 
         #smooth the templates
         for i in range(0, len(self.variableBinning) -1) :
@@ -456,27 +456,29 @@ class datacardClass:
              break
 
         ######## Zjet
-        for i in range(0,int(self.high_M-self.low_M)/10) :
+        for i in range(0, len(self.variableBinning) -1) :
 
          mVV_tmp = zjet_smooth.GetBinCenter(i+1)
+         bin_width = zjet_smooth.GetBinWidth(i+1)
 
          for j in range(0,zjetTemplateMVV.GetXaxis().GetNbins()) :
 
            mVV_tmp_low = zjetTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
            mVV_tmp_up  = zjetTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
+           bin_width_tmp = zjetTemplateMVV.GetXaxis().GetBinWidth(j+1)
 
            if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-             zjet_smooth.SetBinContent(i+1,zjetTemplateMVV.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth.SetBinError(i+1,zjetTemplateMVV.GetBinError(j+1)*10.0/50.0)
+             zjet_smooth.SetBinContent(i+1,zjetTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             zjet_smooth.SetBinError(i+1,zjetTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             zjet_smooth_fs_untagged.SetBinContent(i+1,zjetTemplateMVV_fs_untagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_untagged.SetBinError(i+1,zjetTemplateMVV_fs_untagged.GetBinError(j+1)*10.0/50.0)
+             zjet_smooth_fs_untagged.SetBinContent(i+1,zjetTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             zjet_smooth_fs_untagged.SetBinError(i+1,zjetTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             zjet_smooth_fs_btagged.SetBinContent(i+1,zjetTemplateMVV_fs_btagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_btagged.SetBinError(i+1,zjetTemplateMVV_fs_btagged.GetBinError(j+1)*10.0/50.0)
+             zjet_smooth_fs_btagged.SetBinContent(i+1,zjetTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             zjet_smooth_fs_btagged.SetBinError(i+1,zjetTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
-             zjet_smooth_fs_vbftagged.SetBinContent(i+1,zjetTemplateMVV_fs_vbftagged.GetBinContent(j+1)*10.0/50.0)
-             zjet_smooth_fs_vbftagged.SetBinError(i+1,zjetTemplateMVV_fs_vbftagged.GetBinError(j+1)*10.0/50.0)
+             zjet_smooth_fs_vbftagged.SetBinContent(i+1,zjetTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
+             zjet_smooth_fs_vbftagged.SetBinError(i+1,zjetTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
 
              break
         #if option contains "R" smoothing is applied only to the bins defined in the X axis range (default is to smooth all bins) Bin contents are replaced by their smooth values. Errors (if any) are not modified. the smoothing procedure is repeated ntimes (default=1)
