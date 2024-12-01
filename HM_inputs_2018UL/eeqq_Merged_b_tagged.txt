@@ -47,7 +47,11 @@ systematic param CMS_zz2lJ_mean_J_err   0.01
 systematic param CMS_zz2lJ_sigma_J_err  0.1
 
 ## Electron systematics ##
-systematic elec_full 0.08
+systematic elec_full vz 1.028012852/0.972353790
+systematic elec_full qqH 1.033155911/0.967394756
+systematic elec_full ggH 1.032219894/0.968296456
+systematic elec_full ttbar 1.025142856/0.975152457
+systematic elec_full zv 1.028012852/0.972353790
 systematic elec_trig 0.0075
 
 ##Split JEC systematic ##
@@ -102,6 +106,8 @@ systematic splitjec vz RelSample_year 1.044343891402715/0.9411764705882353
 ##### Add Systematic to Cards ####
 
 ##### allowed True/True ####
+systematic deepjetsf False
+systematic deepjetsfcorrelated False
 systematic CMS_scale_j_split False
 systematic CMS_scale_J_split True
 systematic luminosity True

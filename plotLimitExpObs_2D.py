@@ -123,8 +123,8 @@ dummy.SetFillColor(0)
 
 # Import and set the range from datacardList_limitRange
 if datacard in datacardList_limitRange:
-    logger.debug("Setting range for datacard: {}".format(datacard))
-    logger.debug("Range: {}".format(datacardList_limitRange[datacard]))
+    logger.error("Setting range for datacard: {}".format(datacard))
+    logger.error("Range: {}".format(datacardList_limitRange[datacard]))
     dummy.SetMinimum(datacardList_limitRange[datacard][0])
     dummy.SetMaximum(datacardList_limitRange[datacard][1])
 
