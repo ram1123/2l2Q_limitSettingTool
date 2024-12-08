@@ -1655,7 +1655,7 @@ class datacardClass:
            # if the number of events are larger than the threshold, means the statistical uncertainty is ignorable
            if bin_content >= threshold:
               continue
-           elif bin_content < 0.1:
+           elif bin_content <= 0:
               # Create deep copies of the original histogram using Clone for up and down variations
               hist_up = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_up")
               hist_down = hist.Clone(hist.GetName()+"_"+"bin{}".format(bin_idx)+"_down")
