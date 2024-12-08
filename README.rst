@@ -24,7 +24,10 @@ Setup Higgs combine tool
    git checkout v9.0.0
    scramv1 b clean; scramv1 b # always make a clean build
    cd $CMSSW_BASE/src
-   bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-ssh.sh)
+   git clone https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
+   cd CombineHarvester
+   git checkout v2.0.0
+   cd $CMSSW_BASE/src
    scramv1 b -j 8
 
 
