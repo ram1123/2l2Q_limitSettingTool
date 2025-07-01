@@ -309,26 +309,6 @@ class datacardClass:
         logger.debug("fraction of signal in the mass range is: {}".format(sigFraction))
 
         ## --------------------- BKG mZZ Templates ---------------------##
-
-        vzTemplateMVV_Name = "hmass_"
-        ttbarpluswwTemplateMVV_Name = "hmass_"
-        zjetTemplateMVV_Name = "hmass_" #add for zjet rate
-        if(self.jetType=='resolved' and self.cat=='vbf_tagged') :
-          vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
-          ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
-        elif(self.jetType=='resolved' and self.cat=='b_tagged') :
-          vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
-          ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
-        elif(self.jetType=='resolved' and self.cat=='untagged') :
-          vzTemplateMVV_Name = vzTemplateMVV_Name+"resolvedSR_VZ_perInvFb_Bin50GeV"
-          ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"resolvedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"resolvedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
-        elif(self.jetType=='merged') :
-          vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
-          ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
-          zjetTemplateMVV_Name = zjetTemplateMVV_Name+"mergedSR_Zjet_perInvFb_Bin50GeV" #add for zjet rate
         '''
         # FIXME: # Why for merged category, we are not using the vbf-tagged, b-tagged and untagged templates?
         elif(self.jetType=='merged' and self.cat=='vbf_tagged') :
@@ -341,162 +321,51 @@ class datacardClass:
           vzTemplateMVV_Name = vzTemplateMVV_Name+"mergedSR_VZ_perInvFb_Bin50GeV"
           ttbarpluswwTemplateMVV_Name = ttbarpluswwTemplateMVV_Name+"mergedSR_TTplusWW_perInvFb_Bin50GeV"
         '''
-        #vz yields from a given fs
-        logger.debug("Name of Input ROOT file: templates1D/Template1D_spin0_"+fs+"_"+self.year+".root")
+
+
+
         TempFile_fs = TFile("templates1D/Template1D_spin0_"+fs+"_"+self.year+".root","READ")
         #vz yields for all cats in a given channel
-        logger.debug("Histogram name to fetch: {}".format("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV"))
         vzTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_VZ_perInvFb_Bin50GeV")
         vzTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_VZ_perInvFb_Bin50GeV")
-        logger.debug("vzTemplateMVV_fs_untagged.Integral() = {}".format(vzTemplateMVV_fs_untagged.Integral()))
-        logger.debug("vzTemplateMVV_fs_btagged.Integral() = {}".format(vzTemplateMVV_fs_btagged.Integral()))
-        logger.debug("vzTemplateMVV_fs_vbftagged.Integral() = {}".format(vzTemplateMVV_fs_vbftagged.Integral()))
+        bkgRate_vz_Shape_untagged = vzTemplateMVV_fs_untagged.Integral()
+        bkgRate_vz_Shape_btagged = vzTemplateMVV_fs_btagged.Integral()
+        bkgRate_vz_Shape_vbftagged = vzTemplateMVV_fs_vbftagged.Integral()
 
         ttbarTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_TTplusWW_perInvFb_Bin50GeV")
         ttbarTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_TTplusWW_perInvFb_Bin50GeV")
-        logger.debug("ttbarTemplateMVV_fs_untagged.Integral() = {}".format(ttbarTemplateMVV_fs_untagged.Integral()))
-        logger.debug("ttbarTemplateMVV_fs_btagged.Integral() = {}".format(ttbarTemplateMVV_fs_btagged.Integral()))
-        logger.debug("ttbarTemplateMVV_fs_vbftagged.Integral() = {}".format(ttbarTemplateMVV_fs_vbftagged.Integral()))
+        bkgRate_ttbar_Shape_untagged = ttbarTemplateMVV_fs_untagged.Integral()
+        bkgRate_ttbar_Shape_btagged = ttbarTemplateMVV_fs_btagged.Integral()
+        bkgRate_ttbar_Shape_vbftagged = ttbarTemplateMVV_fs_vbftagged.Integral()
 
         #zjet yields for all cats in a given channel
-        logger.debug("self.jetType: {}".format(self.jetType))
         zjetTemplateMVV_fs_untagged = TempFile_fs.Get("hmass_"+self.jetType+"SR_Zjet_perInvFb_Bin50GeV")
         zjetTemplateMVV_fs_btagged = TempFile_fs.Get("hmass_"+self.jetType+"SRbtag_Zjet_perInvFb_Bin50GeV")
         zjetTemplateMVV_fs_vbftagged = TempFile_fs.Get("hmass_"+self.jetType+"SRvbf_Zjet_perInvFb_Bin50GeV")
-        logger.debug("zjetTemplateMVV_fs_untagged.Integral() = {}".format(zjetTemplateMVV_fs_untagged.Integral()))
-        logger.debug("zjetTemplateMVV_fs_btagged.Integral() = {}".format(zjetTemplateMVV_fs_btagged.Integral()))
-        logger.debug("zjetTemplateMVV_fs_vbftagged.Integral() = {}".format(zjetTemplateMVV_fs_vbftagged.Integral()))
+        bkgRate_zjet_Shape_untagged = zjetTemplateMVV_fs_untagged.Integral()
+        bkgRate_zjet_Shape_btagged = zjetTemplateMVV_fs_btagged.Integral()
+        bkgRate_zjet_Shape_vbftagged = zjetTemplateMVV_fs_vbftagged.Integral()
 
-        #smooth the templates
-        vz_smooth_fs_untagged = TH1F("vz_"+fs+"_untagged","vz_"+fs+"_untagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        vz_smooth_fs_btagged = TH1F("vz_"+fs+"_btagged","vz_"+fs+"_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        vz_smooth_fs_vbftagged = TH1F("vz_"+fs+"_vbftagged","vz_"+fs+"_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
 
-        ttbar_smooth_fs_untagged = TH1F("ttbar_"+fs+"_untagged","ttbar_"+fs+"_untagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        ttbar_smooth_fs_btagged = TH1F("ttbar_"+fs+"_btagged","ttbar_"+fs+"_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        ttbar_smooth_fs_vbftagged = TH1F("ttbar_"+fs+"_vbftagged","ttbar_"+fs+"_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        region = "SR"
 
-        zjet_smooth_fs_untagged = TH1F("zjet_"+fs+"_untagged","zjet_"+fs+"_untagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        zjet_smooth_fs_btagged = TH1F("zjet_"+fs+"_btagged","zjet_"+fs+"_btagged", len(self.variableBinning) -1, array('d', self.variableBinning))
-        zjet_smooth_fs_vbftagged = TH1F("zjet_"+fs+"_vbftagged","zjet_"+fs+"_vbftagged", len(self.variableBinning) -1, array('d', self.variableBinning))
+        vz_smooth_fs_untagged, pars_vz_smooth_fs_untagged, bkgRate_vz_Shape_untagged = read_bkg(fs, self.year, self.jetType, region, "untagged", "VZ", zz2l2q_mass)
+        vz_smooth_fs_btagged, pars_vz_smooth_fs_btagged, bkgRate_vz_Shape_btagged = read_bkg(fs, self.year, self.jetType, region, "b_tagged", "VZ", zz2l2q_mass)
+        vz_smooth_fs_vbftagged, pars_vz_smooth_fs_vbftagged, bkgRate_vz_Shape_vbftagged = read_bkg(fs, self.year, self.jetType, region, "vbf_tagged", "VZ", zz2l2q_mass)
 
-        # shape from 2e+2mu
-        TempFile = TFile("templates1D/Template1D_spin0_2l_{}.root".format(self.year),"READ")
-        logger.debug("VZ template name: {}".format(vzTemplateMVV_Name))
-        logger.debug("ttbar template name: {}".format(ttbarpluswwTemplateMVV_Name))
-        vzTemplateMVV = TempFile.Get(vzTemplateMVV_Name)
-        ttbarTemplateMVV = TempFile.Get(ttbarpluswwTemplateMVV_Name)
-        zjetTemplateMVV = TempFile.Get(zjetTemplateMVV_Name) #add zjet template
+        ttbar_smooth_fs_untagged, pars_ttbar_smooth_fs_untagged, bkgRate_ttbar_Shape_untagged = read_bkg(fs, self.year, self.jetType, region, "untagged", "TTplusWW", zz2l2q_mass)
+        ttbar_smooth_fs_btagged, pars_ttbar_smooth_fs_btagged, bkgRate_ttbar_Shape_btagged = read_bkg(fs, self.year, self.jetType, region, "b_tagged", "TTplusWW", zz2l2q_mass)
+        ttbar_smooth_fs_vbftagged, pars_ttbar_smooth_fs_vbftagged, bkgRate_ttbar_Shape_vbftagged = read_bkg(fs, self.year, self.jetType, region, "vbf_tagged", "TTplusWW", zz2l2q_mass)
 
-        vzTemplateName="vz_"+self.appendName+"_"+str(self.year)
-        vz_smooth = TH1F(vzTemplateName,vzTemplateName, len(self.variableBinning) -1, array('d', self.variableBinning))
-        ttbarTemplateName="ttbar_"+self.appendName+"_"+str(self.year)
-        ttbar_smooth = TH1F(ttbarTemplateName,ttbarTemplateName, len(self.variableBinning) -1, array('d', self.variableBinning))
+        zjet_smooth_fs_untagged, pars_zjet_smooth_fs_untagged, bkgRate_zjet_Shape_untagged = read_bkg(fs, self.year, self.jetType, region, "untagged", "Zjet", zz2l2q_mass)
+        zjet_smooth_fs_btagged, pars_zjet_smooth_fs_btagged, bkgRate_zjet_Shape_btagged = read_bkg(fs, self.year, self.jetType, region, "b_tagged", "Zjet", zz2l2q_mass)
+        zjet_smooth_fs_vbftagged, pars_zjet_smooth_fs_vbftagged, bkgRate_zjet_Shape_vbftagged = read_bkg(fs, self.year, self.jetType, region, "vbf_tagged", "Zjet", zz2l2q_mass)
 
-        zjetTemplateName="zjet_"+self.appendName+"_"+str(self.year) #add zjet template
-        zjet_smooth = TH1F(zjetTemplateName,zjetTemplateName, len(self.variableBinning) -1, array('d', self.variableBinning)) #add zjet template
-
-        #smooth the templates
-        for i in range(0, len(self.variableBinning) -1) :
-
-          mVV_tmp = vz_smooth.GetBinCenter(i+1)
-          bin_width = vz_smooth.GetBinWidth(i+1)
-
-          for j in range(0,vzTemplateMVV.GetXaxis().GetNbins()) :
-
-            mVV_tmp_low = vzTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
-            mVV_tmp_up  = vzTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
-            bin_width_tmp = vzTemplateMVV.GetXaxis().GetBinWidth(j+1)
-
-            if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-
-              vz_smooth.SetBinContent(i+1,vzTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
-              vz_smooth.SetBinError(i+1,vzTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-              ########
-
-              vz_smooth_fs_untagged.SetBinContent(i+1,vzTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-              vz_smooth_fs_untagged.SetBinError(i+1,vzTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-              vz_smooth_fs_btagged.SetBinContent(i+1,vzTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-              vz_smooth_fs_btagged.SetBinError(i+1,vzTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-              vz_smooth_fs_vbftagged.SetBinContent(i+1,vzTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-              vz_smooth_fs_vbftagged.SetBinError(i+1,vzTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-              break # FIXME: is this break correct?
-
-        ####### TTbar
-        for i in range(0, len(self.variableBinning) -1) :
-
-         mVV_tmp = ttbar_smooth.GetBinCenter(i+1)
-         bin_width = ttbar_smooth.GetBinWidth(i+1)
-
-         for j in range(0,ttbarTemplateMVV.GetXaxis().GetNbins()) :
-
-           mVV_tmp_low = ttbarTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
-           mVV_tmp_up  = ttbarTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
-           bin_width_tmp = ttbarTemplateMVV.GetXaxis().GetBinWidth(j+1)
-
-           if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-             ttbar_smooth.SetBinContent(i+1,ttbarTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             ttbar_smooth.SetBinError(i+1,ttbarTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             ttbar_smooth_fs_untagged.SetBinContent(i+1,ttbarTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             ttbar_smooth_fs_untagged.SetBinError(i+1,ttbarTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             ttbar_smooth_fs_btagged.SetBinContent(i+1,ttbarTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             ttbar_smooth_fs_btagged.SetBinError(i+1,ttbarTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             ttbar_smooth_fs_vbftagged.SetBinContent(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             ttbar_smooth_fs_vbftagged.SetBinError(i+1,ttbarTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             break
-
-        ######## Zjet
-        for i in range(0, len(self.variableBinning) -1) :
-
-         mVV_tmp = zjet_smooth.GetBinCenter(i+1)
-         bin_width = zjet_smooth.GetBinWidth(i+1)
-
-         for j in range(0,zjetTemplateMVV.GetXaxis().GetNbins()) :
-
-           mVV_tmp_low = zjetTemplateMVV.GetXaxis().GetBinLowEdge(j+1)
-           mVV_tmp_up  = zjetTemplateMVV.GetXaxis().GetBinUpEdge(j+1)
-           bin_width_tmp = zjetTemplateMVV.GetXaxis().GetBinWidth(j+1)
-
-           if(mVV_tmp>=mVV_tmp_low and mVV_tmp<mVV_tmp_up) :
-             zjet_smooth.SetBinContent(i+1,zjetTemplateMVV.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             zjet_smooth.SetBinError(i+1,zjetTemplateMVV.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             zjet_smooth_fs_untagged.SetBinContent(i+1,zjetTemplateMVV_fs_untagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             zjet_smooth_fs_untagged.SetBinError(i+1,zjetTemplateMVV_fs_untagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             zjet_smooth_fs_btagged.SetBinContent(i+1,zjetTemplateMVV_fs_btagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             zjet_smooth_fs_btagged.SetBinError(i+1,zjetTemplateMVV_fs_btagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             zjet_smooth_fs_vbftagged.SetBinContent(i+1,zjetTemplateMVV_fs_vbftagged.GetBinContent(j+1)* bin_width / bin_width_tmp)
-             zjet_smooth_fs_vbftagged.SetBinError(i+1,zjetTemplateMVV_fs_vbftagged.GetBinError(j+1)* bin_width / bin_width_tmp)
-
-             break
-        #if option contains "R" smoothing is applied only to the bins defined in the X axis range (default is to smooth all bins) Bin contents are replaced by their smooth values. Errors (if any) are not modified. the smoothing procedure is repeated ntimes (default=1)
-        #https://root.cern.ch/doc/v622/classTH1.html#a0d08651c37b622f4bcc0e1a0affefb33 information about smooth function
-        # vz_smooth.Smooth(300,'r')
-        # ttbar_smooth.Smooth(4000,'r')
-        # zjet_smooth.Smooth(4000,'r')
-
-        ## vz shape and ttbar+ww shape
-        vzTempDataHistMVV = ROOT.RooDataHist(vzTemplateName,vzTemplateName,RooArgList(zz2l2q_mass),vz_smooth)
-        ttbarTempDataHistMVV = ROOT.RooDataHist(ttbarTemplateName,ttbarTemplateName,RooArgList(zz2l2q_mass),ttbar_smooth)
-
-        bkg_vz = ROOT.RooHistPdf(vzTemplateName+"Pdf",vzTemplateName+"Pdf",RooArgSet(zz2l2q_mass),vzTempDataHistMVV)
-        bkg_ttbar = ROOT.RooHistPdf(ttbarTemplateName+"Pdf",ttbarTemplateName+"Pdf",RooArgSet(zz2l2q_mass),ttbarTempDataHistMVV)
-
-        ## zjet shape
-        zjetTempDataHistMVV = ROOT.RooDataHist(zjetTemplateName,zjetTemplateName,RooArgList(zz2l2q_mass),zjet_smooth)
-        bkg_zjet = ROOT.RooHistPdf(zjetTemplateName+"Pdf",zjetTemplateName+"Pdf",RooArgSet(zz2l2q_mass),zjetTempDataHistMVV)
+        bkg_vz, pars_bkg_vz, bkgRate_vz = read_bkg(fs, self.year, self.jetType, region, self.cat, "VZ", zz2l2q_mass)
+        bkg_ttbar, pars_bkg_ttbar, bkgRate_ttbar = read_bkg(fs, self.year, self.jetType, region, self.cat, "TTplusWW", zz2l2q_mass)
+        bkg_zjet, pars_bkg_zjet, bkgRate_zjet = read_bkg(fs, self.year, self.jetType, region, self.cat, "Zjet", zz2l2q_mass)
 
         #JES TAG nuisances #FIXME: check if this is correct
         # JES = ROOT.RooRealVar("JES","JES",0,-3,3)
@@ -539,22 +408,9 @@ class datacardClass:
         cumulative_jes_effect_with_btag = "+".join("@{}".format(i+1) for i in range(num_jes_sources))
 
         ## rates for vz
-        #bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()*self.lumi
-        #bkgRate_vz_Shape_btagged = vz_smooth_fs_btagged.Integral()*self.lumi
-        #bkgRate_vz_Shape_vbftagged = vz_smooth_fs_vbftagged.Integral()*self.lumi
-        bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.Integral()
-        bkgRate_vz_Shape_btagged = vz_smooth_fs_btagged.Integral()
-        bkgRate_vz_Shape_vbftagged = vz_smooth_fs_vbftagged.Integral()
-
-        logger.debug("Input root file: {}".format(TempFile_fs))
-        logger.debug("===> Input Hist: {}".format(vzTemplateMVV_fs_untagged.GetName()))
-        logger.debug("bkgRate_vz_Shape_untagged = {}".format(bkgRate_vz_Shape_untagged))
-        logger.debug("bkgRate_vz_Shape_btagged = {}".format(bkgRate_vz_Shape_btagged))
-        logger.debug("bkgRate_vz_Shape_vbftagged = {}".format(bkgRate_vz_Shape_vbftagged))
-
-        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_untagged.GetName(), vz_smooth_fs_untagged.Integral()))
-        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_btagged.GetName(), vz_smooth_fs_btagged.Integral()))
-        logger.debug("Hist name: {}, Integral: {}".format(vz_smooth_fs_vbftagged.GetName(), vz_smooth_fs_vbftagged.Integral()))
+        # bkgRate_vz_Shape_untagged = vz_smooth_fs_untagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_vz_Shape_btagged = vz_smooth_fs_btagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_vz_Shape_vbftagged = vz_smooth_fs_vbftagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
 
         btagRatio = bkgRate_vz_Shape_btagged/bkgRate_vz_Shape_untagged
         vbfRatio = bkgRate_vz_Shape_vbftagged/(bkgRate_vz_Shape_untagged+bkgRate_vz_Shape_btagged)
@@ -580,12 +436,9 @@ class datacardClass:
           bkgRate_vz_Shape = bkgRate_vz_Shape_untagged
 
         ## rates for zjet
-        #bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()*self.lumi
-        #bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()*self.lumi
-        #bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.Integral()*self.lumi
-        bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.Integral()
-        bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.Integral()
-        bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.Integral()
+        # bkgRate_zjet_Shape_untagged = zjet_smooth_fs_untagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_zjet_Shape_btagged = zjet_smooth_fs_btagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_zjet_Shape_vbftagged = zjet_smooth_fs_vbftagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
 
         if(self.jetType=="resolved" and self.cat=='vbf_tagged') :
           bkgRate_zjet_Shape = bkgRate_zjet_Shape_vbftagged
@@ -605,13 +458,9 @@ class datacardClass:
 
 
         ## rates for ttbar+ww
-        #bkgRate_ttbar_Shape_untagged = ttbar_smooth_fs_untagged.Integral()*self.lumi
-        #bkgRate_ttbar_Shape_btagged = ttbar_smooth_fs_btagged.Integral()*self.lumi
-        #bkgRate_ttbar_Shape_vbftagged = ttbar_smooth_fs_vbftagged.Integral()*self.lumi
-        bkgRate_ttbar_Shape_untagged = ttbar_smooth_fs_untagged.Integral()
-        bkgRate_ttbar_Shape_btagged = ttbar_smooth_fs_btagged.Integral()
-        bkgRate_ttbar_Shape_vbftagged = ttbar_smooth_fs_vbftagged.Integral()
-        if self.DEBUG: print('ttbar_smooth_fs_vbftagged = ',ttbar_smooth_fs_vbftagged.Integral())
+        # bkgRate_ttbar_Shape_untagged = ttbar_smooth_fs_untagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_ttbar_Shape_btagged = ttbar_smooth_fs_btagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
+        # bkgRate_ttbar_Shape_vbftagged = ttbar_smooth_fs_vbftagged.createIntegral(ROOT.RooArgSet(zz2l2q_mass)).getVal()
 
         bkgRate_ttbar_Shape_mc = bkgRate_ttbar_Shape_untagged
         if(self.cat=="b_tagged") :
@@ -948,6 +797,7 @@ class datacardClass:
         zjetsTempFile = ROOT.TFile(templatezjetsBkgName)
         zjetsTempFileUp = ROOT.TFile(templatezjetsBkgNameUp)
         zjetsTempFileDn = ROOT.TFile(templatezjetsBkgNameDn)
+        ## two unused variables?
         zjetsTemplate = zjetsTempFile.Get(TString_bkg)
         zjetsTemplate_Up = zjetsTempFile.Get(TString_bkg+"_up")
         zjetsTemplate_Down = zjetsTempFile.Get(TString_bkg+"_dn")
@@ -1047,6 +897,7 @@ class datacardClass:
 
         TemplateName = "bkgTemplateMorphPdf_zjets_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_zjets = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
+        ## Why Pdf_ttbar and vz is created with funcList_zjets?
         TemplateName = "bkgTemplateMorphPdf_ttbar_"+self.jetType+"_"+str(self.year)
         bkgTemplateMorphPdf_ttbar = ROOT.FastVerticalInterpHistPdf2D(TemplateName,TemplateName,zz2l2q_mass,D,true,funcList_zjets,morphVarListBkg,1.0,1)
         TemplateName = "bkgTemplateMorphPdf_vz_"+self.jetType+"_"+str(self.year)
@@ -1054,6 +905,7 @@ class datacardClass:
 
         #### bkg 2D : mzz + Djet;
         name = "bkg2d_zjets"+"_"+str(self.year)
+        print("Type of bkg_zjet:", type(bkg_zjet), bkg_zjet)
         #bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjets),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) )
         bkg2d_zjets = ROOT.RooProdPdf(name,name,ROOT.RooArgSet(bkg_zjet),ROOT.RooFit.Conditional(ROOT.RooArgSet(bkgTemplateMorphPdf_zjets),ROOT.RooArgSet(D) ) ) #change to bkg_zjet
         name = "bkg2d_ttbar"+"_"+str(self.year)

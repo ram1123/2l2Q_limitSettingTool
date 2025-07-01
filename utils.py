@@ -2,6 +2,9 @@ import os
 import logging
 import datetime
 
+import yaml
+import ROOT as R
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -56,7 +59,7 @@ def SaveInfoToTextFile(Info):
     cmssw_base = os.environ.get('CMSSW_BASE', '')
     today = datetime.datetime.now()
     date_string = today.strftime("%d%b").lower()
-    file_path = os.path.join(cmssw_base, 'src/2l2Q_limitSettingTool/commands_{}.log'.format(date_string))
+    file_path = os.path.join(cmssw_base, 'src/2l2q_limitsettingtool/commands_{}.log'.format(date_string))
     with open(file_path, 'a') as file:
         # Get the current date and time, and format it as a string
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -106,3 +109,45 @@ def border_msg(msg):
     h = ''.join(['+'] + ['-' *row] + ['+'])
     result = h + '\n'"|      "+msg+"      |"'\n' + h
     print(result)
+
+
+def read_bkg(fs, year, jetType, region, cat, sam, ZZmass):
+    if (cat == 'vbf_tagged'):
+        cat = "vbf"
+    elif (cat == 'b_tagged'):
+        cat = "btag"
+    elif (cat == 'untagged'):
+        cat = ""
+
+    path = "hist_pars_{}_{}.yaml".format(fs, year)
+    with open(path, 'r') as file:
+        data_dict = yaml.safe_load(file)
+    par = data_dict["{}_{}_{}_{}".format(jetType, region, cat, sam)]
+    a0 = R.RooRealVar("a0", "", 1, 200., 550.)
+    a1 = R.RooRealVar("a1", "", 1, 10., 200.)
+    a2 = R.RooRealVar("a2", "", 1, 0., 300.)
+    a3 = R.RooRealVar("a3", "", 0, 0., 1.0)
+    a4 = R.RooRealVar("a4", "", par[4], 200., 550.)
+    a5 = R.RooRealVar("a5", "", par[5], 10., 500.)
+    a6 = R.RooRealVar("a6", "", par[6], 0., 300.)
+    a7 = R.RooRealVar("a7", "", par[7], 0., 1.0)
+    a8 = R.RooRealVar("a8", "", par[8], 0., 300.)
+    a9 = R.RooRealVar("a9", "", par[9], -1.0, 1.0)
+    a0.setConstant(True)
+    a1.setConstant(True)
+    a2.setConstant(True)
+    a3.setConstant(True)
+    aa = [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9]
+    ggzzpdf = R.RooggZZPdf_v2("ggzzpdf", "",ZZmass , a0, a1, a2, a3, a4, a5, a6, a7, a8, a9)
+
+    # canvas = R.TCanvas("canvas", "ggzzpdf Plot", 800, 600)
+    # canvas.cd()
+    # frame = ZZmass.frame(R.RooFit.Title("ggzzpdf Distribution"))
+    # ggzzpdf.plotOn(frame, R.RooFit.LineColor(R.kBlue), R.RooFit.LineWidth(2))
+    # frame.Draw()
+    # latex = R.TLatex()
+    # latex.SetNDC()
+    # latex.SetTextSize(0.04)
+    # canvas.SaveAs("test/{}_{}_{}_{}.png".format(jetType, region, cat, sam))
+
+    return ggzzpdf, aa, par[-1]
