@@ -288,7 +288,7 @@ class DirectoryCreator:
             AppendNameString = CombineStrings.COMBINE_ASYMP_LIMIT.format(year = self.year, mH = current_mass, blind = "blind" if self.blind else "", Category = self.GetCategory(datacard), bOnlyOrSB = self.FitType)
 
             # -M HybridNew --LHCmode LHC-limits
-            CombineCommonArguments = ' -M AsymptoticLimits -d {datacard} -m {mH}   -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
+            CombineCommonArguments = ' -M AsymptoticLimits -v 3 --cminDefaultMinimizerStrategy=0 --cminFallback Minuit2,0:0.01 --cminFallback Minuit,0:0.001 --minosAlgo=stepping --X-rtd TMCSO_AdaptivePseudoAsimov=10 -d {datacard} -m {mH}   -n .{name} '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
             CombineCommonArgumentsHybrid = ' -M HybridNew --LHCmode LHC-limits -d {datacard} -m {mH}   -n .{name}Hybrid '.format(mH = current_mass, datacard = datacard, name = AppendNameString)
             # CombineCommonArguments += ' --rMin -1 --rMax 2 --rAbsAcc 0 --rRelAcc 0.0005 '
 
@@ -328,7 +328,8 @@ class DirectoryCreator:
                 if self.year == 'run2':
                     command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = "workday", Additional = "\\nRequestCpus=4\\nrequest_memory = 10000")
                 else:
-                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+                    # command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = Condor_queue, Additional = "")
+                    command += self.CombineCondor.format(name = AppendNameString+"_AsympLimit", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
                 commandHybrid += self.CombineCondor.format(name = AppendNameString+"_Hybrid", FitType = self.FitType, JobFlavour = "tomorrow", Additional = "")
                 # espresso = 20min
                 # microcentury = 1 hr
